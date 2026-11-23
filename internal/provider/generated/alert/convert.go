@@ -735,6 +735,7 @@ var oneOfArms = map[string]bool{
 var computedAttrs = map[string]bool{
 	"type_definition.analytics_result_count.no_data_policy":                                                           true,
 	"type_definition.analytics_result_count.no_data_policy.state":                                                     true,
+	"type_definition.analytics_result_count.rules.override.priority":                                                  true,
 	"type_definition.analytics_threshold.no_data_policy":                                                              true,
 	"type_definition.analytics_threshold.no_data_policy.state":                                                        true,
 	"type_definition.analytics_threshold.rules.override.priority":                                                     true,
@@ -856,6 +857,7 @@ var requiredAttrs = map[string]bool{
 	"type_definition": true,
 	"type_definition.analytics_result_count.dataprime_query":                                                      true,
 	"type_definition.analytics_result_count.dataprime_query.query":                                                true,
+	"type_definition.analytics_result_count.rules.override":                                                       true,
 	"type_definition.analytics_result_count.timeframe_minutes":                                                    true,
 	"type_definition.analytics_threshold.dataprime_query":                                                         true,
 	"type_definition.analytics_threshold.dataprime_query.query":                                                   true,
@@ -1331,6 +1333,13 @@ func expandAnalyticsResultCountType(ctx context.Context, p path.Path, m *Analyti
 		diags.Append(v.As(ctx, &nested, basetypes.ObjectAsOptions{})...)
 		out.NoDataPolicy = expandNoDataPolicy(ctx, p.AtName("no_data_policy"), &nested, diags)
 	}
+	out.Operator = expandEnumMapped(p.AtName("operator"), m.Operator, analyticsThresholdOperatorToAPI, diags)
+	if items := expandElements[AnalyticsResultCountRuleModel](ctx, p.AtName("rules"), m.Rules, diags); items != nil {
+		out.Rules = make([]alert_definitions_service.AnalyticsResultCountRule, 0, len(items))
+		for i := range items {
+			out.Rules = append(out.Rules, *expandAnalyticsResultCountRule(ctx, p.AtName("rules").AtListIndex(i), &items[i], diags))
+		}
+	}
 	out.TimeframeMinutes = expandInt32(m.TimeframeMinutes)
 	return out
 }
@@ -1348,6 +1357,15 @@ func flattenAnalyticsResultCountType(ctx context.Context, p path.Path, v *alert_
 		value, valueDiags := types.ObjectValueFrom(ctx, noDataPolicyAttrTypes(), *nested)
 		diags.Append(valueDiags...)
 		out.NoDataPolicy = value
+	}
+	out.Operator = flattenEnumMapped(p.AtName("operator"), v.Operator, analyticsThresholdOperatorFromAPI, diags)
+	out.Rules = types.ListNull(types.ObjectType{AttrTypes: analyticsResultCountRuleAttrTypes()})
+	if len(v.Rules) != 0 {
+		items := make([]AnalyticsResultCountRuleModel, 0, len(v.Rules))
+		for i := range v.Rules {
+			items = append(items, *flattenAnalyticsResultCountRule(ctx, p.AtName("rules").AtListIndex(i), &v.Rules[i], diags))
+		}
+		out.Rules = flattenList(ctx, types.ObjectType{AttrTypes: analyticsResultCountRuleAttrTypes()}, items, diags)
 	}
 	out.TimeframeMinutes = types.Int32PointerValue(v.TimeframeMinutes)
 	return out
@@ -1395,6 +1413,84 @@ func noDataPolicyAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
 		"auto_retire_seconds": types.Int64Type,
 		"state":               types.StringType,
+	}
+}
+
+func expandAnalyticsResultCountRule(ctx context.Context, p path.Path, m *AnalyticsResultCountRuleModel, diags *diag.Diagnostics) *alert_definitions_service.AnalyticsResultCountRule {
+	if m == nil {
+		return nil
+	}
+	out := &alert_definitions_service.AnalyticsResultCountRule{}
+	out.Condition = expandAnalyticsResultCountRuleCondition(ctx, p.AtName("condition"), m.Condition, diags)
+	out.Override = valueOf(expandAlertDefOverride(ctx, p.AtName("override"), m.Override, diags))
+	return out
+}
+
+func flattenAnalyticsResultCountRule(ctx context.Context, p path.Path, v *alert_definitions_service.AnalyticsResultCountRule, diags *diag.Diagnostics) *AnalyticsResultCountRuleModel {
+	if v == nil {
+		return nil
+	}
+	out := &AnalyticsResultCountRuleModel{}
+	out.Condition = flattenAnalyticsResultCountRuleCondition(ctx, p.AtName("condition"), v.Condition, diags)
+	out.Override = flattenAlertDefOverride(ctx, p.AtName("override"), &v.Override, diags)
+	return out
+}
+
+func analyticsResultCountRuleAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"condition": types.ObjectType{AttrTypes: analyticsResultCountRuleConditionAttrTypes()},
+		"override":  types.ObjectType{AttrTypes: alertDefOverrideAttrTypes()},
+	}
+}
+
+func expandAnalyticsResultCountRuleCondition(ctx context.Context, p path.Path, m *AnalyticsResultCountRuleConditionModel, diags *diag.Diagnostics) *alert_definitions_service.AnalyticsResultCountRuleCondition {
+	if m == nil {
+		return nil
+	}
+	out := &alert_definitions_service.AnalyticsResultCountRuleCondition{}
+	out.CountThreshold = expandInt64(m.CountThreshold)
+	out.Expression = expandString(m.Expression)
+	return out
+}
+
+func flattenAnalyticsResultCountRuleCondition(ctx context.Context, p path.Path, v *alert_definitions_service.AnalyticsResultCountRuleCondition, diags *diag.Diagnostics) *AnalyticsResultCountRuleConditionModel {
+	if v == nil {
+		return nil
+	}
+	out := &AnalyticsResultCountRuleConditionModel{}
+	out.CountThreshold = types.Int64PointerValue(v.CountThreshold)
+	out.Expression = types.StringPointerValue(v.Expression)
+	return out
+}
+
+func analyticsResultCountRuleConditionAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"count_threshold": types.Int64Type,
+		"expression":      types.StringType,
+	}
+}
+
+func expandAlertDefOverride(ctx context.Context, p path.Path, m *AlertDefOverrideModel, diags *diag.Diagnostics) *alert_definitions_service.AlertDefOverride {
+	if m == nil {
+		return nil
+	}
+	out := &alert_definitions_service.AlertDefOverride{}
+	out.Priority = expandEnumMapped(p.AtName("priority"), m.Priority, alertDefPriorityToAPI, diags)
+	return out
+}
+
+func flattenAlertDefOverride(ctx context.Context, p path.Path, v *alert_definitions_service.AlertDefOverride, diags *diag.Diagnostics) *AlertDefOverrideModel {
+	if v == nil {
+		return nil
+	}
+	out := &AlertDefOverrideModel{}
+	out.Priority = flattenEnumMapped(p.AtName("priority"), v.Priority, alertDefPriorityFromAPI, diags)
+	return out
+}
+
+func alertDefOverrideAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"priority": types.StringType,
 	}
 }
 
@@ -1523,30 +1619,6 @@ func flattenAnalyticsThresholdRuleCondition(ctx context.Context, p path.Path, v 
 func analyticsThresholdRuleConditionAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
 		"threshold": types.Float64Type,
-	}
-}
-
-func expandAlertDefOverride(ctx context.Context, p path.Path, m *AlertDefOverrideModel, diags *diag.Diagnostics) *alert_definitions_service.AlertDefOverride {
-	if m == nil {
-		return nil
-	}
-	out := &alert_definitions_service.AlertDefOverride{}
-	out.Priority = expandEnumMapped(p.AtName("priority"), m.Priority, alertDefPriorityToAPI, diags)
-	return out
-}
-
-func flattenAlertDefOverride(ctx context.Context, p path.Path, v *alert_definitions_service.AlertDefOverride, diags *diag.Diagnostics) *AlertDefOverrideModel {
-	if v == nil {
-		return nil
-	}
-	out := &AlertDefOverrideModel{}
-	out.Priority = flattenEnumMapped(p.AtName("priority"), v.Priority, alertDefPriorityFromAPI, diags)
-	return out
-}
-
-func alertDefOverrideAttrTypes() map[string]attr.Type {
-	return map[string]attr.Type{
-		"priority": types.StringType,
 	}
 }
 

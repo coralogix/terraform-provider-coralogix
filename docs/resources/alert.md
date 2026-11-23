@@ -937,6 +937,8 @@ Optional:
 - `custom_evaluation_delay` (Number) Delay evaluation of the rules by n milliseconds. When omitted, the provider does not send a custom evaluation delay.
 - `evaluation_period_minutes` (Number) How often the alert is evaluated, in minutes. Optional: when omitted on create or replace, the value is min(10, timeframeMinutes). May exceed timeframeMinutes, in which case data between evaluations is not covered by any evaluation.
 - `no_data_policy` (Attributes) How to treat, and what state to give, an alert with no data. Once set, the policy persists; the Coralogix API does not clear it when the block is removed. (see [below for nested schema](#nestedatt--type_definition--analytics_result_count--no_data_policy))
+- `operator` (String) The comparison operator applied to the row count of every rule. With grouping, rows are counted per group.
+- `rules` (Attributes List) The per-priority trigger rules. Each rule compares the number of result rows meeting its condition to its count threshold. When several rules hold for the same result, the highest priority wins. When omitted or empty, the alert has one rule at its own priority with a count threshold of 0. (see [below for nested schema](#nestedatt--type_definition--analytics_result_count--rules))
 
 <a id="nestedatt--type_definition--analytics_result_count--dataprime_query"></a>
 ### Nested Schema for `type_definition.analytics_result_count.dataprime_query`
@@ -953,6 +955,35 @@ Optional:
 
 - `auto_retire_seconds` (Number) The timeframe in seconds for auto retiring values that were detected as no-data. Accepts only multiples of 60 seconds. Only honored when `state` is one of `ALERTING`, `KEEP_LAST`, or `NO_DATA`.
 - `state` (String) No-data policy state. Preferred values: ["OK" "ALERTING" "KEEP_LAST" "NO_DATA"]. `UNSPECIFIED` is a deprecated protobuf sentinel (not a UI option); omit `no_data_policy` for the same legacy behavior. It remains accepted with a warning and will be rejected in a future provider release.
+
+
+<a id="nestedatt--type_definition--analytics_result_count--rules"></a>
+### Nested Schema for `type_definition.analytics_result_count.rules`
+
+Required:
+
+- `override` (Attributes) The priority the alert triggers at when the rule holds. A rule that sets no priority triggers at P5, the lowest. (see [below for nested schema](#nestedatt--type_definition--analytics_result_count--rules--override))
+
+Optional:
+
+- `condition` (Attributes) Which result rows the rule counts and the count it is compared against. When omitted, every result row counts and the count threshold is 0. (see [below for nested schema](#nestedatt--type_definition--analytics_result_count--rules--condition))
+
+<a id="nestedatt--type_definition--analytics_result_count--rules--override"></a>
+### Nested Schema for `type_definition.analytics_result_count.rules.override`
+
+Optional:
+
+- `priority` (String) The priority of the alert definition Valid values: ["P1" "P2" "P3" "P4" "P5"].
+
+
+<a id="nestedatt--type_definition--analytics_result_count--rules--condition"></a>
+### Nested Schema for `type_definition.analytics_result_count.rules.condition`
+
+Optional:
+
+- `count_threshold` (Number) The number of result rows meeting the rule that the alert's operator compares against. With the default operator the rule triggers when more rows than this meet it. When omitted, 0.
+- `expression` (String) A DataPrime boolean expression over the columns of the query result. Only rows it holds for are counted. When omitted or empty, every result row counts.
+
 
 
 

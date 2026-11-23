@@ -1,5 +1,11 @@
 # Unreleased
 
+#### data-source/coralogix_alert
+- FEAT: Add `type_definition.analytics_result_count.operator`, `type_definition.analytics_result_count.rules`, `type_definition.analytics_result_count.rules.condition`, `type_definition.analytics_result_count.rules.condition.count_threshold`, `type_definition.analytics_result_count.rules.condition.expression`, `type_definition.analytics_result_count.rules.override`, `type_definition.analytics_result_count.rules.override.priority` from the API contract of Management SDK `v1.9.4-0.20261123072503-75a7da38cc8f`.
+
+#### resource/coralogix_alert
+- FEAT: Add `type_definition.analytics_result_count.operator`, `type_definition.analytics_result_count.rules`, `type_definition.analytics_result_count.rules.condition`, `type_definition.analytics_result_count.rules.condition.count_threshold`, `type_definition.analytics_result_count.rules.condition.expression`, `type_definition.analytics_result_count.rules.override`, `type_definition.analytics_result_count.rules.override.priority` from the API contract of Management SDK `v1.9.4-0.20261123072503-75a7da38cc8f`.
+
 #### resource/coralogix_slo_v2
 - FEAT: Add `sli_definition`, the SLI definition of the API: request-based or window-based, from custom metric queries or from APM. It replaces the deprecated `sli`. Exactly one of `sli` or `sli_definition` must be set.
 - CHORE: `sli` is optional and computed. The API fills it from `sli_definition` when the SLI can be expressed with it, and fills `sli_definition` from `sli` for every SLO. A configuration that sets `sli` plans no change.

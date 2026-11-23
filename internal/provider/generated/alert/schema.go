@@ -97,6 +97,46 @@ func Schema() schema.Schema {
 								},
 								MarkdownDescription: "How to treat, and what state to give, an alert with no data. Once set, the policy persists; the Coralogix API does not clear it when the block is removed.",
 							},
+							"operator": schema.StringAttribute{
+								Optional:            true,
+								MarkdownDescription: "The comparison operator applied to the row count of every rule. With grouping, rows are counted per group.",
+							},
+							"rules": schema.ListNestedAttribute{
+								Optional: true,
+								NestedObject: schema.NestedAttributeObject{
+									Attributes: map[string]schema.Attribute{
+										"condition": schema.SingleNestedAttribute{
+											Optional: true,
+											Attributes: map[string]schema.Attribute{
+												"count_threshold": schema.Int64Attribute{
+													Optional:            true,
+													MarkdownDescription: "The number of result rows meeting the rule that the alert's operator compares against. With the default operator the rule triggers when more rows than this meet it. When omitted, 0.",
+												},
+												"expression": schema.StringAttribute{
+													Optional:            true,
+													MarkdownDescription: "A DataPrime boolean expression over the columns of the query result. Only rows it holds for are counted. When omitted or empty, every result row counts.",
+												},
+											},
+											MarkdownDescription: "Which result rows the rule counts and the count it is compared against. When omitted, every result row counts and the count threshold is 0.",
+										},
+										"override": schema.SingleNestedAttribute{
+											Required: true,
+											Attributes: map[string]schema.Attribute{
+												"priority": schema.StringAttribute{
+													Optional: true,
+													Computed: true,
+													Validators: []validator.String{
+														stringvalidator.OneOf("P1", "P2", "P3", "P4", "P5"),
+													},
+													MarkdownDescription: "The priority of the alert definition Valid values: [\"P1\" \"P2\" \"P3\" \"P4\" \"P5\"].",
+												},
+											},
+											MarkdownDescription: "The priority the alert triggers at when the rule holds. A rule that sets no priority triggers at P5, the lowest.",
+										},
+									},
+								},
+								MarkdownDescription: "The per-priority trigger rules. Each rule compares the number of result rows meeting its condition to its count threshold. When several rules hold for the same result, the highest priority wins. When omitted or empty, the alert has one rule at its own priority with a count threshold of 0.",
+							},
 							"timeframe_minutes": schema.Int32Attribute{
 								Required: true,
 								Validators: []validator.Int32{
