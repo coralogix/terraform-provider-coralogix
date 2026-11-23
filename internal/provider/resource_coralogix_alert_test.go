@@ -1783,6 +1783,96 @@ func TestAccCoralogixResourceAlert_analytics_result_count_noDataPolicy(t *testin
 	})
 }
 
+// TestAccCoralogixResourceAlert_analytics_result_count_rules covers the count threshold. Without rules, the
+// API reads back the operator MORE_THAN, which the computed operator keeps without a diff. Rules and an
+// operator round-trip in order, rules need an operator, and removing both resets the operator to MORE_THAN.
+// condition = {} counts every row.
+func TestAccCoralogixResourceAlert_analytics_result_count_rules(t *testing.T) {
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckAlertDestroy(t),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceAlertAnalyticsResultCountMinimal(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_result_count.operator", "MORE_THAN"),
+					resource.TestCheckNoResourceAttr(alertResourceName, "type_definition.analytics_result_count.rules.#"),
+				),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
+			},
+			{
+				Config: testAccCoralogixResourceAlertAnalyticsResultCountRules(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_result_count.operator", "MORE_THAN_OR_EQUALS"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_result_count.rules.#", "3"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_result_count.rules.0.override.priority", "P1"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_result_count.rules.0.condition.count_threshold", "3"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_result_count.rules.0.condition.expression", "errors > 100"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_result_count.rules.1.override.priority", "P3"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_result_count.rules.1.condition.count_threshold", "10"),
+					resource.TestCheckNoResourceAttr(alertResourceName, "type_definition.analytics_result_count.rules.1.condition.expression"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_result_count.rules.2.override.priority", "P5"),
+					resource.TestCheckNoResourceAttr(alertResourceName, "type_definition.analytics_result_count.rules.2.condition.count_threshold"),
+					resource.TestCheckNoResourceAttr(alertResourceName, "type_definition.analytics_result_count.rules.2.condition.expression"),
+				),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
+			},
+			{
+				ResourceName:      alertResourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			// Rules need an operator: without one, a later update would reset it to MORE_THAN.
+			{
+				Config:      strings.Replace(testAccCoralogixResourceAlertAnalyticsResultCountRules(), `operator          = "MORE_THAN_OR_EQUALS"`, "", 1),
+				ExpectError: regexp.MustCompile(`operator is required when rules are set`),
+			},
+			// Without rules, the omitted operator goes back to MORE_THAN.
+			{
+				Config: testAccCoralogixResourceAlertAnalyticsResultCountMinimal(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_result_count.operator", "MORE_THAN"),
+					resource.TestCheckNoResourceAttr(alertResourceName, "type_definition.analytics_result_count.rules.#"),
+				),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
+			},
+		},
+	})
+}
+
+// TestAccCoralogixResourceAlert_analytics_result_count_upgrade creates a result count alert with 3.26.1,
+// which had no rules or operator, and plans it with this build: the operator that the API now reads back
+// must not plan a change.
+func TestAccCoralogixResourceAlert_analytics_result_count_upgrade(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		CheckDestroy: testAccCheckAlertDestroy(t),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceAlertAnalyticsResultCountMinimal(),
+				ExternalProviders: map[string]resource.ExternalProvider{
+					"coralogix": {Source: alertUpgradeSource, VersionConstraint: "= 3.26.1"},
+				},
+			},
+			{
+				Config:                   testAccCoralogixResourceAlertAnalyticsResultCountMinimal(),
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply:             []plancheck.PlanCheck{plancheck.ExpectResourceAction(alertResourceName, plancheck.ResourceActionNoop)},
+					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
+			},
+		},
+	})
+}
+
 func TestAccCoralogixResourceAlert_analytics_threshold(t *testing.T) {
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccAnalyticsAlertsPreCheck(t) },
@@ -1905,6 +1995,39 @@ func testAccCoralogixResourceAlertAnalyticsResultCountMinimal() string {
         query = "source logs | count"
       }
       timeframe_minutes = 10
+    }
+  }
+}
+`
+}
+
+func testAccCoralogixResourceAlertAnalyticsResultCountRules() string {
+	return `resource "coralogix_alert" "test" {
+  name        = "analytics result count alert"
+  description = "Example of analytics result count alert from terraform"
+  priority    = "P3"
+
+  type_definition = {
+    analytics_result_count = {
+      dataprime_query = {
+        query = "source logs | groupby $l.applicationName aggregate count() as errors"
+      }
+      timeframe_minutes = 10
+      operator          = "MORE_THAN_OR_EQUALS"
+      rules = [
+        {
+          condition = { count_threshold = 3, expression = "errors > 100" }
+          override  = { priority = "P1" }
+        },
+        {
+          condition = { count_threshold = 10 }
+          override  = {}
+        },
+        {
+          condition = {}
+          override  = { priority = "P5" }
+        },
+      ]
     }
   }
 }

@@ -13,6 +13,16 @@
 
 - FEAT: `data.coralogix_user` is generated from the Users API contract, and reads by `id` or by `user_name`, exactly one of the two set, as the released data source did. The lookup sends the configured name as the server-side `username` filter of the Search and matches the answer case-insensitively; the state keeps the case of the configuration. The resolution is a handwritten wrapper, because the generated data source cannot express a filter lookup (the V6 generator follow-up).
 
+# Release 3.27.0
+
+#### resource/coralogix_alert
+- FIX: `type_definition.analytics_result_count` can set a count threshold: `rules` (up to 5, each with `override.priority` and a `condition` of an optional `count_threshold` of at least 1 and an optional `expression`; `condition = {}` counts every row) and `operator`. Without them, the alert fires on any result row. `operator` is required when `rules` is set. Without rules, leave it out: it defaults to `MORE_THAN`, the value the API stores, so alerts created with 3.26.1 plan no change.
+- FIX: The deprecation warning on `priority` shows for `analytics_result_count` only when it sets `rules`. Without rules, the alert fires at `priority`.
+- CHORE: Regenerate from the API contract of Management SDK `v1.9.4-0.20261123072503-75a7da38cc8f`.
+
+#### data-source/coralogix_alert
+- FIX: Read `rules` and `operator` of `type_definition.analytics_result_count`, the same attributes as on the resource.
+
 #### resource/coralogix_slo_v2
 - FEAT: Add `sli_definition`, the SLI definition of the API: request-based or window-based, from custom metric queries or from APM. It replaces the deprecated `sli`. Exactly one of `sli` or `sli_definition` must be set.
 - CHORE: `sli` is optional and computed. The API fills it from `sli_definition` when the SLI can be expressed with it, and fills `sli_definition` from `sli` for every SLO. A configuration that sets `sli` plans no change.

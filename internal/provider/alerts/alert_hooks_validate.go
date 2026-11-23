@@ -59,6 +59,7 @@ func validateAlertConfig(ctx context.Context, config tfsdk.Config) diag.Diagnost
 	diags.Append(warnNoDataPolicyUnspecified(typeDefinition)...)
 	diags.Append(checkAnalyticsNoDataPolicy(typeDefinition)...)
 	diags.Append(checkAnalyticsRuleCount(ctx, config, typeDefinition)...)
+	diags.Append(checkResultCountOperator(typeDefinition)...)
 	diags.Append(warnEvaluationPeriodLongerThanTimeframe(typeDefinition)...)
 	diags.Append(checkWebhookTargets(ctx, config)...)
 	diags.Append(checkFlowAlertDefs(typeDefinition)...)
@@ -74,15 +75,34 @@ func armIsSet(typeDefinition types.Object, arm string) bool {
 	return ok && !value.IsNull() && !value.IsUnknown()
 }
 
-// anyArmHasOverrideRules reports whether type_definition sets an arm whose rules have an override block,
-// so that the top level priority is deprecated for it. The schema states it: no table is needed, and a
-// new alert type with such rules is covered.
+// anyArmHasOverrideRules reports whether type_definition sets an arm whose rules have an override block
+// and sets those rules, so that the top level priority is deprecated for it. The schema states it: no table
+// is needed, and a new alert type with such rules is covered. Rules that are null or empty do not count:
+// an analytics_result_count alert without rules fires at the top level priority.
 func anyArmHasOverrideRules(ctx context.Context, typeDefinition types.Object) bool {
 	if typeDefinition.IsNull() || typeDefinition.IsUnknown() {
 		return false
 	}
 	for arm, value := range typeDefinition.Attributes() {
-		if armIsSet(typeDefinition, arm) && typeHasOverrideRules(value.Type(ctx)) {
+		if armIsSet(typeDefinition, arm) && typeHasOverrideRules(value.Type(ctx)) && setsRules(value) {
+			return true
+		}
+	}
+	return false
+}
+
+// setsRules reports whether an object sets a rules collection, directly or in a nested object. An unknown
+// collection counts: it may hold rules.
+func setsRules(value attr.Value) bool {
+	object, ok := value.(types.Object)
+	if !ok || object.IsNull() || object.IsUnknown() {
+		return false
+	}
+	for name, child := range object.Attributes() {
+		if rules, ok := child.(interface{ Elements() []attr.Value }); ok && name == "rules" && !child.IsNull() && (child.IsUnknown() || len(rules.Elements()) > 0) {
+			return true
+		}
+		if setsRules(child) {
 			return true
 		}
 	}
@@ -259,24 +279,46 @@ func allNull(attrs map[string]attr.Value) bool {
 	return true
 }
 
-// maxAnalyticsRules is the number of rules that an analytics_threshold alert takes.
+// maxAnalyticsRules is the number of rules that an analytics alert takes.
 const maxAnalyticsRules = 5
 
 // checkAnalyticsRuleCount rejects more rules than the API takes. The generated schema checks the minimum.
 func checkAnalyticsRuleCount(ctx context.Context, config tfsdk.Config, typeDefinition types.Object) diag.Diagnostics {
-	if !armIsSet(typeDefinition, "analytics_threshold") {
-		return nil
+	var diags diag.Diagnostics
+	for _, arm := range analyticsArms {
+		if !armIsSet(typeDefinition, arm) {
+			continue
+		}
+		rulesPath := path.Root("type_definition").AtName(arm).AtName("rules")
+		var rules types.List
+		diags.Append(config.GetAttribute(ctx, rulesPath, &rules)...)
+		if diags.HasError() || rules.IsNull() || rules.IsUnknown() || len(rules.Elements()) <= maxAnalyticsRules {
+			continue
+		}
+		request := validator.ListRequest{Config: config, ConfigValue: rules, Path: rulesPath, PathExpression: rulesPath.Expression()}
+		response := &validator.ListResponse{}
+		listvalidator.SizeBetween(1, maxAnalyticsRules).ValidateList(ctx, request, response)
+		diags.Append(response.Diagnostics...)
 	}
-	rulesPath := path.Root("type_definition").AtName("analytics_threshold").AtName("rules")
-	var rules types.List
-	diags := config.GetAttribute(ctx, rulesPath, &rules)
-	if diags.HasError() || rules.IsNull() || rules.IsUnknown() || len(rules.Elements()) <= maxAnalyticsRules {
+	return diags
+}
+
+// checkResultCountOperator requires operator when an analytics_result_count alert sets rules, so the
+// comparison is chosen rather than inherited from the MORE_THAN default that an alert without rules uses.
+func checkResultCountOperator(typeDefinition types.Object) diag.Diagnostics {
+	var diags diag.Diagnostics
+	if !armIsSet(typeDefinition, "analytics_result_count") {
 		return diags
 	}
-	request := validator.ListRequest{Config: config, ConfigValue: rules, Path: rulesPath, PathExpression: rulesPath.Expression()}
-	response := &validator.ListResponse{}
-	listvalidator.SizeBetween(1, maxAnalyticsRules).ValidateList(ctx, request, response)
-	diags.Append(response.Diagnostics...)
+	attrs := typeDefinition.Attributes()["analytics_result_count"].(types.Object).Attributes()
+	rules, ok := attrs["rules"].(types.List)
+	if !ok || rules.IsNull() || rules.IsUnknown() || len(rules.Elements()) == 0 {
+		return diags
+	}
+	if operator, ok := attrs["operator"].(types.String); ok && operator.IsNull() {
+		diags.AddAttributeError(path.Root("type_definition").AtName("analytics_result_count").AtName("operator"),
+			"Missing operator", "operator is required when rules are set. Set MORE_THAN for the default comparison.")
+	}
 	return diags
 }
 
