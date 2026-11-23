@@ -286,7 +286,7 @@ Read-Only:
 Read-Only:
 
 - `condition` (Attributes) Which result rows the rule counts and the count it is compared against. `condition = {}` counts every row against a count threshold of 0. (see [below for nested schema](#nestedatt--type_definition--analytics_result_count--rules--condition))
-- `override` (Attributes) The priority the alert triggers at when the rule holds. A rule that sets no priority triggers at P5, the lowest. (see [below for nested schema](#nestedatt--type_definition--analytics_result_count--rules--override))
+- `override` (Attributes) The priority the alert triggers at when the rule holds. `override = {}` uses the alert's top-level `priority`, or P5 when that is not set either. (see [below for nested schema](#nestedatt--type_definition--analytics_result_count--rules--override))
 
 <a id="nestedatt--type_definition--analytics_result_count--rules--condition"></a>
 ### Nested Schema for `type_definition.analytics_result_count.rules.condition`

@@ -231,6 +231,7 @@ types:
       rules: {validators: [{sizeAtLeast: 1}], markdownDescription: "The per-priority trigger rules, between 1 and 5. Each rule compares the number of result rows meeting its condition to its count threshold; when several rules hold, the highest priority wins. When omitted, the alert has one rule at its own `priority` with a count threshold of 0. This is an ordered list: the API preserves the submitted order."}
   AnalyticsResultCountRule:
     fields:
+      override: {markdownDescription: "The priority the alert triggers at when the rule holds. `override = {}` uses the alert's top-level `priority`, or P5 when that is not set either."}
       condition: {required: true, markdownDescription: "Which result rows the rule counts and the count it is compared against. `condition = {}` counts every row against a count threshold of 0."}
   AnalyticsResultCountRuleCondition:
     fields:

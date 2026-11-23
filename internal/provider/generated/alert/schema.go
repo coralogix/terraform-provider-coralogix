@@ -146,7 +146,7 @@ func Schema() schema.Schema {
 													MarkdownDescription: "The priority of the alert definition Valid values: [\"P1\" \"P2\" \"P3\" \"P4\" \"P5\"].",
 												},
 											},
-											MarkdownDescription: "The priority the alert triggers at when the rule holds. A rule that sets no priority triggers at P5, the lowest.",
+											MarkdownDescription: "The priority the alert triggers at when the rule holds. `override = {}` uses the alert's top-level `priority`, or P5 when that is not set either.",
 										},
 									},
 								},

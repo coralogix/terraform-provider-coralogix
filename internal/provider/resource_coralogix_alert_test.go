@@ -2021,7 +2021,7 @@ func testAccCoralogixResourceAlertAnalyticsResultCountRules() string {
         },
         {
           condition = { count_threshold = 10 }
-          override  = { priority = "P3" }
+          override  = {}
         },
         {
           condition = {}
