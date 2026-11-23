@@ -27,9 +27,13 @@ resource "coralogix_user" "example" {
   }
 }
 
-# The data source reads one user by id: the Users API has no username lookup.
+# The data source reads one user by id or by user_name: exactly one of the two is set.
 data "coralogix_user" "by_id" {
   id = coralogix_user.example.id
+}
+
+data "coralogix_user" "by_user_name" {
+  user_name = coralogix_user.example.user_name
 }
 
 resource "coralogix_group" "members" {

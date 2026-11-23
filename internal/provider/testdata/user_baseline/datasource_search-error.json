@@ -4,10 +4,24 @@
     "config": {
       "user_name": "tf-acc-user-1@coralogix.com"
     },
-    "validateDiagnostics": [
-      "error: Invalid Configuration for Read-Only Attribute [AttributeName(\"user_name\")] | Cannot set value for this attribute as the provider has marked it as read-only. Remove the configuration line setting the value.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable and read-only attributes that are supported.",
-      "error: Missing Configuration for Required Attribute [AttributeName(\"id\")] | Must set a configuration value for the id attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/users/v2?page_size=100&username=tf-acc-user-1%40coralogix.com",
+        "status": 500
+      }
     ],
-    "state": null
+    "applyDiagnostics": [
+      "error: Unable to read coralogix_user | The search for user_name \"tf-acc-user-1@coralogix.com\" failed: 500 Internal Server Error"
+    ],
+    "state": {
+      "access_type": null,
+      "active": null,
+      "allowed_login_mode": null,
+      "groups": null,
+      "id": null,
+      "name": null,
+      "user_name": "tf-acc-user-1@coralogix.com"
+    }
   }
 ]

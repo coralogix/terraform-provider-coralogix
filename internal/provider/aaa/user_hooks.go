@@ -178,6 +178,85 @@ func NewUserResource() resource.Resource {
 	return NewResource(UserHooks())
 }
 
+// ImportState keeps the released email-form import: an import id that carries an
+// "@" is a user_name, which the Search resolves to the one user whose username
+// equals it case-insensitively; the id the generated import passes through is the
+// resolved user id. The Users API has no read by id besides the List, so the
+// resolution searches with the username filter the API documents and pages it.
+func (r *UserResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	if !strings.Contains(req.ID, "@") {
+		r.Resource.ImportState(ctx, req, resp)
+		return
+	}
+	if r.client == nil {
+		resp.Diagnostics.AddError("Error importing User",
+			"The resource has no users client to resolve the user_name of the import. Import with the user id instead.")
+		return
+	}
+	user, diags := resolveUserByUsername(ctx, r.client, req.ID)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	req.ID = user.GetUserId()
+	r.Resource.ImportState(ctx, req, resp)
+}
+
+// resolveUserByUsername resolves a user_name to the one user whose username equals
+// it case-insensitively: the search narrows server-side with the username filter,
+// and the wrapper pages the result. The data-source lookup and the import share
+// the semantics the released resource recorded.
+func resolveUserByUsername(ctx context.Context, client *users_management_service.UsersManagementServiceAPIService, userName string) (*users_management_service.RbacV2User, diag.Diagnostics) {
+	var diags diag.Diagnostics
+	var matches []*users_management_service.RbacV2User
+	pageToken := int64(0)
+	for page := 0; page < 100; page++ {
+		request := client.UsersMgmtServiceSearchUsers(ctx).Username(userName).PageSize(100)
+		if pageToken != 0 {
+			request = request.PageToken(pageToken)
+		}
+		out, _, err := request.Execute()
+		if err != nil {
+			diags.AddError("Error importing User", fmt.Sprintf("The search for user_name %q failed: %s", userName, err))
+			return nil, diags
+		}
+		for i := range out.GetUsers() {
+			if strings.EqualFold(out.Users[i].GetUsername(), userName) {
+				matches = append(matches, &out.Users[i])
+			}
+		}
+		pageToken = out.GetNextPageToken()
+		if pageToken == 0 || pageToken < 0 || len(out.GetUsers()) == 0 {
+			break
+		}
+	}
+	switch len(matches) {
+	case 0:
+		diags.AddError(fmt.Sprintf("User with user_name %q not found", userName), "")
+	case 1:
+		if matches[0].GetUserId() == "" {
+			diags.AddError(
+				fmt.Sprintf("User with user_name %q was returned without an id", userName),
+				"Use the user id instead, or report this to the provider developers.",
+			)
+			return nil, diags
+		}
+		return matches[0], diags
+	default:
+		ids := make([]string, 0, len(matches))
+		for _, match := range matches {
+			if id := match.GetUserId(); id != "" {
+				ids = append(ids, id)
+			}
+		}
+		diags.AddError(
+			fmt.Sprintf("Multiple Users found with user_name %q", userName),
+			fmt.Sprintf("Matched user ids: %s. Use the user id instead.", strings.Join(ids, ", ")),
+		)
+	}
+	return nil, diags
+}
+
 // UserResource wraps the generated user resource: Update hands the users client to
 // the hook through the context, and Configure captures it from the provider data.
 type UserResource struct {

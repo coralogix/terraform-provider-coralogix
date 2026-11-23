@@ -5,7 +5,7 @@
       "id": ""
     },
     "applyDiagnostics": [
-      "error: Unable to read coralogix_user | id must be set to a non-empty user id."
+      "error: User id or user_name must be set"
     ],
     "state": {
       "access_type": null,

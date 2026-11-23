@@ -6,7 +6,7 @@
       "user_name": "tf-acc-user-1@coralogix.com"
     },
     "validateDiagnostics": [
-      "error: Invalid Configuration for Read-Only Attribute [AttributeName(\"user_name\")] | Cannot set value for this attribute as the provider has marked it as read-only. Remove the configuration line setting the value.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable and read-only attributes that are supported."
+      "error: Invalid Attribute Combination [AttributeName(\"id\")] | Exactly one of these attributes must be configured: [id,user_name]"
     ],
     "state": null
   }
