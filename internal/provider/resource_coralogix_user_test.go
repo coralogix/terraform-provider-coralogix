@@ -178,17 +178,26 @@ func TestAccCoralogixResourceUserBackwardsCompatibility(t *testing.T) {
 					resource.TestCheckResourceAttr(userResourceName, "user_name", userName),
 					resource.TestCheckResourceAttr(userResourceName, "active", "true"),
 					// A new user belongs to no group, but the set has to be known and empty
-					// rather than null, so other configuration can index into it. The derived
-					// emails set of the released resource left the schema: the Users API has no
-					// email collection, and the value was always the username.
+					// rather than null, so other configuration can index into it.
 					resource.TestCheckResourceAttr(userResourceName, "groups.#", "0"),
+					// The derived emails set is the released one: one primary work email
+					// whose value is the user_name.
+					resource.TestCheckResourceAttr(userResourceName, "emails.#", "1"),
+					resource.TestCheckTypeSetElemNestedAttrs(userResourceName, "emails.*", map[string]string{
+						"primary": "true",
+						"type":    "work",
+						"value":   userName,
+					}),
 				),
 			},
-			// A case-only username change plans an update until the generator keeps the
-			// spelling of a scalar string (V6): the apply succeeds, the API keeps the
-			// stored name, and the state keeps the spelling of the configuration.
+			// A case-only username change plans nothing, as the released plan
+			// modifier made it: the plan keeps the state's spelling (the API keeps
+			// the stored name), so there is nothing to apply.
 			{
 				Config: testAccCoralogixResourceUser(strings.ToUpper(userName)),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{plancheck.ExpectResourceAction(userResourceName, plancheck.ResourceActionNoop)},
+				},
 			},
 			// Name updates happen in place; the id must not change.
 			{

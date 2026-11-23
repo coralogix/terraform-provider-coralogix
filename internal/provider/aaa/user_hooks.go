@@ -29,6 +29,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
+	resourceschema "github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
@@ -83,43 +84,75 @@ func userUpdatePlan(ctx context.Context, req resource.ModifyPlanRequest, resp *r
 	if d := resp.Plan.Get(ctx, &plan); d.HasError() {
 		return
 	}
-	if plan.Username.IsNull() || plan.Username.IsUnknown() {
-		return // Nothing to recover for.
-	}
+	// The state carries the resource: a legacy-state update. The schema of 3.26.0
+	// had no access_type either: a missing value plans null, and the PUT response
+	// supplies both the login modes and the access type, which a known-null plan
+	// would reject as an inconsistent result. Plan both unknown until the read of
+	// the apply fills them. This runs for an unknown username too (a name built
+	// from another resource's attribute): the unknowns are the only plan the
+	// apply can correlate with.
 	attrs := map[string]tftypes.Value{}
 	if err := planRaw.As(&attrs); err != nil {
 		return
 	}
 	planned := planRaw
 	changed := false
+	if !req.State.Raw.IsNull() {
+		for _, name := range []string{"allowed_login_mode", "access_type"} {
+			at, ok := attrs[name]
+			if ok && at.IsNull() {
+				attrs[name] = tftypes.NewValue(at.Type(), tftypes.UnknownValue)
+				changed = true
+			}
+		}
+	}
 	// emails is the released derived set: exactly one primary work email whose
-	// value is the username. The username is known at plan time, so the plan
-	// carries the exact set the apply writes, and the plan correlates with the
-	// state the read after the apply repairs.
+	// value is the username. The plan carries the set the apply writes, so the
+	// plan correlates with the state. An unknown username keeps the set unknown —
+	// the read of the apply fills it, and a known plan here would disagree with
+	// the state the read writes.
+	if plan.Username.IsNull() || plan.Username.IsUnknown() {
+		if changed {
+			resp.Plan.Raw = tftypes.NewValue(planned.Type(), attrs)
+		}
+		return
+	}
+	// A case-only change of the username plans the state's spelling: the API
+	// ignores a username change, the apply succeeds, and the read keeps the
+	// spelling of the configuration, so the released plan showed no change.
+	// The state spelling is what the API holds (the read of the last apply
+	// wrote it), and the next read keeps it, so the plan correlates.
+	if !req.State.Raw.IsNull() {
+		var state user.RbacV2UserModel
+		if d := req.State.Get(ctx, &state); !d.HasError() && !state.Username.IsNull() {
+			if strings.EqualFold(plan.Username.ValueString(), state.Username.ValueString()) {
+				if at, ok := attrs["user_name"]; ok {
+					attrs["user_name"] = tftypes.NewValue(at.Type(), state.Username.ValueString())
+					changed = true
+				}
+			}
+		}
+	}
 	if at, ok := attrs["emails"]; ok {
+		// The username the plan finally carries (the state spelling on a
+		// case-only change) decides the email value, because the flatten of the
+		// apply reads that username from the plan.
+		plannedUserName := plan.Username.ValueString()
+		if userAttr, ok := attrs["user_name"]; ok && userAttr.IsKnown() && !userAttr.IsNull() {
+			var value string
+			if err := userAttr.As(&value); err == nil {
+				plannedUserName = value
+			}
+		}
 		objectType := at.Type().(tftypes.Set).ElementType
 		objectTypes := objectType.(tftypes.Object).AttributeTypes
 		object := tftypes.NewValue(objectType, map[string]tftypes.Value{
 			"primary": tftypes.NewValue(objectTypes["primary"], true),
 			"type":    tftypes.NewValue(objectTypes["type"], userEmailType),
-			"value":   tftypes.NewValue(objectTypes["value"], plan.Username.ValueString()),
+			"value":   tftypes.NewValue(objectTypes["value"], plannedUserName),
 		})
 		attrs["emails"] = tftypes.NewValue(at.Type(), []tftypes.Value{object})
 		changed = true
-	}
-	// The state carries the resource: a legacy-state update. The schema of 3.26.0
-	// had no access_type either: a missing value plans null, and the PUT response
-	// supplies both the login modes and the access type, which a known-null plan
-	// would reject as an inconsistent result. Plan both unknown until the read of
-	// the apply fills them.
-	if !req.State.Raw.IsNull() {
-		for _, name := range []string{"allowed_login_mode", "access_type"} {
-			at, ok := attrs[name]
-			if ok && at.IsNull() && (name != "allowed_login_mode" || plan.AllowedLoginMode.IsNull()) {
-				attrs[name] = tftypes.NewValue(at.Type(), tftypes.UnknownValue)
-				changed = true
-			}
-		}
 	}
 	if changed {
 		resp.Plan.Raw = tftypes.NewValue(planned.Type(), attrs)
@@ -197,9 +230,14 @@ func NewUserResource() resource.Resource {
 
 // Create restores the released diagnostics of a batch create that did not create
 // the user. The generated create() reports "the API did not create the user" with
-// the result message, which the backend leaves out for the common statuses: a user
-// that already exists and one that the API invited. The wrapper translates the
-// generic error into the released message, with the plan's user_name.
+// the result message, which the backend leaves out for every failed status, so the
+// statuses are not tellable apart from the text. The wrapper asks the API instead:
+// when the failed create leaves a user with that username in the team, the released
+// "already exists" diagnostic names it and points at the import; when it does not,
+// the generated error stands (an unspecified status, a domain that is not allowed).
+// An error that says the API created the user but returned no resource is the
+// invited case: the invitation holds no account yet, so the released message says
+// so.
 func (r *UserResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	r.Resource.Create(ctx, req, resp)
 	if !resp.Diagnostics.HasError() {
@@ -209,33 +247,75 @@ func (r *UserResource) Create(ctx context.Context, req resource.CreateRequest, r
 	if d := req.Plan.Get(ctx, &plan); d.HasError() || plan.Username.IsNull() || plan.Username.IsUnknown() {
 		return
 	}
+	username := plan.Username.ValueString()
 	for i, d := range resp.Diagnostics {
 		if d.Severity() != diag.SeverityError {
 			continue
 		}
 		detail := d.Detail()
-		if strings.Contains(detail, "the API did not create the user") {
-			if strings.Contains(detail, "ONBOARDING") || strings.Contains(detail, "invited") {
-				resp.Diagnostics[i] = diag.NewErrorDiagnostic(d.Summary(),
-					fmt.Sprintf("user %q was invited rather than created, so it has no id until the invitation is accepted: %s", plan.Username.ValueString(), detail))
-			} else if detail == "the API did not create the user" {
-				resp.Diagnostics[i] = diag.NewErrorDiagnostic(d.Summary(),
-					fmt.Sprintf("user %q already exists. Import it with `terraform import` instead of creating it.", plan.Username.ValueString()))
+		summary := d.Summary()
+		switch {
+		case strings.Contains(detail, "the API created the user, but returned no resource"):
+			resp.Diagnostics[i] = diag.NewErrorDiagnostic(summary,
+				fmt.Sprintf("user %q was invited rather than created, so it has no id until the invitation is accepted", plan.Username.ValueString()))
+		case summary == "Unable to create user" && strings.Contains(detail, "the API did not create the user") &&
+			strings.HasSuffix(detail, "the API did not create the user") && r.client != nil:
+			// The backend sends no message for a failed status, so the wrapper
+			// asks the API what happened: an account with that username means
+			// the released "already exists" diagnostic; no account means the
+			// invitation family (invited or already invited), whose released
+			// message says the user has no id until the invitation is accepted.
+			found, _, err := r.client.UsersMgmtServiceSearchUsers(ctx).Username(username).PageSize(2).Execute()
+			if err != nil || found == nil {
+				return
 			}
+			for _, candidate := range found.GetUsers() {
+				if strings.EqualFold(candidate.GetUsername(), username) {
+					resp.Diagnostics[i] = diag.NewErrorDiagnostic(summary,
+						fmt.Sprintf("user %q already exists. Import it with `terraform import` instead of creating it.", plan.Username.ValueString()))
+					return
+				}
+			}
+			resp.Diagnostics[i] = diag.NewErrorDiagnostic(summary,
+				fmt.Sprintf("user %q was invited rather than created, so it has no id until the invitation is accepted", plan.Username.ValueString()))
 		}
 	}
 }
 
 // Read hands the state's user_name to the Get hook through the context: the read
 // then searches with the username filter the released read sent, instead of paging
-// the whole team and matching the id itself. A read of a state without a username
-// (a legacy state that the upgrade has not filled yet) pages unfiltered.
+// the whole team and matching the id itself. When the filtered read misses — a user
+// renamed outside Terraform keeps the id, and only the name moved — the read falls
+// back to the unfiltered, paged search the released read retried with, so a rename
+// outside Terraform is a drift the refresh reports, never a silent removal.
 func (r *UserResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var model user.RbacV2UserModel
 	if d := req.State.Get(ctx, &model); !d.HasError() && !model.Username.IsNull() && !model.Username.IsUnknown() {
 		ctx = context.WithValue(ctx, userReadNameKey{}, model.Username.ValueString())
 	}
 	r.Resource.Read(ctx, req, resp)
+	// The hinted read removed the resource from state: give the released fallback
+	// a chance before Terraform recreates the user as a duplicate.
+	if !resp.State.Raw.IsNull() || !resp.Diagnostics.HasError() {
+		return
+	}
+	if !diagHadRemoval(resp) {
+		return
+	}
+	ctx = context.WithValue(ctx, userReadNameKey{}, "")
+	r.Resource.Read(ctx, req, resp)
+}
+
+// diagHadRemoval reports whether the read decided the user is gone. The generated
+// Read removes the resource from state and warns; the wrapper retries unfiltered
+// once before accepting that.
+func diagHadRemoval(resp *resource.ReadResponse) bool {
+	for _, d := range resp.Diagnostics {
+		if d.Severity() == diag.SeverityWarning && strings.Contains(d.Summary(), "disappeared") {
+			return true
+		}
+	}
+	return false
 }
 
 // ImportState keeps the released email-form import: an import id that carries an
@@ -342,6 +422,22 @@ type UserResource struct {
 	client *users_management_service.UsersManagementServiceAPIService
 }
 
+// Schema narrows the generated schema to the released shape: emails is read-only
+// (the set is derived from the username, and a configuration never sets it). The
+// generator's extra attributes are Optional+Computed — its parser refuses a
+// computed-only object set — so the wrapper narrows it here.
+func (r *UserResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+	r.Resource.Schema(ctx, req, resp)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	if emails, ok := resp.Schema.Attributes["emails"].(resourceschema.SetNestedAttribute); ok {
+		emails.Optional = false
+		emails.Computed = true
+		resp.Schema.Attributes["emails"] = emails
+	}
+}
+
 func (r *UserResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	r.Resource.Configure(ctx, req, resp)
 	if cs, ok := req.ProviderData.(*clientset.ClientSet); ok {
@@ -363,6 +459,10 @@ func (r *UserResource) Update(ctx context.Context, req resource.UpdateRequest, r
 			// a token cannot make the same page fill the request twice.
 			users := out.GetUsers()
 			pageToken := out.GetNextPageToken()
+			if pageToken == 0 {
+				out.Users = users
+				return out, nil
+			}
 			for page := 1; page < userLookupPageCap; page++ {
 				next, _, err := r.client.UsersMgmtServiceSearchUsers(ctx).Username(username).PageSize(100).PageToken(pageToken).Execute()
 				if err != nil {

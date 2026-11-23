@@ -364,7 +364,7 @@ var userScenarios = map[string]func(h *grHarness){
 	},
 	"user-name-case-only-change": func(h *grHarness) {
 		s := h.Apply("create", h.null(), userConfig(userA, j{"name": userTestName}))
-		s = h.Apply("change only the case of user_name: the update runs and the state keeps the configured case", s, userConfig("TF-ACC-USER-1@Coralogix.com", j{"name": userTestName}))
+		s = h.Apply("a case-only change of user_name plans no change, as the released plan modifier made it", s, userConfig("TF-ACC-USER-1@Coralogix.com", j{"name": userTestName}))
 		h.RefreshPlan("refresh and replan", s)
 	},
 	"user-name-rename-rejected": func(h *grHarness) {

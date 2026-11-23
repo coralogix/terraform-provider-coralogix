@@ -66,6 +66,15 @@ func (d *UserDataSource) Schema(ctx context.Context, req datasource.SchemaReques
 	userName.MarkdownDescription = "User name (email). Exactly one of `id` or `user_name` must be set. " +
 		"The lookup is case-insensitive, since SSO login can normalize letter case in the backend."
 	resp.Schema.Attributes["user_name"] = userName
+
+	// emails is read-only, as the released schema had it: the set is derived from
+	// the username, and a configuration never sets it. The generator's extra
+	// attributes are Optional+Computed (its parser refuses a computed-only object
+	// set), so the wrapper narrows it here.
+	if emails, ok := resp.Schema.Attributes["emails"].(datasourceschema.SetNestedAttribute); ok {
+		emails.Optional = false
+		resp.Schema.Attributes["emails"] = emails
+	}
 }
 
 // idAttrAsOptional returns the id attribute as optional and computed, for a data

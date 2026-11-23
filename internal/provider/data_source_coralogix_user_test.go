@@ -15,6 +15,9 @@
 package provider
 
 import (
+	"fmt"
+	"strings"
+
 	"regexp"
 	"testing"
 
@@ -75,6 +78,70 @@ func TestAccCoralogixDataSourceUser_userNameLookup(t *testing.T) {
 			},
 		},
 	})
+}
+
+func TestAccCoralogixDataSourceUser_userNameNotFound(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccCoralogixDataSourceUser_readByUserNameLiteral(randUserName()),
+				ExpectError: regexp.MustCompile("User with user_name .* not found"),
+			},
+		},
+	})
+}
+
+func TestAccCoralogixDataSourceUser_userNameLookupMixedCase(t *testing.T) {
+	userName := randUserName()
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				// The lookup is case-insensitive: the state keeps the case the
+				// configuration wrote.
+				Config: testAccCoralogixResourceUser(userName) + testAccCoralogixDataSourceUser_readByUserNameLiteral(strings.ToUpper(userName)),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("data.coralogix_user.by_user_name", "user_name", strings.ToUpper(userName)),
+					resource.TestCheckResourceAttrPair("data.coralogix_user.by_user_name", "id", userResourceName, "id"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccCoralogixDataSourceUser_bothLookupKeysSet(t *testing.T) {
+	userName := randUserName()
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: fmt.Sprintf(`
+					resource "coralogix_user" "test" {
+					  user_name = "%s"
+					}
+
+					data "coralogix_user" "both_keys" {
+					  id        = coralogix_user.test.id
+					  user_name = coralogix_user.test.user_name
+					}
+				`, userName),
+				ExpectError: regexp.MustCompile("(?i)exactly one of these attributes must be configured"),
+			},
+		},
+	})
+}
+
+// testAccCoralogixDataSourceUser_readByUserNameLiteral builds a lookup with a
+// literal name: only the error paths use it, where the read must run during the
+// first plan and no resource exists.
+func testAccCoralogixDataSourceUser_readByUserNameLiteral(userName string) string {
+	return fmt.Sprintf(`data "coralogix_user" "by_user_name" {
+	  user_name = "%s"
+	}`, userName)
 }
 
 func testAccCoralogixDataSourceUser_read() string {

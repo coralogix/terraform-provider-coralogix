@@ -70,7 +70,7 @@
     "replanEmpty": true
   },
   {
-    "step": "change only the case of user_name: the update runs and the state keeps the configured case",
+    "step": "a case-only change of user_name plans no change, as the released plan modifier made it",
     "config": {
       "name": {
         "family_name": "User",
@@ -89,7 +89,7 @@
         {
           "primary": true,
           "type": "work",
-          "value": "TF-ACC-USER-1@Coralogix.com"
+          "value": "tf-acc-user-1@coralogix.com"
         }
       ],
       "groups": [],
@@ -98,31 +98,9 @@
         "family_name": "User",
         "given_name": "Test"
       },
-      "user_name": "TF-ACC-USER-1@Coralogix.com"
+      "user_name": "tf-acc-user-1@coralogix.com"
     },
-    "requests": [
-      {
-        "method": "PUT",
-        "path": "/mgmt/openapi/5/aaa/users/v2",
-        "body": [
-          {
-            "userId": "00000000-0000-4000-8000-000000000001",
-            "userTemplate": {
-              "accessType": {
-                "accessType": "permanent",
-                "permanentAccess": {}
-              },
-              "allowedLoginMode": [],
-              "firstName": "Test",
-              "lastName": "User",
-              "status": "USER_STATUS_ACTIVE",
-              "username": "TF-ACC-USER-1@Coralogix.com"
-            }
-          }
-        ],
-        "status": 200
-      }
-    ],
+    "noChange": true,
     "state": {
       "access_type": {
         "permanent_access": {},
@@ -134,7 +112,7 @@
         {
           "primary": true,
           "type": "work",
-          "value": "TF-ACC-USER-1@Coralogix.com"
+          "value": "tf-acc-user-1@coralogix.com"
         }
       ],
       "groups": [],
@@ -143,16 +121,15 @@
         "family_name": "User",
         "given_name": "Test"
       },
-      "user_name": "TF-ACC-USER-1@Coralogix.com"
-    },
-    "replanEmpty": true
+      "user_name": "tf-acc-user-1@coralogix.com"
+    }
   },
   {
     "step": "refresh and replan",
     "requests": [
       {
         "method": "GET",
-        "path": "/mgmt/openapi/5/aaa/users/v2?page_size=100&username=TF-ACC-USER-1%40Coralogix.com",
+        "path": "/mgmt/openapi/5/aaa/users/v2?page_size=100&username=tf-acc-user-1%40coralogix.com",
         "status": 200
       }
     ],
@@ -167,7 +144,7 @@
         {
           "primary": true,
           "type": "work",
-          "value": "TF-ACC-USER-1@Coralogix.com"
+          "value": "tf-acc-user-1@coralogix.com"
         }
       ],
       "groups": [],
@@ -176,7 +153,7 @@
         "family_name": "User",
         "given_name": "Test"
       },
-      "user_name": "TF-ACC-USER-1@Coralogix.com"
+      "user_name": "tf-acc-user-1@coralogix.com"
     },
     "replanEmpty": true
   }

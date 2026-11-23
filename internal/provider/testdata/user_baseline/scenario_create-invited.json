@@ -46,7 +46,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Unable to create user | the API created the user, but returned no resource"
+      "error: Unable to create user | user \"tf-acc-user-1@coralogix.com\" was invited rather than created, so it has no id until the invitation is accepted"
     ],
     "state": null
   }

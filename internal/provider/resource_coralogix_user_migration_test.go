@@ -69,6 +69,11 @@ func TestAccCoralogixResourceUserMigrationFromSCIM(t *testing.T) {
 					resource.TestCheckResourceAttr(userResourceName, "user_name", userName),
 					resource.TestCheckResourceAttr(userResourceName, "name.given_name", "Test"),
 					resource.TestCheckResourceAttr(userResourceName, "name.family_name", "User"),
+					resource.TestCheckTypeSetElemNestedAttrs(userResourceName, "emails.*", map[string]string{
+						"primary": "true",
+						"type":    "work",
+						"value":   userName,
+					}),
 					resource.TestCheckResourceAttr(userResourceName, "active", "true"),
 				),
 			},
