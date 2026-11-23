@@ -45,12 +45,15 @@
         "status": 200
       }
     ],
+    "inconsistentResult": [
+      "active"
+    ],
     "state": {
       "access_type": {
         "permanent_access": {},
         "temporary_access": null
       },
-      "active": true,
+      "active": null,
       "allowed_login_mode": [],
       "emails": [
         {
@@ -59,7 +62,7 @@
           "value": "tf-acc-user-1@coralogix.com"
         }
       ],
-      "groups": [],
+      "groups": null,
       "id": "00000000-0000-4000-8000-000000000001",
       "name": {
         "family_name": "User",
@@ -67,7 +70,10 @@
       },
       "user_name": "tf-acc-user-1@coralogix.com"
     },
-    "replanEmpty": true
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"active\")"
+    ]
   },
   {
     "step": "update with no private state: a search finds the login modes",
@@ -92,7 +98,7 @@
           "value": "tf-acc-user-1@coralogix.com"
         }
       ],
-      "groups": [],
+      "groups": null,
       "id": "00000000-0000-4000-8000-000000000001",
       "name": {
         "family_name": "Person",
@@ -123,12 +129,15 @@
         "status": 200
       }
     ],
+    "inconsistentResult": [
+      "active"
+    ],
     "state": {
       "access_type": {
         "permanent_access": {},
         "temporary_access": null
       },
-      "active": true,
+      "active": null,
       "allowed_login_mode": [],
       "emails": [
         {
@@ -137,7 +146,7 @@
           "value": "tf-acc-user-1@coralogix.com"
         }
       ],
-      "groups": [],
+      "groups": null,
       "id": "00000000-0000-4000-8000-000000000001",
       "name": {
         "family_name": "Person",
@@ -145,7 +154,10 @@
       },
       "user_name": "tf-acc-user-1@coralogix.com"
     },
-    "replanEmpty": true
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"active\")"
+    ]
   },
   {
     "step": "refresh and replan",
@@ -161,7 +173,7 @@
         "permanent_access": {},
         "temporary_access": null
       },
-      "active": true,
+      "active": null,
       "allowed_login_mode": [],
       "emails": [
         {
@@ -170,7 +182,7 @@
           "value": "tf-acc-user-1@coralogix.com"
         }
       ],
-      "groups": [],
+      "groups": null,
       "id": "00000000-0000-4000-8000-000000000001",
       "name": {
         "family_name": "Person",
@@ -178,6 +190,9 @@
       },
       "user_name": "tf-acc-user-1@coralogix.com"
     },
-    "replanEmpty": true
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"active\")"
+    ]
   }
 ]

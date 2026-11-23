@@ -45,12 +45,15 @@
         "status": 200
       }
     ],
+    "inconsistentResult": [
+      "active"
+    ],
     "state": {
       "access_type": {
         "permanent_access": {},
         "temporary_access": null
       },
-      "active": true,
+      "active": null,
       "allowed_login_mode": [],
       "emails": [
         {
@@ -59,7 +62,7 @@
           "value": "tf-acc-user-1@coralogix.com"
         }
       ],
-      "groups": [],
+      "groups": null,
       "id": "00000000-0000-4000-8000-000000000001",
       "name": {
         "family_name": "User",
@@ -67,7 +70,10 @@
       },
       "user_name": "tf-acc-user-1@coralogix.com"
     },
-    "replanEmpty": true
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"active\")"
+    ]
   },
   {
     "step": "a case-only change of user_name plans no change, as the released plan modifier made it",
@@ -92,7 +98,7 @@
           "value": "tf-acc-user-1@coralogix.com"
         }
       ],
-      "groups": [],
+      "groups": null,
       "id": "00000000-0000-4000-8000-000000000001",
       "name": {
         "family_name": "User",
@@ -100,13 +106,38 @@
       },
       "user_name": "tf-acc-user-1@coralogix.com"
     },
-    "noChange": true,
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/aaa/users/v2",
+        "body": [
+          {
+            "userId": "00000000-0000-4000-8000-000000000001",
+            "userTemplate": {
+              "accessType": {
+                "accessType": "permanent",
+                "permanentAccess": {}
+              },
+              "allowedLoginMode": [],
+              "firstName": "Test",
+              "lastName": "User",
+              "status": "USER_STATUS_ACTIVE",
+              "username": "tf-acc-user-1@coralogix.com"
+            }
+          }
+        ],
+        "status": 200
+      }
+    ],
+    "inconsistentResult": [
+      "active"
+    ],
     "state": {
       "access_type": {
         "permanent_access": {},
         "temporary_access": null
       },
-      "active": true,
+      "active": null,
       "allowed_login_mode": [],
       "emails": [
         {
@@ -115,14 +146,18 @@
           "value": "tf-acc-user-1@coralogix.com"
         }
       ],
-      "groups": [],
+      "groups": null,
       "id": "00000000-0000-4000-8000-000000000001",
       "name": {
         "family_name": "User",
         "given_name": "Test"
       },
       "user_name": "tf-acc-user-1@coralogix.com"
-    }
+    },
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"active\")"
+    ]
   },
   {
     "step": "refresh and replan",
@@ -138,7 +173,7 @@
         "permanent_access": {},
         "temporary_access": null
       },
-      "active": true,
+      "active": null,
       "allowed_login_mode": [],
       "emails": [
         {
@@ -147,7 +182,7 @@
           "value": "tf-acc-user-1@coralogix.com"
         }
       ],
-      "groups": [],
+      "groups": null,
       "id": "00000000-0000-4000-8000-000000000001",
       "name": {
         "family_name": "User",
@@ -155,6 +190,9 @@
       },
       "user_name": "tf-acc-user-1@coralogix.com"
     },
-    "replanEmpty": true
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"active\")"
+    ]
   }
 ]

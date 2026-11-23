@@ -520,6 +520,11 @@ func (r *UserResource) Update(ctx context.Context, req resource.UpdateRequest, r
 				out.Users = users
 				return out, nil
 			}
+			// A break that a terminal token or an empty page took means the
+			// answers ended; only the loop condition running out means the
+			// budget is exhausted — the two are not the same, and only the
+			// second refuses the update.
+			exhausted := true
 			for page := 1; page < userLookupPageCap; page++ {
 				next, raw, err := request.PageToken(pageToken).Execute()
 				if err != nil {
@@ -528,15 +533,17 @@ func (r *UserResource) Update(ctx context.Context, req resource.UpdateRequest, r
 				users = append(users, next.GetUsers()...)
 				nextToken := next.GetNextPageToken()
 				if nextToken <= pageToken {
+					exhausted = false
 					break
 				}
 				pageToken = nextToken
 				if len(next.GetUsers()) == 0 {
+					exhausted = false
 					break
 				}
 			}
 			out.Users = users
-			if pageToken > 0 {
+			if exhausted {
 				// The loop ran out of pages with the token still moving: a
 				// search this deep is the server misbehaving, and continuing
 				// would send a PUT without the values the answers may hold.
@@ -780,19 +787,37 @@ func userAfterFlatten(ctx context.Context, m *user.RbacV2UserModel, v *users_man
 	if m == nil || v == nil {
 		return diags
 	}
-	// The API stores an omitted name as the empty string and echoes it back as
-	// "": the attribute reads as null, as the released resource recorded. The
-	// model carries the kept prior name when the API holds none of it, so the
-	// empty API name only replaces an absent prior name.
+	// The API stores an omitted name as "" and cannot tell a null component from
+	// an empty one. The released preserveUserName kept the prior name only when
+	// both of its components said the same thing as the API — an empty string
+	// reads the same as a null — so a name the API cleared leaves the state, and
+	// a configuration whose component is explicitly empty keeps its own form.
+	// m.Name here is the value setState kept from the plan or the prior state,
+	// or the flatten's own value when there was no prior.
 	name := userName{
 		GivenName:  emptyAsNull(v.FirstName),
 		FamilyName: emptyAsNull(v.LastName),
 	}
-	if name.GivenName.IsNull() && name.FamilyName.IsNull() {
-		// The API stores no name: the plan or the prior state keeps the name the
-		// configuration set, even the empty one (the API cannot tell a null name
-		// from an empty one, and the released resource kept the prior). Without a
-		// prior, m.Name already is the null object that flatten built.
+	apiCleared := name.GivenName.IsNull() && name.FamilyName.IsNull()
+	if !m.Name.IsNull() && !m.Name.IsUnknown() {
+		// The released preserveUserName: the prior form survives when both of
+		// its components read the same as the API's (a null component reads as
+		// ""). A prior the API contradicts follows the API — including a name
+		// the API cleared, whose prior form with a real component leaves the
+		// state.
+		var prior userName
+		d := m.Name.As(ctx, &prior, basetypes.ObjectAsOptions{})
+		diags.Append(d...)
+		if diags.HasError() {
+			return diags
+		}
+		if prior.GivenName.ValueString() == name.GivenName.ValueString() &&
+			prior.FamilyName.ValueString() == name.FamilyName.ValueString() {
+			return diags
+		}
+	}
+	if apiCleared {
+		m.Name = basetypes.NewObjectNull(userNameAttrTypes)
 	} else {
 		object, d := basetypes.NewObjectValue(userNameAttrTypes, map[string]attr.Value{
 			"given_name":  name.GivenName,

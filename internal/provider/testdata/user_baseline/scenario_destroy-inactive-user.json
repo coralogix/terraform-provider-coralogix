@@ -46,12 +46,15 @@
         "status": 200
       }
     ],
+    "inconsistentResult": [
+      "active"
+    ],
     "state": {
       "access_type": {
         "permanent_access": {},
         "temporary_access": null
       },
-      "active": false,
+      "active": null,
       "allowed_login_mode": [],
       "emails": [
         {
@@ -60,7 +63,7 @@
           "value": "tf-acc-user-1@coralogix.com"
         }
       ],
-      "groups": [],
+      "groups": null,
       "id": "00000000-0000-4000-8000-000000000001",
       "name": {
         "family_name": "User",
@@ -68,7 +71,10 @@
       },
       "user_name": "tf-acc-user-1@coralogix.com"
     },
-    "replanEmpty": true
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"active\")"
+    ]
   },
   {
     "step": "destroy: the user is already inactive",

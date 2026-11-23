@@ -59,12 +59,15 @@
         "status": 200
       }
     ],
+    "inconsistentResult": [
+      "active"
+    ],
     "state": {
       "access_type": {
         "permanent_access": {},
         "temporary_access": null
       },
-      "active": true,
+      "active": null,
       "allowed_login_mode": [
         "ALLOWED_LOGIN_MODE_SSO",
         "ALLOWED_LOGIN_MODE_LOCAL",
@@ -77,7 +80,7 @@
           "value": "tf-acc-user-1@coralogix.com"
         }
       ],
-      "groups": [],
+      "groups": null,
       "id": "00000000-0000-4000-8000-000000000001",
       "name": {
         "family_name": "User",
@@ -85,7 +88,10 @@
       },
       "user_name": "tf-acc-user-1@coralogix.com"
     },
-    "replanEmpty": true
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"active\")"
+    ]
   },
   {
     "step": "refresh: the state carries the canonical order",
@@ -101,7 +107,7 @@
         "permanent_access": {},
         "temporary_access": null
       },
-      "active": true,
+      "active": null,
       "allowed_login_mode": [
         "ALLOWED_LOGIN_MODE_SSO",
         "ALLOWED_LOGIN_MODE_LOCAL",
@@ -114,7 +120,7 @@
           "value": "tf-acc-user-1@coralogix.com"
         }
       ],
-      "groups": [],
+      "groups": null,
       "id": "00000000-0000-4000-8000-000000000001",
       "name": {
         "family_name": "User",
@@ -122,6 +128,9 @@
       },
       "user_name": "tf-acc-user-1@coralogix.com"
     },
-    "replanEmpty": true
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"active\")"
+    ]
   }
 ]

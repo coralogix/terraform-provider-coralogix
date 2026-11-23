@@ -45,12 +45,15 @@
         "status": 200
       }
     ],
+    "inconsistentResult": [
+      "active"
+    ],
     "state": {
       "access_type": {
         "permanent_access": {},
         "temporary_access": null
       },
-      "active": true,
+      "active": null,
       "allowed_login_mode": [],
       "emails": [
         {
@@ -59,7 +62,7 @@
           "value": "tf-acc-user-1@coralogix.com"
         }
       ],
-      "groups": [],
+      "groups": null,
       "id": "00000000-0000-4000-8000-000000000001",
       "name": {
         "family_name": "User",
@@ -67,7 +70,10 @@
       },
       "user_name": "tf-acc-user-1@coralogix.com"
     },
-    "replanEmpty": true
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"active\")"
+    ]
   },
   {
     "step": "refresh: SearchUsers returns the user without userId",
@@ -86,7 +92,7 @@
         "permanent_access": {},
         "temporary_access": null
       },
-      "active": true,
+      "active": null,
       "allowed_login_mode": [],
       "emails": [
         {
@@ -95,7 +101,7 @@
           "value": "tf-acc-user-1@coralogix.com"
         }
       ],
-      "groups": [],
+      "groups": null,
       "id": "00000000-0000-4000-8000-000000000001",
       "name": {
         "family_name": "User",
@@ -103,7 +109,10 @@
       },
       "user_name": "tf-acc-user-1@coralogix.com"
     },
-    "replanEmpty": true
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"active\")"
+    ]
   },
   {
     "step": "apply the same config again: the user still exists but has no id",
@@ -128,7 +137,7 @@
           "value": "tf-acc-user-1@coralogix.com"
         }
       ],
-      "groups": [],
+      "groups": null,
       "id": "00000000-0000-4000-8000-000000000001",
       "name": {
         "family_name": "User",
@@ -136,13 +145,38 @@
       },
       "user_name": "tf-acc-user-1@coralogix.com"
     },
-    "noChange": true,
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/aaa/users/v2",
+        "body": [
+          {
+            "userId": "00000000-0000-4000-8000-000000000001",
+            "userTemplate": {
+              "accessType": {
+                "accessType": "permanent",
+                "permanentAccess": {}
+              },
+              "allowedLoginMode": [],
+              "firstName": "Test",
+              "lastName": "User",
+              "status": "USER_STATUS_ACTIVE",
+              "username": "tf-acc-user-1@coralogix.com"
+            }
+          }
+        ],
+        "status": 404
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Resource no longer exists | The API did not find user with id 00000000-0000-4000-8000-000000000001. Run terraform apply without -refresh=false: the refresh removes it from state, and the plan creates it again."
+    ],
     "state": {
       "access_type": {
         "permanent_access": {},
         "temporary_access": null
       },
-      "active": true,
+      "active": null,
       "allowed_login_mode": [],
       "emails": [
         {
@@ -151,7 +185,7 @@
           "value": "tf-acc-user-1@coralogix.com"
         }
       ],
-      "groups": [],
+      "groups": null,
       "id": "00000000-0000-4000-8000-000000000001",
       "name": {
         "family_name": "User",

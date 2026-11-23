@@ -45,12 +45,15 @@
         "status": 200
       }
     ],
+    "inconsistentResult": [
+      "active"
+    ],
     "state": {
       "access_type": {
         "permanent_access": {},
         "temporary_access": null
       },
-      "active": true,
+      "active": null,
       "allowed_login_mode": [],
       "emails": [
         {
@@ -59,7 +62,7 @@
           "value": "tf-acc-user-1@coralogix.com"
         }
       ],
-      "groups": [],
+      "groups": null,
       "id": "00000000-0000-4000-8000-000000000001",
       "name": {
         "family_name": "User",
@@ -67,7 +70,10 @@
       },
       "user_name": "tf-acc-user-1@coralogix.com"
     },
-    "replanEmpty": true
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"active\")"
+    ]
   },
   {
     "step": "refresh after the username changed outside Terraform",
@@ -88,7 +94,7 @@
         "permanent_access": {},
         "temporary_access": null
       },
-      "active": true,
+      "active": null,
       "allowed_login_mode": [],
       "emails": [
         {
@@ -97,7 +103,7 @@
           "value": "tf-acc-user-2@coralogix.com"
         }
       ],
-      "groups": [],
+      "groups": null,
       "id": "00000000-0000-4000-8000-000000000001",
       "name": {
         "family_name": "User",
@@ -115,6 +121,7 @@
     ],
     "replanEmpty": false,
     "replanDiff": [
+      "AttributeName(\"active\")",
       "AttributeName(\"emails\").ElementKeyValue(tftypes.Object[\"primary\":tftypes.Bool, \"type\":tftypes.String, \"value\":tftypes.String]<\"primary\":tftypes.Bool<\"true\">, \"type\":tftypes.String<\"work\">, \"value\":tftypes.String<\"tf-acc-user-1@coralogix.com\">>)",
       "AttributeName(\"emails\").ElementKeyValue(tftypes.Object[\"primary\":tftypes.Bool, \"type\":tftypes.String, \"value\":tftypes.String]<\"primary\":tftypes.Bool<\"true\">, \"type\":tftypes.String<\"work\">, \"value\":tftypes.String<\"tf-acc-user-2@coralogix.com\">>)",
       "AttributeName(\"emails\").ElementKeyValue(tftypes.Object[\"primary\":tftypes.Bool, \"type\":tftypes.String, \"value\":tftypes.String]<\"primary\":tftypes.Bool<\"true\">, \"type\":tftypes.String<\"work\">, \"value\":tftypes.String<\"tf-acc-user-2@coralogix.com\">>).AttributeName(\"primary\")",
