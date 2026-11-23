@@ -55,8 +55,8 @@ type validatedResource struct {
 	overrides *overrides.File // nil for a new resource
 	// deprecated are the API fields that the contract marks deprecated (contractDeprecations).
 	deprecated map[string]bool
-	// examples are the examples that the contract states for the fields of a new resource, keyed by
-	// the field of the resource response (readExamples). nil for an existing resource.
+	// examples are the examples that the contract states for the fields of the resource, keyed by
+	// the field of the resource response (readExamples). A released resource keeps only the valid ones.
 	examples map[string]*contractExample
 	// withoutDelete is the resource validated without the Delete override of the overrides, when
 	// that also passes every OpenAPI and renderer check. The override is then stale unless the SDK
@@ -375,15 +375,18 @@ func validateOpenAPIWith(data []byte, resourceName string, operationIDs model.Op
 	if report := readBackIssues(resource, file); len(report) != 0 {
 		return nil, &EligibilityError{Report: report}
 	}
-	var examples map[string]*contractExample
+	hits := findExamples(resource, readExamples(spec))
 	if file == nil {
-		// Only a new resource uses the examples of the contract: a released resource keeps its tests.
-		hits := findExamples(resource, readExamples(spec))
 		if report := exampleIssues(hits); len(report) != 0 {
 			return nil, &EligibilityError{Report: report}
 		}
-		examples = exampleMap(hits)
+	} else {
+		// A released resource keeps its tests, and uses an example only for an attribute that the
+		// release does not have (markNewExamples). An example that the schema rules out is left
+		// out: the test makes up a value for the attribute, as it did before.
+		hits = slices.DeleteFunc(hits, func(h exampleHit) bool { return exampleProblem(h.Type, h.Value) != "" })
 	}
+	examples := exampleMap(hits)
 	dropUnusedList(resource, file)
 	if report = unwrapUsageIssues(resource, file); len(report) != 0 {
 		return nil, &EligibilityError{Report: report}
