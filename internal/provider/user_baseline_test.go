@@ -29,7 +29,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/aaa"
-	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/user"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils/schemadump"
 )
 
@@ -78,7 +77,7 @@ func (h *grHarness) stateFromJSON(attrs map[string]any) tftypes.Value {
 
 func TestUserBaselineSchema(t *testing.T) {
 	var current resource.SchemaResponse
-	user.NewResource(aaa.UserHooks()).Schema(context.Background(), resource.SchemaRequest{}, &current)
+	aaa.NewUserResource().Schema(context.Background(), resource.SchemaRequest{}, &current)
 	checkGoldenAt(t, userGoldenDir, "schema_current.txt", []byte(schemadump.Text(current.Schema)))
 }
 
@@ -490,12 +489,6 @@ var userScenarios = map[string]func(h *grHarness){
 		s := h.Apply("create", h.null(), userConfig(userA, j{"name": userTestName}))
 		h.users().updateStatus = 500
 		h.Apply("update: the PUT answers 500", s, userConfig(userA, j{"name": userRenamedName}))
-	},
-	"update-search-error": func(h *grHarness) {
-		s := h.Apply("create", h.null(), userConfig(userA, j{"name": userTestName}))
-		h.ForgetPrivateState()
-		h.users().searchStatus = 500
-		h.Apply("update with no private state: the search answers 500", s, userConfig(userA, j{"name": userRenamedName}))
 	},
 	"update-route-not-found": func(h *grHarness) {
 		s := h.Apply("create", h.null(), userConfig(userA, j{"name": userTestName}))

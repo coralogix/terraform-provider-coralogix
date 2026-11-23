@@ -112,6 +112,14 @@ func userUpdatePlan(ctx context.Context, req resource.ModifyPlanRequest, resp *r
 	// the read of the apply fills it, and a known plan here would disagree with
 	// the state the read writes.
 	if plan.Username.IsNull() || plan.Username.IsUnknown() {
+		// The schema default would plan a known empty set; the read of the apply
+		// writes the derived one-entry set, and a known plan here would disagree
+		// with that state as an inconsistent result. Plan the set unknown: the
+		// released plan modifier left it (known after apply) in this case too.
+		if at, ok := attrs["emails"]; ok && !at.IsNull() {
+			attrs["emails"] = tftypes.NewValue(at.Type(), tftypes.UnknownValue)
+			changed = true
+		}
 		if changed {
 			resp.Plan.Raw = tftypes.NewValue(planned.Type(), attrs)
 		}
@@ -295,15 +303,21 @@ func (r *UserResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 	}
 	r.Resource.Read(ctx, req, resp)
 	// The hinted read removed the resource from state: give the released fallback
-	// a chance before Terraform recreates the user as a duplicate.
-	if !resp.State.Raw.IsNull() || !resp.Diagnostics.HasError() {
+	// a chance before Terraform recreates the user as a duplicate. The removal
+	// is a warning, not an error, and the retry needs a fresh response so the
+	// stale "disappeared" warning does not survive it.
+	if resp.Diagnostics.HasError() || !resp.State.Raw.IsNull() || !diagHadRemoval(resp) {
 		return
 	}
-	if !diagHadRemoval(resp) {
-		return
-	}
+	retry := resource.ReadResponse{State: tfsdk.State{Raw: tftypes.Value{}, Schema: resp.State.Schema}, Diagnostics: diag.Diagnostics{}}
+	retry.State = tfsdk.State{Raw: tftypes.NewValue(resp.State.Schema.Type().TerraformType(ctx), nil), Schema: resp.State.Schema}
 	ctx = context.WithValue(ctx, userReadNameKey{}, "")
-	r.Resource.Read(ctx, req, resp)
+	r.Resource.Read(ctx, req, &retry)
+	if retry.Diagnostics.HasError() {
+		resp.Diagnostics = retry.Diagnostics
+		return
+	}
+	resp.State = retry.State
 }
 
 // diagHadRemoval reports whether the read decided the user is gone. The generated
@@ -431,11 +445,39 @@ func (r *UserResource) Schema(ctx context.Context, req resource.SchemaRequest, r
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if emails, ok := resp.Schema.Attributes["emails"].(resourceschema.SetNestedAttribute); ok {
-		emails.Optional = false
-		emails.Computed = true
-		resp.Schema.Attributes["emails"] = emails
+	narrowUserEmails(&resp.Schema)
+}
+
+// narrowUserEmails makes the emails set and its every descendant computed-only:
+// the released schema marked the set computed-only and the framework requires a
+// computed-only nested attribute's children to be computed-only. The generator's
+// extra attributes are Optional+Computed with a default — its parser refuses a
+// computed-only object set — so the wrapper narrows the whole subtree here.
+func narrowUserEmails(schema *resourceschema.Schema) {
+	emails, ok := schema.Attributes["emails"].(resourceschema.SetNestedAttribute)
+	if !ok {
+		return
 	}
+	emails.Optional = false
+	emails.Computed = true
+	emails.Default = nil
+	nested := emails.NestedObject.Attributes
+	if primary, ok := nested["primary"].(resourceschema.BoolAttribute); ok {
+		primary.Optional = false
+		primary.Computed = true
+		primary.Default = nil
+		nested["primary"] = primary
+	}
+	for _, name := range []string{"type", "value"} {
+		if at, ok := nested[name].(resourceschema.StringAttribute); ok {
+			at.Optional = false
+			at.Computed = true
+			at.Default = nil
+			nested[name] = at
+		}
+	}
+	emails.NestedObject.Attributes = nested
+	schema.Attributes["emails"] = emails
 }
 
 func (r *UserResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
@@ -448,7 +490,14 @@ func (r *UserResource) Configure(ctx context.Context, req resource.ConfigureRequ
 func (r *UserResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	if r.client != nil {
 		ctx = context.WithValue(ctx, userSearchKey{}, func(username string) (*users_management_service.SearchUsersResponse, error) {
-			out, _, err := r.client.UsersMgmtServiceSearchUsers(ctx).Username(username).PageSize(100).Execute()
+			// An empty name asks for the unfiltered, paged search: the fallback
+			// of a read whose hint missed and of a recovery whose username
+			// filter answered nothing.
+			request := r.client.UsersMgmtServiceSearchUsers(ctx).PageSize(100)
+			if username != "" {
+				request = request.Username(username)
+			}
+			out, _, err := request.Execute()
 			if err != nil {
 				return out, err
 			}
@@ -464,7 +513,7 @@ func (r *UserResource) Update(ctx context.Context, req resource.UpdateRequest, r
 				return out, nil
 			}
 			for page := 1; page < userLookupPageCap; page++ {
-				next, _, err := r.client.UsersMgmtServiceSearchUsers(ctx).Username(username).PageSize(100).PageToken(pageToken).Execute()
+				next, _, err := request.PageToken(pageToken).Execute()
 				if err != nil {
 					return out, err
 				}
@@ -608,13 +657,27 @@ func userBeforeWrite(ctx context.Context, _ tfsdk.Config, plan tfsdk.Plan, state
 						fmt.Sprintf("The search for %q failed: %s. Refresh the resource to read the modes, then update again.", prior.Username.ValueString(), err))
 					return diags
 				}
+			} else if found != nil && len(found.Users) == 0 {
+				// The username the state holds can miss the user the id names — a
+				// rename outside Terraform. The released findUserByID then ran the
+				// search unfiltered; the filtered search of the recovery does the
+				// same before the update gives up: sending the PUT without the
+				// modes would clear them.
+				found, err = search("")
+			}
+			if err != nil {
+				if !cxsdk.IsNotFound(err) && !strings.Contains(err.Error(), "404") {
+					diags.AddAttributeError(path.Root("allowed_login_mode"), "Unable to recover the login modes of the user",
+						fmt.Sprintf("The search for %q failed: %s. Refresh the resource to read the modes, then update again.", prior.Username.ValueString(), err))
+					return diags
+				}
 			} else if found != nil {
 				// The state id names the user when the state carries it; the
 				// username matches the rest, case-insensitively as the backend
 				// folds the case of an SSO login.
 				for i := range found.Users {
 					idMatch := prior.UserId.IsNull() || found.Users[i].GetUserId() == prior.UserId.ValueString()
-					if idMatch && strings.EqualFold(found.Users[i].GetUsername(), prior.Username.ValueString()) {
+					if idMatch && (strings.EqualFold(found.Users[i].GetUsername(), prior.Username.ValueString()) || prior.Username.ValueString() == "") {
 						if template.AllowedLoginMode == nil {
 							template.AllowedLoginMode = found.Users[i].AllowedLoginMode
 						}

@@ -16,15 +16,14 @@ active  BoolAttribute optional computed
 allowed_login_mode  ListAttribute optional computed elem=basetypes.StringType
     markdown: "List of allowed login modes. Can include SSO, local authentication, or both. The order and repetitions of the configuration are kept in the state: the backend answers them in its own order, and the resource matches the configuration to that answer when it reads. Removing the attribute from the configuration keeps the modes the backend has; clearing them takes an explicit empty list `[]`."
     plan modifier: listplanmodifier.useStateForUnknownModifier Once set, the value of this attribute in state will not change.
-emails  SetNestedAttribute optional computed
-    default: setdefault.staticValueDefault value defaults to []
+emails  SetNestedAttribute computed
     markdown: "The emails of the user, as the SCIM API returned them: exactly one primary work email, whose value is the `user_name`."
 emails[]  NestedObject
-emails[].primary  BoolAttribute optional
+emails[].primary  BoolAttribute computed
     markdown: "Whether the email is the primary one. The API has one email per user, and it is primary."
-emails[].type  StringAttribute optional
+emails[].type  StringAttribute computed
     markdown: "The kind of the email. The API has one kind: work."
-emails[].value  StringAttribute optional
+emails[].value  StringAttribute computed
     markdown: "The email address. It is the `user_name` of the user."
 groups  SetAttribute computed elem=basetypes.StringType
     markdown: "The ids of the groups the user belongs to, as decimal strings, the values SCIM returned in groups[].value. A user with no memberships has a known empty set."
@@ -40,4 +39,4 @@ name.family_name  StringAttribute optional
 name.given_name  StringAttribute optional
     markdown: "The given (first) name of the user."
 user_name  StringAttribute required
-    markdown: "User name (email). Comparison is case-insensitive: when the backend normalizes the letter case of an SSO login, the read matches the state and plans no change. A configuration that changes the letter case of the name plans an update; the API keeps the stored name and the read keeps the spelling of the configuration. A configuration that changes the name itself fails: the API ignores a username change."
+    markdown: "User name (email). Comparison is case-insensitive: when the backend normalizes the letter case of an SSO login, the read matches the state and plans no change. A configuration that changes only the letter case of the name plans no change, as the released plan modifier made it: the plan keeps the spelling of the state, which is the name the API stores. A configuration that changes the name itself fails: the API ignores a username change."

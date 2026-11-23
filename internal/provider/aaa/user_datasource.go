@@ -70,9 +70,24 @@ func (d *UserDataSource) Schema(ctx context.Context, req datasource.SchemaReques
 	// emails is read-only, as the released schema had it: the set is derived from
 	// the username, and a configuration never sets it. The generator's extra
 	// attributes are Optional+Computed (its parser refuses a computed-only object
-	// set), so the wrapper narrows it here.
+	// set), so the wrapper narrows the set and every descendant here.
 	if emails, ok := resp.Schema.Attributes["emails"].(datasourceschema.SetNestedAttribute); ok {
 		emails.Optional = false
+		emails.Computed = true
+		nested := emails.NestedObject.Attributes
+		if primary, ok := nested["primary"].(datasourceschema.BoolAttribute); ok {
+			primary.Optional = false
+			primary.Computed = true
+			nested["primary"] = primary
+		}
+		for _, name := range []string{"type", "value"} {
+			if at, ok := nested[name].(datasourceschema.StringAttribute); ok {
+				at.Optional = false
+				at.Computed = true
+				nested[name] = at
+			}
+		}
+		emails.NestedObject.Attributes = nested
 		resp.Schema.Attributes["emails"] = emails
 	}
 }
@@ -84,6 +99,7 @@ func idAttrAsOptional(attr datasourceschema.StringAttribute) datasourceschema.St
 	attr.Required = false
 	attr.Optional = true
 	attr.Computed = true
+	attr.Validators = []validator.String{stringvalidator.LengthAtLeast(1)}
 	attr.MarkdownDescription = "User ID. Exactly one of `id` or `user_name` must be set."
 	return attr
 }

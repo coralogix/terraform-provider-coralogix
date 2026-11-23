@@ -4,18 +4,9 @@
     "config": {
       "id": ""
     },
-    "applyDiagnostics": [
-      "error: User id or user_name must be set"
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Length [AttributeName(\"id\")] | Attribute id string length must be at least 1, got: 0"
     ],
-    "state": {
-      "access_type": null,
-      "active": null,
-      "allowed_login_mode": null,
-      "emails": null,
-      "groups": null,
-      "id": "",
-      "name": null,
-      "user_name": null
-    }
+    "state": null
   }
 ]
