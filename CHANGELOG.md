@@ -1,5 +1,7 @@
 # Unreleased
 
+# Release 3.27.0
+
 #### resource/coralogix_alert
 - FIX: `type_definition.analytics_result_count` can set a count threshold: `rules` (up to 5, each with `override.priority` and a `condition` of an optional `count_threshold` of at least 1 and an optional `expression`; `condition = {}` counts every row) and `operator`. Without them, the alert fires on any result row. `operator` is required when `rules` is set. Without rules, leave it out: it defaults to `MORE_THAN`, the value the API stores, so alerts created with 3.26.1 plan no change.
 - FIX: The deprecation warning on `priority` shows for `analytics_result_count` only when it sets `rules`. Without rules, the alert fires at `priority`.
