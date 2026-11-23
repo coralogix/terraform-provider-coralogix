@@ -12,7 +12,13 @@
       "access_type": "(unknown)",
       "active": true,
       "allowed_login_mode": "(unknown)",
-      "emails": [],
+      "emails": [
+        {
+          "primary": true,
+          "type": "work",
+          "value": "tf-acc-user-1@coralogix.com"
+        }
+      ],
       "groups": "(unknown)",
       "id": "(unknown)",
       "name": {

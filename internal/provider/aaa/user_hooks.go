@@ -51,6 +51,7 @@ func UserHooks() user.Hooks {
 		BeforeWrite:  userBeforeWrite,
 		Get:          userGet,
 		AfterFlatten: userAfterFlatten,
+		AfterGet:     userAfterGet,
 		AfterRead:    userAfterRead,
 		ModifyPlan:   userUpdatePlan,
 	}
@@ -82,7 +83,7 @@ func userUpdatePlan(ctx context.Context, req resource.ModifyPlanRequest, resp *r
 	if d := resp.Plan.Get(ctx, &plan); d.HasError() {
 		return
 	}
-	if plan.Username.IsNull() {
+	if plan.Username.IsNull() || plan.Username.IsUnknown() {
 		return // Nothing to recover for.
 	}
 	attrs := map[string]tftypes.Value{}
@@ -91,6 +92,21 @@ func userUpdatePlan(ctx context.Context, req resource.ModifyPlanRequest, resp *r
 	}
 	planned := planRaw
 	changed := false
+	// emails is the released derived set: exactly one primary work email whose
+	// value is the username. The username is known at plan time, so the plan
+	// carries the exact set the apply writes, and the plan correlates with the
+	// state the read after the apply repairs.
+	if at, ok := attrs["emails"]; ok {
+		objectType := at.Type().(tftypes.Set).ElementType
+		objectTypes := objectType.(tftypes.Object).AttributeTypes
+		object := tftypes.NewValue(objectType, map[string]tftypes.Value{
+			"primary": tftypes.NewValue(objectTypes["primary"], true),
+			"type":    tftypes.NewValue(objectTypes["type"], userEmailType),
+			"value":   tftypes.NewValue(objectTypes["value"], plan.Username.ValueString()),
+		})
+		attrs["emails"] = tftypes.NewValue(at.Type(), []tftypes.Value{object})
+		changed = true
+	}
 	// The state carries the resource: a legacy-state update. The schema of 3.26.0
 	// had no access_type either: a missing value plans null, and the PUT response
 	// supplies both the login modes and the access type, which a known-null plan
@@ -525,13 +541,34 @@ func userAfterFlatten(ctx context.Context, m *user.RbacV2UserModel, v *users_man
 	set, d := basetypes.NewSetValueFrom(ctx, basetypes.StringType{}, ids)
 	diags.Append(d...)
 	m.Groups = set
-	// emails is the released view of the username: the Users API has no email
-	// collection, and the SCIM read always returned exactly one primary work
-	// email whose value was the username. The set holds that one entry, with the
-	// spelling of the configuration (the model already keeps it).
+	// emails is the released view of the username: the set holds exactly one
+	// primary work email whose value is the username. The plan carries the same
+	// set (userUpdatePlan derives it from the configured username), so the state
+	// of a write correlates with the plan, and the read keeps the spelling of the
+	// configuration.
 	emails, d := deriveUserEmails(ctx, m.Username)
 	diags.Append(d...)
 	m.Emails = emails
+	return diags
+}
+
+// userAfterGet repairs the emails of the written state after the plan correlation
+// ran, when a read follows the write. The create without a following read writes
+// the flatten's set, which the planned set matches; a read writes the set the API
+// answer carries.
+func userAfterGet(ctx context.Context, state *tfsdk.State, _ *users_management_service.SearchUsersResponse) diag.Diagnostics {
+	var diags diag.Diagnostics
+	var model user.RbacV2UserModel
+	if d := state.Get(ctx, &model); d.HasError() {
+		diags.Append(d...)
+		return diags
+	}
+	emails, d := deriveUserEmails(ctx, model.Username)
+	diags.Append(d...)
+	if diags.HasError() {
+		return diags
+	}
+	diags.Append(state.SetAttribute(ctx, path.Root("emails"), emails)...)
 	return diags
 }
 

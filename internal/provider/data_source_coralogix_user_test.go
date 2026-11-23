@@ -23,10 +23,9 @@ import (
 
 var userDataSourceName = "data." + userResourceName
 
-// The generated data source looks a user up by id. The released user_name
-// lookup filtered the Search with the configured username, which the generator
-// cannot express yet (V6): the scenarios that exercised it are gone, and a
-// configuration that sets user_name is rejected as a read-only attribute.
+// The data source looks a user up by id or by user_name, as the released data
+// source did. The wrapper resolves a configured user_name through the Search
+// username filter and hands the resolved id to the generated read.
 
 func TestAccCoralogixDataSourceUser_basic(t *testing.T) {
 	userName := randUserName()
@@ -66,9 +65,9 @@ func TestAccCoralogixDataSourceUser_userNameLookup(t *testing.T) {
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				// The user exists: the test creates it by inviting with the same
-				// user_name the lookup configures.
-				Config: testAccCoralogixResourceUser(userName) + testAccCoralogixDataSourceUser_readByUserNameOnly(userName),
+				// The user exists: the test creates it with the same user_name
+				// the lookup configures.
+				Config: testAccCoralogixResourceUser(userName) + testAccCoralogixDataSourceUser_readByUserNameOnly(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("data.coralogix_user.by_user_name", "user_name", userName),
 					resource.TestCheckResourceAttrSet("data.coralogix_user.by_user_name", "id"),
@@ -85,9 +84,11 @@ func testAccCoralogixDataSourceUser_read() string {
 `
 }
 
-func testAccCoralogixDataSourceUser_readByUserNameOnly(userName string) string {
+func testAccCoralogixDataSourceUser_readByUserNameOnly() string {
+	// The reference orders the read after the create: a literal would plan the
+	// lookup during the first plan, before the user exists.
 	return `data "coralogix_user" "by_user_name" {
-	  user_name = "` + userName + `"
+	  user_name = coralogix_user.test.user_name
 	}
 `
 }
