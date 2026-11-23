@@ -13,7 +13,7 @@
       },
       {
         "method": "GET",
-        "path": "/mgmt/openapi/5/aaa/users/v2?page_size=100",
+        "path": "/mgmt/openapi/5/aaa/users/v2?page_size=100&username=tf-acc-user-1%40coralogix.com",
         "status": 200
       }
     ],
@@ -50,8 +50,7 @@
       "AttributeName(\"groups\")",
       "AttributeName(\"name\")",
       "AttributeName(\"name\").AttributeName(\"family_name\")",
-      "AttributeName(\"name\").AttributeName(\"given_name\")",
-      "AttributeName(\"user_name\")"
+      "AttributeName(\"name\").AttributeName(\"given_name\")"
     ]
   },
   {

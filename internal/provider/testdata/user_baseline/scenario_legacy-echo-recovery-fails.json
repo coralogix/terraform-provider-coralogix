@@ -106,7 +106,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Unable to recover the login modes of the user [AttributeName(\"allowed_login_mode\")] | The search for \"tf-acc-user-1@coralogix.com\" failed: 500 Internal Server Error. Refresh the resource to read the modes, then update again."
+      "error: Unable to recover the login modes of the user [AttributeName(\"allowed_login_mode\")] | The search for \"tf-acc-user-1@coralogix.com\" failed: 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error\"}\n. Refresh the resource to read the modes, then update again."
     ],
     "state": {
       "access_type": null,

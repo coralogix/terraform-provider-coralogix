@@ -17,6 +17,7 @@ package aaa
 import (
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -268,11 +269,13 @@ func (r *UserResource) Create(ctx context.Context, req resource.CreateRequest, r
 				fmt.Sprintf("user %q was invited rather than created, so it has no id until the invitation is accepted", plan.Username.ValueString()))
 		case summary == "Unable to create user" && strings.Contains(detail, "the API did not create the user") &&
 			strings.HasSuffix(detail, "the API did not create the user") && r.client != nil:
-			// The backend sends no message for a failed status, so the wrapper
-			// asks the API what happened: an account with that username means
-			// the released "already exists" diagnostic; no account means the
-			// invitation family (invited or already invited), whose released
-			// message says the user has no id until the invitation is accepted.
+			// The backend sends no message for a message-less failure, so the
+			// wrapper asks the API what happened: an account with that username
+			// means the released "already exists" diagnostic. Anything else —
+			// an invitation pending or a status the API did not name — keeps
+			// the generated error: only the account's existence is knowable
+			// here, and the invitation family has its own generated error
+			// ("created, but returned no resource") handled above.
 			found, _, err := r.client.UsersMgmtServiceSearchUsers(ctx).Username(username).PageSize(2).Execute()
 			if err != nil || found == nil {
 				return
@@ -284,8 +287,6 @@ func (r *UserResource) Create(ctx context.Context, req resource.CreateRequest, r
 					return
 				}
 			}
-			resp.Diagnostics[i] = diag.NewErrorDiagnostic(summary,
-				fmt.Sprintf("user %q was invited rather than created, so it has no id until the invitation is accepted", plan.Username.ValueString()))
 		}
 	}
 }
@@ -298,15 +299,18 @@ func (r *UserResource) Create(ctx context.Context, req resource.CreateRequest, r
 // outside Terraform is a drift the refresh reports, never a silent removal.
 func (r *UserResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var model user.RbacV2UserModel
+	hinted := false
 	if d := req.State.Get(ctx, &model); !d.HasError() && !model.Username.IsNull() && !model.Username.IsUnknown() {
 		ctx = context.WithValue(ctx, userReadNameKey{}, model.Username.ValueString())
+		hinted = true
 	}
 	r.Resource.Read(ctx, req, resp)
 	// The hinted read removed the resource from state: give the released fallback
 	// a chance before Terraform recreates the user as a duplicate. The removal
 	// is a warning, not an error, and the retry needs a fresh response so the
-	// stale "disappeared" warning does not survive it.
-	if resp.Diagnostics.HasError() || !resp.State.Raw.IsNull() || !diagHadRemoval(resp) {
+	// stale "disappeared" warning does not survive it. An unhinted read already
+	// scanned unfiltered — a retry would repeat the same scan.
+	if !hinted || resp.Diagnostics.HasError() || !resp.State.Raw.IsNull() || !diagHadRemoval(resp) {
 		return
 	}
 	retry := resource.ReadResponse{State: tfsdk.State{Raw: tftypes.Value{}, Schema: resp.State.Schema}, Diagnostics: diag.Diagnostics{}}
@@ -318,6 +322,9 @@ func (r *UserResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 		return
 	}
 	resp.State = retry.State
+	// The retry answered: the first read's "removed it from state" warning is
+	// stale — the user is in state again.
+	resp.Diagnostics = retry.Diagnostics
 }
 
 // diagHadRemoval reports whether the read decided the user is gone. The generated
@@ -352,8 +359,17 @@ func (r *UserResource) ImportState(ctx context.Context, req resource.ImportState
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	// The generated import reads by the id with no hint of its own. The released
+	// import left the username in the state, and the read of the refresh filters
+	// with it — write it through the passthrough state so the follow-up read is
+	// hinted (the context of ImportState does not reach that Read).
+	email := req.ID
 	req.ID = user.GetUserId()
 	r.Resource.ImportState(ctx, req, resp)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	_ = resp.State.SetAttribute(ctx, path.Root("user_name"), email)
 }
 
 // resolveUserByUsername resolves a user_name to the one user whose username equals
@@ -497,9 +513,9 @@ func (r *UserResource) Update(ctx context.Context, req resource.UpdateRequest, r
 			if username != "" {
 				request = request.Username(username)
 			}
-			out, _, err := request.Execute()
+			out, raw, err := request.Execute()
 			if err != nil {
-				return out, err
+				return out, searchError(raw, err)
 			}
 			// Page through the rest: a user past the first page is a real user,
 			// and missing one would send a PUT without its values, which the
@@ -513,9 +529,9 @@ func (r *UserResource) Update(ctx context.Context, req resource.UpdateRequest, r
 				return out, nil
 			}
 			for page := 1; page < userLookupPageCap; page++ {
-				next, _, err := request.PageToken(pageToken).Execute()
+				next, raw, err := request.PageToken(pageToken).Execute()
 				if err != nil {
-					return out, err
+					return out, searchError(raw, err)
 				}
 				users = append(users, next.GetUsers()...)
 				nextToken := next.GetNextPageToken()
@@ -532,6 +548,20 @@ func (r *UserResource) Update(ctx context.Context, req resource.UpdateRequest, r
 		})
 	}
 	r.Resource.Update(ctx, req, resp)
+}
+
+// searchError carries the API's response body in the error, as the released
+// search did: a 500 with {"code":500,…} tells the operator which call failed,
+// and the update refuses to run on that error.
+func searchError(raw *http.Response, err error) error {
+	if raw == nil {
+		return err
+	}
+	body, readErr := io.ReadAll(raw.Body)
+	if readErr != nil || len(body) == 0 {
+		return err
+	}
+	return fmt.Errorf("%w — %s", err, body)
 }
 
 // userGet pages the Search at the released page size: the released read sent

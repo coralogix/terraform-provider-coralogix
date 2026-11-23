@@ -83,9 +83,6 @@
         "status": 200
       }
     ],
-    "applyDiagnostics": [
-      "warning: Resource disappeared during read | user with id 00000000-0000-4000-8000-000000000001 was not found. Terraform removed it from state."
-    ],
     "state": {
       "access_type": {
         "permanent_access": {},

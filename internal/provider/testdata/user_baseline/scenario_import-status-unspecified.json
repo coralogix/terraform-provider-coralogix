@@ -13,7 +13,7 @@
       },
       {
         "method": "GET",
-        "path": "/mgmt/openapi/5/aaa/users/v2?page_size=100",
+        "path": "/mgmt/openapi/5/aaa/users/v2?page_size=100&username=tf-acc-user-1%40coralogix.com",
         "status": 200
       }
     ],
@@ -44,8 +44,7 @@
       "AttributeName(\"allowed_login_mode\")",
       "AttributeName(\"emails\")",
       "AttributeName(\"emails\").ElementKeyValue(tftypes.Object[\"primary\":tftypes.Bool, \"type\":tftypes.String, \"value\":tftypes.String]<\"primary\":tftypes.Bool<\"true\">, \"type\":tftypes.String<\"work\">, \"value\":tftypes.String<\"tf-acc-user-1@coralogix.com\">>)",
-      "AttributeName(\"groups\")",
-      "AttributeName(\"user_name\")"
+      "AttributeName(\"groups\")"
     ]
   }
 ]

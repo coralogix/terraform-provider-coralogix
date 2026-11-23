@@ -10,11 +10,6 @@
         "method": "GET",
         "path": "/mgmt/openapi/5/aaa/users/v2?page_size=100",
         "status": 200
-      },
-      {
-        "method": "GET",
-        "path": "/mgmt/openapi/5/aaa/users/v2?page_size=100",
-        "status": 200
       }
     ],
     "applyDiagnostics": [

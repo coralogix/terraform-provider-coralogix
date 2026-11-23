@@ -379,10 +379,12 @@ var userScenarios = map[string]func(h *grHarness){
 	},
 	"user-name-changed-outside-multi-page": func(h *grHarness) {
 		h.users().pageLimit = 2
-		s := h.Apply("create", h.null(), userConfig(userA, j{"name": userTestName}))
+		// The seeds come first, so the created user sits past the first page:
+		// the fallback scan only finds the id on its third page.
 		for _, name := range []string{"tf-acc-user-3@coralogix.com", "tf-acc-user-4@coralogix.com", "tf-acc-user-5@coralogix.com", "tf-acc-user-6@coralogix.com"} {
 			h.users().seed(j{"username": name})
 		}
+		s := h.Apply("create", h.null(), userConfig(userA, j{"name": userTestName}))
 		h.users().change(idOf(s), j{"username": userB})
 		// The search for the stored username misses, so the scan of the whole team reads every page.
 		h.RefreshPlan("refresh: the username search misses and the scan reads three pages", s)
