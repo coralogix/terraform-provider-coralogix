@@ -2,16 +2,17 @@
 
 #### resource/coralogix_user
 
-- FIX: `allowed_login_mode` keeps the order and repetitions of the configuration in the state: the backend answers the modes in its own order, and the read matches the configuration against that answer, so a configuration that lists the modes the other way round plans no change.
-- FEAT: `coralogix_user` is generated from the Users API contract. The schema is the released one: `id`, `user_name`, `name` (`given_name`, `family_name`), `active`, and `groups`, with `allowed_login_mode` added — the login modes the released resource kept in private state and echoed on every update now sit in state, so a configuration can manage them.
-- FIX: The read pages the Search with the page size of 100, and stops when the page token stops moving forward, as the released resource did.
+- FEAT: `coralogix_user` is generated from the Users API contract. The schema is the released one: `id`, `user_name`, `name` (`given_name`, `family_name`), `active`, and `groups`, with `allowed_login_mode` added — the login modes the released resource kept in private state and echoed on every update now sit in state, so a configuration can manage them. The state keeps the order and the repetitions of the configuration: the backend answers the modes in its own order, and the read matches the configuration against that answer, so a configuration that lists the modes the other way round plans no change. The read pages the Search with the page size of 100, and stops when the page token stops moving forward.
 - FIX: `emails` keeps working: the computed set holds exactly one primary work email whose value is the `user_name`, as the released resource recorded. The Users API has no email collection, so the flatten derives the set from the username; the state upgrade keeps it.
+- FEAT: `access_type` is configurable: a configuration can set `permanent_access`, or `temporary_access` with an `expire_at`, as the API stores it. The released resource kept the access type in private state and sent it unchanged; a configuration that leaves it out keeps the access the user has.
 - FIX: Importing by `user_name` (an email) keeps working: the import resolves the name through the Search `username` filter to the user id, and the generated import reads by that id. An id-shaped import passes through unchanged. The resolution is a handwritten wrapper, because the generated import cannot express a filter lookup (the V6 generator follow-up).
 - BREAKING: A case-only `user_name` change (e.g. `User@x.com` to `user@x.com`) now plans an update, which the released plan modifier suppressed. The update succeeds: the API keeps the stored name, and the read keeps the spelling the configuration wrote, so the next plan is empty. A change to a different name still fails with a clear diagnostic, as the released resource did: the API ignores a username change. The backend folds the case of an SSO login itself, so an SSO login that the backend recased reads as no change.
 
 #### data-source/coralogix_user
 
 - FEAT: `data.coralogix_user` is generated from the Users API contract, and reads by `id` or by `user_name`, exactly one of the two set, as the released data source did. The lookup sends the configured name as the server-side `username` filter of the Search and matches the answer case-insensitively; the state keeps the case of the configuration. The resolution is a handwritten wrapper, because the generated data source cannot express a filter lookup (the V6 generator follow-up).
+- FEAT: `data.coralogix_user` shows `access_type` and `allowed_login_mode`, the login modes and access configuration the Users API holds and the released data source did not show.
+- FIX: `emails` keeps working, as on the resource: the computed set holds exactly one primary work email whose value is the `user_name`.
 
 # Release 3.27.0
 

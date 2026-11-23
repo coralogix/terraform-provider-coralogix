@@ -12,7 +12,7 @@
       },
       {
         "method": "GET",
-        "path": "/mgmt/openapi/5/aaa/users/v2?page_size=100",
+        "path": "/mgmt/openapi/5/aaa/users/v2?page_size=100&username=TF-ACC-USER-1%40CORALOGIX.COM",
         "status": 200
       }
     ],

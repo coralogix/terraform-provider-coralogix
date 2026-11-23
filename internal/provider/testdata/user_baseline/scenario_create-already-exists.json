@@ -46,7 +46,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Unable to create user | the API did not create the user"
+      "error: Unable to create user | user \"tf-acc-user-1@coralogix.com\" already exists. Import it with `terraform import` instead of creating it."
     ],
     "state": null
   }

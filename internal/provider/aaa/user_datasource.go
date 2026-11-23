@@ -21,10 +21,10 @@ import (
 )
 
 // UserDataSource is the generated coralogix_user data source with the released
-// user_name lookup. The Users Search answers a server-side username filter
-// (partial match), so the wrapper resolves a configured user_name to the one
-// user whose username equals it case-insensitively, and hands the id to the
-// generated read. The lookup cannot be generated yet: the generator refuses a
+// user_name lookup. The Users Search narrows server-side with a username filter
+// (the backend applies an exact, case-insensitive equality), so the wrapper
+// resolves a configured user_name to the one user whose username equals it
+// case-insensitively, and hands the id to the generated read. The lookup cannot be generated yet: the generator refuses a
 // name lookup for a resource that reads from its List, which is a V6 generator
 // follow-up; the recorded baseline scenarios are the semantics contract.
 type UserDataSource struct {
@@ -136,6 +136,9 @@ func (d *UserDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 			resp.Diagnostics.AddError("Unable to read coralogix_user", err.Error())
 			return
 		}
+		// The generated read that follows searches again: narrow it with the
+		// username the resolution found, instead of paging the whole team.
+		ctx = context.WithValue(ctx, userReadNameKey{}, configuredUserName.ValueString())
 	case !idSet:
 		resp.Diagnostics.AddError("User id or user_name must be set", "")
 		return

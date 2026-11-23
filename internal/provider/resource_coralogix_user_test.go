@@ -53,6 +53,14 @@ func TestAccCoralogixResourceUser(t *testing.T) {
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
+			// Import by email resolves to the same state as import by id: the wrapper
+			// resolves the name through the Search username filter to the user id.
+			{
+				ResourceName:      userResourceName,
+				ImportState:       true,
+				ImportStateId:     userName,
+				ImportStateVerify: true,
+			},
 		},
 	})
 }
@@ -177,7 +185,8 @@ func TestAccCoralogixResourceUserBackwardsCompatibility(t *testing.T) {
 				),
 			},
 			// A case-only username change plans an update until the generator keeps the
-			// spelling of a scalar string (V6): the API stores the case it was given.
+			// spelling of a scalar string (V6): the apply succeeds, the API keeps the
+			// stored name, and the state keeps the spelling of the configuration.
 			{
 				Config: testAccCoralogixResourceUser(strings.ToUpper(userName)),
 			},
@@ -240,6 +249,12 @@ func TestAccCoralogixResourceUserGroupMembership(t *testing.T) {
 					// The value has to be the group id itself, as SCIM groups[].value was,
 					// or every migrated user would show a groups diff.
 					resource.TestCheckTypeSetElemAttrPair("data.coralogix_user.by_id", "groups.*", "coralogix_group.test", "id"),
+					// The by-name lookup reads the same user through the Search
+					// username filter, as the released data source did.
+					resource.TestCheckTypeSetElemAttrPair("data.coralogix_user.by_name", "groups.*", "coralogix_group.test", "id"),
+					resource.TestCheckResourceAttr("data.coralogix_user.by_name", "user_name", userName),
+					resource.TestCheckResourceAttrPair("data.coralogix_user.by_name", "id", userResourceName, "id"),
+					resource.TestCheckResourceAttr("data.coralogix_user.by_id", "emails.#", "1"),
 				),
 			},
 		},
@@ -464,6 +479,11 @@ func testAccCoralogixResourceUserInGroup(userName, groupName string) string {
 
 	data "coralogix_user" "by_id" {
 	  id         = coralogix_user.test.id
+	  depends_on = [coralogix_group.test]
+	}
+
+	data "coralogix_user" "by_name" {
+	  user_name  = coralogix_user.test.user_name
 	  depends_on = [coralogix_group.test]
 	}
 `, userName, groupName)

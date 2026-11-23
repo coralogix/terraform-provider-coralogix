@@ -195,6 +195,49 @@ func NewUserResource() resource.Resource {
 	return NewResource(UserHooks())
 }
 
+// Create restores the released diagnostics of a batch create that did not create
+// the user. The generated create() reports "the API did not create the user" with
+// the result message, which the backend leaves out for the common statuses: a user
+// that already exists and one that the API invited. The wrapper translates the
+// generic error into the released message, with the plan's user_name.
+func (r *UserResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	r.Resource.Create(ctx, req, resp)
+	if !resp.Diagnostics.HasError() {
+		return
+	}
+	var plan user.RbacV2UserModel
+	if d := req.Plan.Get(ctx, &plan); d.HasError() || plan.Username.IsNull() || plan.Username.IsUnknown() {
+		return
+	}
+	for i, d := range resp.Diagnostics {
+		if d.Severity() != diag.SeverityError {
+			continue
+		}
+		detail := d.Detail()
+		if strings.Contains(detail, "the API did not create the user") {
+			if strings.Contains(detail, "ONBOARDING") || strings.Contains(detail, "invited") {
+				resp.Diagnostics[i] = diag.NewErrorDiagnostic(d.Summary(),
+					fmt.Sprintf("user %q was invited rather than created, so it has no id until the invitation is accepted: %s", plan.Username.ValueString(), detail))
+			} else if detail == "the API did not create the user" {
+				resp.Diagnostics[i] = diag.NewErrorDiagnostic(d.Summary(),
+					fmt.Sprintf("user %q already exists. Import it with `terraform import` instead of creating it.", plan.Username.ValueString()))
+			}
+		}
+	}
+}
+
+// Read hands the state's user_name to the Get hook through the context: the read
+// then searches with the username filter the released read sent, instead of paging
+// the whole team and matching the id itself. A read of a state without a username
+// (a legacy state that the upgrade has not filled yet) pages unfiltered.
+func (r *UserResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var model user.RbacV2UserModel
+	if d := req.State.Get(ctx, &model); !d.HasError() && !model.Username.IsNull() && !model.Username.IsUnknown() {
+		ctx = context.WithValue(ctx, userReadNameKey{}, model.Username.ValueString())
+	}
+	r.Resource.Read(ctx, req, resp)
+}
+
 // ImportState keeps the released email-form import: an import id that carries an
 // "@" is a user_name, which the Search resolves to the one user whose username
 // equals it case-insensitively; the id the generated import passes through is the
@@ -315,16 +358,22 @@ func (r *UserResource) Update(ctx context.Context, req resource.UpdateRequest, r
 			}
 			// Page through the rest: a user past the first page is a real user,
 			// and missing one would send a PUT without its values, which the
-			// backend treats as clear-them.
+			// backend treats as clear-them. The loop stops when the token stops
+			// moving forward, as the released search did: a server that repeats
+			// a token cannot make the same page fill the request twice.
 			users := out.GetUsers()
 			pageToken := out.GetNextPageToken()
-			for page := 1; pageToken != 0 && page < 100; page++ {
+			for page := 1; page < userLookupPageCap; page++ {
 				next, _, err := r.client.UsersMgmtServiceSearchUsers(ctx).Username(username).PageSize(100).PageToken(pageToken).Execute()
 				if err != nil {
 					return out, err
 				}
 				users = append(users, next.GetUsers()...)
-				pageToken = next.GetNextPageToken()
+				nextToken := next.GetNextPageToken()
+				if nextToken <= pageToken {
+					break
+				}
+				pageToken = nextToken
 				if len(next.GetUsers()) == 0 {
 					break
 				}
@@ -338,12 +387,22 @@ func (r *UserResource) Update(ctx context.Context, req resource.UpdateRequest, r
 
 // userGet pages the Search at the released page size: the released read sent
 // page_size=100 on every page. The username hint of the released read (it
-// narrowed the search to the user it read) is a generator gap (V6): the hook
-// cannot see the resource it reads, so the generated read pages unfiltered and
-// matches the id itself.
-func userGet(_ context.Context, request func() users_management_service.ApiUsersMgmtServiceSearchUsersRequest) (*users_management_service.SearchUsersResponse, *http.Response, error) {
-	return request().PageSize(100).Execute()
+// narrowed the search to the user it read) narrows the search too, when the
+// wrapper put the state's username into the context: a filtered search answers
+// only the user's pages, so a page token that a concurrent create shifts cannot
+// drop the user from the result, and a team of thousands of users does not page
+// the whole directory for one read.
+func userGet(ctx context.Context, request func() users_management_service.ApiUsersMgmtServiceSearchUsersRequest) (*users_management_service.SearchUsersResponse, *http.Response, error) {
+	r := request().PageSize(100)
+	if username, ok := ctx.Value(userReadNameKey{}).(string); ok && username != "" {
+		r = r.Username(username)
+	}
+	return r.Execute()
 }
+
+// userReadNameKey is the context key of the username hint of a read: the state's
+// user_name, which the wrapper's Read puts there for the Get hook.
+type userReadNameKey struct{}
 
 // userName is the object of the name extra attribute.
 type userName struct {
@@ -421,11 +480,11 @@ func userBeforeWrite(ctx context.Context, _ tfsdk.Config, plan tfsdk.Plan, state
 		template.LastName = &family
 	}
 	// A state upgraded from the released provider carries the login modes and the
-	// access type nowhere: the schema of 3.26.0 had no attribute for either, and its
-	// private state is a form this framework discards. Without a refresh the plan
-	// keeps them unknown, and the expand omits them: the PUT would clear the modes
-	// and replace the access type with permanent, discarding a temporary access
-	// expiry. The hook searches the API for the prior user and sends the modes and
+	// access type nowhere: the schema of 3.26.0 had no attribute for either, and
+	// the generated resource never reads the private state that Terraform passes
+	// through. Without a refresh the plan keeps them unknown, and the expand omits
+	// them: the PUT would clear the modes and replace the access type with
+	// permanent, discarding a temporary access expiry. The hook searches the API for the prior user and sends the modes and
 	// the access type it answers with. A failed search stops the update: continuing
 	// would destroy both, and the released resource propagated a lookup failure the
 	// same way.
@@ -444,14 +503,18 @@ func userBeforeWrite(ctx context.Context, _ tfsdk.Config, plan tfsdk.Plan, state
 				// reads the user after the write and reports a resource that is gone.
 				// Any other failure stops the update, which would destroy the modes
 				// and the access type.
-				if !strings.Contains(err.Error(), "404") {
+				if !cxsdk.IsNotFound(err) && !strings.Contains(err.Error(), "404") {
 					diags.AddAttributeError(path.Root("allowed_login_mode"), "Unable to recover the login modes of the user",
 						fmt.Sprintf("The search for %q failed: %s. Refresh the resource to read the modes, then update again.", prior.Username.ValueString(), err))
 					return diags
 				}
 			} else if found != nil {
+				// The state id names the user when the state carries it; the
+				// username matches the rest, case-insensitively as the backend
+				// folds the case of an SSO login.
 				for i := range found.Users {
-					if strings.EqualFold(found.Users[i].GetUsername(), prior.Username.ValueString()) {
+					idMatch := prior.UserId.IsNull() || found.Users[i].GetUserId() == prior.UserId.ValueString()
+					if idMatch && strings.EqualFold(found.Users[i].GetUsername(), prior.Username.ValueString()) {
 						if template.AllowedLoginMode == nil {
 							template.AllowedLoginMode = found.Users[i].AllowedLoginMode
 						}
