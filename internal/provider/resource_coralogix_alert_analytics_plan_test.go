@@ -17,6 +17,7 @@ package provider
 import (
 	"context"
 	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
@@ -209,7 +210,12 @@ func TestPlanAnalyticsMinimalConfigIsStable(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			config := alertValueFromJSON(t, object, tc.config, nil)
 			// The prior state is the same config plus what a previous apply filled in.
-			prior := alertValueFromJSON(t, object, tc.config, map[string]string{
+			// The default of a result count operator is in the state a previous apply wrote.
+			priorJSON := strings.Replace(tc.config, `"timeframe_minutes": 10,`, `"timeframe_minutes": 10, "operator": "MORE_THAN",`, 1)
+			if tc.name != "analytics_result_count" {
+				priorJSON = tc.config
+			}
+			prior := alertValueFromJSON(t, object, priorJSON, map[string]string{
 				"deleted":            "false",
 				"notification_group": alertNotificationGroupDefault,
 			})
@@ -242,7 +248,8 @@ func TestPlanAnalyticsOptionalsCanBeCleared(t *testing.T) {
 				"dataprime_query": {"query": "source logs | count"},
 				"no_data_policy": {"state": "ALERTING", "auto_retire_seconds": 3600},
 				"timeframe_minutes": 10,
-				"custom_evaluation_delay": 120000
+				"custom_evaluation_delay": 120000,
+				"operator": "MORE_THAN"
 			}
 		}
 	}`, map[string]string{"notification_group": alertNotificationGroupDefault})
@@ -275,7 +282,8 @@ func TestPlanAnalyticsOptionalsCanBeCleared(t *testing.T) {
 				"dataprime_query": {"query": "source logs | count"},
 				"no_data_policy": {"state": "ALERTING", "auto_retire_seconds": 3600},
 				"timeframe_minutes": 10,
-				"custom_evaluation_delay": null
+				"custom_evaluation_delay": null,
+				"operator": "MORE_THAN"
 			}
 		}
 	}`, map[string]string{"notification_group": alertNotificationGroupDefault})

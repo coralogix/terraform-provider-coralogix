@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/int32validator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/mapvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
@@ -96,6 +97,60 @@ func Schema() schema.Schema {
 									},
 								},
 								MarkdownDescription: "How to treat, and what state to give, an alert with no data. Once set, the policy persists; the Coralogix API does not clear it when the block is removed.",
+							},
+							"operator": schema.StringAttribute{
+								Optional: true,
+								Computed: true,
+								Default:  stringdefault.StaticString("MORE_THAN"),
+								Validators: []validator.String{
+									stringvalidator.OneOf("EQUALS", "LESS_THAN", "LESS_THAN_OR_EQUALS", "MORE_THAN", "MORE_THAN_OR_EQUALS", "NOT_EQUALS"),
+								},
+								MarkdownDescription: "The comparison operator applied to the row count of every rule. With grouping, rows are counted per group. Required when `rules` is set. Without rules, leave it out: it defaults to `MORE_THAN`, the only operator an alert without rules accepts.",
+							},
+							"rules": schema.ListNestedAttribute{
+								Optional: true,
+								Validators: []validator.List{
+									listvalidator.SizeAtLeast(1),
+								},
+								NestedObject: schema.NestedAttributeObject{
+									Attributes: map[string]schema.Attribute{
+										"condition": schema.SingleNestedAttribute{
+											Required: true,
+											Attributes: map[string]schema.Attribute{
+												"count_threshold": schema.Int64Attribute{
+													Optional: true,
+													Validators: []validator.Int64{
+														int64validator.AtLeast(1),
+													},
+													MarkdownDescription: "The number of result rows meeting the rule that the operator compares against, at least 1. When omitted, 0: leave it out for a threshold of 0.",
+												},
+												"expression": schema.StringAttribute{
+													Optional: true,
+													Validators: []validator.String{
+														stringvalidator.RegexMatches(regexp.MustCompile(`^[^\s\v\p{Z}\x{85}\x{FEFF}](?:[\s\S]*[^\s\v\p{Z}\x{85}\x{FEFF}])?$`), "must not be empty or start or end with whitespace; leave it out to count every row"),
+													},
+													MarkdownDescription: "A DataPrime boolean expression over the columns of the query result. Only rows it holds for are counted. When omitted, every result row counts.",
+												},
+											},
+											MarkdownDescription: "Which result rows the rule counts and the count it is compared against. `condition = {}` counts every row against a count threshold of 0.",
+										},
+										"override": schema.SingleNestedAttribute{
+											Required: true,
+											Attributes: map[string]schema.Attribute{
+												"priority": schema.StringAttribute{
+													Optional: true,
+													Computed: true,
+													Validators: []validator.String{
+														stringvalidator.OneOf("P1", "P2", "P3", "P4", "P5"),
+													},
+													MarkdownDescription: "The priority of the alert definition Valid values: [\"P1\" \"P2\" \"P3\" \"P4\" \"P5\"].",
+												},
+											},
+											MarkdownDescription: "The priority the alert triggers at when the rule holds. `override = {}` uses the alert's top-level `priority`, or P5 when that is not set either.",
+										},
+									},
+								},
+								MarkdownDescription: "The per-priority trigger rules, between 1 and 5. Each rule compares the number of result rows meeting its condition to its count threshold; when several rules hold, the highest priority wins. When omitted, the alert has one rule at its own `priority` with a count threshold of 0. This is an ordered list: the API preserves the submitted order.",
 							},
 							"timeframe_minutes": schema.Int32Attribute{
 								Required: true,

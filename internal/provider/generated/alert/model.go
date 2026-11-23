@@ -35,11 +35,27 @@ type NoDataPolicyModel struct {
 	State             types.String `tfsdk:"state"`
 }
 
+type AnalyticsResultCountRuleConditionModel struct {
+	CountThreshold types.Int64  `tfsdk:"count_threshold"`
+	Expression     types.String `tfsdk:"expression"`
+}
+
+type AlertDefOverrideModel struct {
+	Priority types.String `tfsdk:"priority"`
+}
+
+type AnalyticsResultCountRuleModel struct {
+	Condition *AnalyticsResultCountRuleConditionModel `tfsdk:"condition"`
+	Override  *AlertDefOverrideModel                  `tfsdk:"override"`
+}
+
 type AnalyticsResultCountTypeModel struct {
 	DataprimeQuery          *DataprimeAlertQueryModel `tfsdk:"dataprime_query"`
 	EvaluationDelayMs       types.Int32               `tfsdk:"custom_evaluation_delay"`
 	EvaluationPeriodMinutes types.Int32               `tfsdk:"evaluation_period_minutes"`
 	NoDataPolicy            types.Object              `tfsdk:"no_data_policy"`
+	Operator                types.String              `tfsdk:"operator"`
+	Rules                   types.List                `tfsdk:"rules"`
 	TimeframeMinutes        types.Int32               `tfsdk:"timeframe_minutes"`
 }
 
@@ -63,10 +79,6 @@ type AlertDefTypeDefinitionModel struct {
 
 type AnalyticsThresholdRuleConditionModel struct {
 	Threshold types.Float64 `tfsdk:"threshold"`
-}
-
-type AlertDefOverrideModel struct {
-	Priority types.String `tfsdk:"priority"`
 }
 
 type AnalyticsThresholdRuleModel struct {
