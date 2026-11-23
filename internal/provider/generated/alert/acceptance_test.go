@@ -96,6 +96,28 @@ const fullConfig = `resource "coralogix_alert" "test" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description"
   enabled = true
@@ -154,6 +176,28 @@ const updatedConfig = `resource "coralogix_alert" "test" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description-updated"
   enabled = false
@@ -183,6 +227,65 @@ const minimalConfig = `resource "coralogix_alert" "test" {
     logs_immediate = {}
   }
   name = "@{run}-alert"
+}`
+
+// upgradeFullConfig is the full config without the attributes that provider 3.24.0 does not have.
+const upgradeFullConfig = `resource "coralogix_alert" "test" {
+  type_definition = {
+    logs_immediate = {
+      logs_filter = {
+        simple_filter = {
+          label_filters = {
+            application_name = [
+              {
+                operation = "ENDS_WITH"
+                value = "@{run}-value"
+              },
+            ]
+            severities = ["Critical"]
+            subsystem_name = [
+              {
+                operation = "ENDS_WITH"
+                value = "@{run}-value"
+              },
+            ]
+          }
+          lucene_query = "@{run}-lucene_query"
+        }
+      }
+      notification_payload_filter = ["@{run}-notification_payload_filter"]
+    }
+  }
+  case_settings = {
+    auto_resolve_mode = "disabled"
+    enrichment_queries = [
+      {
+        query = "source logs | limit 1"
+        type = "dataprime"
+      },
+    ]
+  }
+  description = "@{run}-description"
+  enabled = true
+  incidents_settings = {
+    retriggering_period = {
+      minutes = 10
+    }
+    notify_on = "Triggered Only"
+  }
+  name = "@{run}-alert"
+  notification_group = {
+    webhooks_settings = [
+      {
+        recipients = ["@{run}@example.com"]
+        retriggering_period = {
+          minutes = 10
+        }
+        notify_on = "Triggered Only"
+      },
+    ]
+  }
+  priority = "P1"
 }`
 
 // upgradeMinimalConfig is the minimal config plus the fields that the released provider needs.
@@ -217,6 +320,16 @@ func dataSourceChecks() resource.TestCheckFunc {
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "case_settings.enrichment_queries.#", resourceAddress, "case_settings.enrichment_queries.#"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "case_settings.enrichment_queries.0.query", resourceAddress, "case_settings.enrichment_queries.0.query"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "case_settings.enrichment_queries.0.type", resourceAddress, "case_settings.enrichment_queries.0.type"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "case_settings.overrides.kpi.thresholds.#", resourceAddress, "case_settings.overrides.kpi.thresholds.#"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "case_settings.overrides.kpi.thresholds.0.enabled", resourceAddress, "case_settings.overrides.kpi.thresholds.0.enabled"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "case_settings.overrides.kpi.thresholds.0.priority", resourceAddress, "case_settings.overrides.kpi.thresholds.0.priority"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "case_settings.overrides.kpi.thresholds.0.threshold", resourceAddress, "case_settings.overrides.kpi.thresholds.0.threshold"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "case_settings.overrides.kpi.thresholds.0.type", resourceAddress, "case_settings.overrides.kpi.thresholds.0.type"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "case_settings.overrides.priority_escalation.enabled", resourceAddress, "case_settings.overrides.priority_escalation.enabled"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "case_settings.overrides.priority_escalation.rules.#", resourceAddress, "case_settings.overrides.priority_escalation.rules.#"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "case_settings.overrides.priority_escalation.rules.0.from_priority", resourceAddress, "case_settings.overrides.priority_escalation.rules.0.from_priority"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "case_settings.overrides.priority_escalation.rules.0.period", resourceAddress, "case_settings.overrides.priority_escalation.rules.0.period"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "case_settings.overrides.priority_escalation.rules.0.to_priority", resourceAddress, "case_settings.overrides.priority_escalation.rules.0.to_priority"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "description", resourceAddress, "description"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "enabled", resourceAddress, "enabled"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "incidents_settings.notify_on", resourceAddress, "incidents_settings.notify_on"),
@@ -245,6 +358,16 @@ func fullChecks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress, "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress, "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress, "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress, "description", render(run, "@{run}-description")),
 		resource.TestCheckResourceAttr(resourceAddress, "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress, "incidents_settings.notify_on", "Triggered Only"),
@@ -276,6 +399,16 @@ func updatedChecks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress, "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress, "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress, "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress, "description", render(run, "@{run}-description-updated")),
 		resource.TestCheckResourceAttr(resourceAddress, "enabled", "false"),
 		resource.TestCheckResourceAttr(resourceAddress, "incidents_settings.notify_on", "Triggered Only"),
@@ -302,6 +435,37 @@ func minimalChecks(run string) resource.TestCheckFunc {
 func removedChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		minimalChecks(run),
+		resource.TestCheckResourceAttr(resourceAddress, "priority", "P1"),
+	)
+}
+
+func upgradeFullChecks(run string) resource.TestCheckFunc {
+	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "type_definition.logs_immediate.logs_filter.simple_filter.label_filters.application_name.#", "1"),
+		resource.TestCheckTypeSetElemNestedAttrs(resourceAddress, "type_definition.logs_immediate.logs_filter.simple_filter.label_filters.application_name.*", map[string]string{
+			"operation": "ENDS_WITH",
+			"value":     render(run, "@{run}-value"),
+		}),
+		resource.TestCheckResourceAttr(resourceAddress, "type_definition.logs_immediate.logs_filter.simple_filter.label_filters.severities.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "type_definition.logs_immediate.logs_filter.simple_filter.label_filters.subsystem_name.#", "1"),
+		resource.TestCheckTypeSetElemNestedAttrs(resourceAddress, "type_definition.logs_immediate.logs_filter.simple_filter.label_filters.subsystem_name.*", map[string]string{
+			"operation": "ENDS_WITH",
+			"value":     render(run, "@{run}-value"),
+		}),
+		resource.TestCheckResourceAttr(resourceAddress, "type_definition.logs_immediate.logs_filter.simple_filter.lucene_query", render(run, "@{run}-lucene_query")),
+		resource.TestCheckResourceAttr(resourceAddress, "type_definition.logs_immediate.notification_payload_filter.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.auto_resolve_mode", "disabled"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.enrichment_queries.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress, "description", render(run, "@{run}-description")),
+		resource.TestCheckResourceAttr(resourceAddress, "enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress, "incidents_settings.notify_on", "Triggered Only"),
+		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-alert")),
+		resource.TestCheckResourceAttr(resourceAddress, "notification_group.webhooks_settings.#", "1"),
+		resource.TestCheckTypeSetElemNestedAttrs(resourceAddress, "notification_group.webhooks_settings.*", map[string]string{
+			"notify_on": "Triggered Only",
+		}),
 		resource.TestCheckResourceAttr(resourceAddress, "priority", "P1"),
 	)
 }
@@ -629,7 +793,7 @@ func TestAccCoralogixResourceAlertGeneratedUpgrade(t *testing.T) {
 		run := newRun()
 		resource.Test(t, resource.TestCase{
 			PreCheck: func() { preCheck(t) },
-			Steps: upgradeSteps(run, fullConfig, fullChecks(run),
+			Steps: upgradeSteps(run, upgradeFullConfig, upgradeFullChecks(run),
 				updatedConfig, updatedChecks(run), []plancheck.PlanCheck{expectNoReplace{}}),
 		})
 	})
@@ -692,6 +856,28 @@ const variant1Config = `resource "coralogix_alert" "test" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description"
   enabled = true
@@ -790,6 +976,28 @@ resource "coralogix_alert" "test_2" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description-2"
   enabled = true
@@ -886,6 +1094,28 @@ resource "coralogix_alert" "test_3" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description-3"
   enabled = true
@@ -961,6 +1191,28 @@ resource "coralogix_alert" "test_4" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description-4"
   enabled = true
@@ -1033,6 +1285,28 @@ resource "coralogix_alert" "test_5" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description-5"
   enabled = true
@@ -1094,6 +1368,28 @@ resource "coralogix_alert" "test_6" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description-6"
   enabled = true
@@ -1147,6 +1443,28 @@ resource "coralogix_alert" "test_7" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description-7"
   enabled = true
@@ -1213,6 +1531,28 @@ resource "coralogix_alert" "test_8" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description-8"
   enabled = true
@@ -1280,6 +1620,28 @@ resource "coralogix_alert" "test_9" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description-9"
   enabled = true
@@ -1356,6 +1718,28 @@ resource "coralogix_alert" "test_10" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description-10"
   enabled = true
@@ -1392,6 +1776,16 @@ func variant1Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress, "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress, "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress, "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress, "description", render(run, "@{run}-description")),
 		resource.TestCheckResourceAttr(resourceAddress, "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress, "incidents_settings.notify_on", "Triggered and Resolved"),
@@ -1416,6 +1810,16 @@ func variant1Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress+"_2", "description", render(run, "@{run}-description-2")),
 		resource.TestCheckResourceAttr(resourceAddress+"_2", "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress+"_2", "incidents_settings.notify_on", "Triggered Only"),
@@ -1434,6 +1838,16 @@ func variant1Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress+"_3", "description", render(run, "@{run}-description-3")),
 		resource.TestCheckResourceAttr(resourceAddress+"_3", "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress+"_3", "incidents_settings.notify_on", "Triggered Only"),
@@ -1452,6 +1866,16 @@ func variant1Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress+"_4", "description", render(run, "@{run}-description-4")),
 		resource.TestCheckResourceAttr(resourceAddress+"_4", "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress+"_4", "incidents_settings.notify_on", "Triggered Only"),
@@ -1470,6 +1894,16 @@ func variant1Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress+"_5", "description", render(run, "@{run}-description-5")),
 		resource.TestCheckResourceAttr(resourceAddress+"_5", "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress+"_5", "incidents_settings.notify_on", "Triggered Only"),
@@ -1485,6 +1919,16 @@ func variant1Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress+"_6", "description", render(run, "@{run}-description-6")),
 		resource.TestCheckResourceAttr(resourceAddress+"_6", "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress+"_6", "incidents_settings.notify_on", "Triggered Only"),
@@ -1499,6 +1943,16 @@ func variant1Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress+"_7", "description", render(run, "@{run}-description-7")),
 		resource.TestCheckResourceAttr(resourceAddress+"_7", "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress+"_7", "incidents_settings.notify_on", "Triggered Only"),
@@ -1515,6 +1969,16 @@ func variant1Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress+"_8", "description", render(run, "@{run}-description-8")),
 		resource.TestCheckResourceAttr(resourceAddress+"_8", "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress+"_8", "incidents_settings.notify_on", "Triggered Only"),
@@ -1532,6 +1996,16 @@ func variant1Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress+"_9", "description", render(run, "@{run}-description-9")),
 		resource.TestCheckResourceAttr(resourceAddress+"_9", "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress+"_9", "incidents_settings.notify_on", "Triggered Only"),
@@ -1549,6 +2023,16 @@ func variant1Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress+"_10", "description", render(run, "@{run}-description-10")),
 		resource.TestCheckResourceAttr(resourceAddress+"_10", "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress+"_10", "incidents_settings.notify_on", "Triggered Only"),
@@ -1609,6 +2093,28 @@ const variant2Config = `resource "coralogix_alert" "test" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description"
   enabled = true
@@ -1684,6 +2190,28 @@ resource "coralogix_alert" "test_2" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description-2"
   enabled = true
@@ -1745,6 +2273,28 @@ resource "coralogix_alert" "test_3" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description-3"
   enabled = true
@@ -1806,6 +2356,28 @@ resource "coralogix_alert" "test_4" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description-4"
   enabled = true
@@ -1867,6 +2439,28 @@ resource "coralogix_alert" "test_5" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description-5"
   enabled = true
@@ -1933,6 +2527,28 @@ resource "coralogix_alert" "test_6" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description-6"
   enabled = true
@@ -1999,6 +2615,28 @@ resource "coralogix_alert" "test_7" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description-7"
   enabled = true
@@ -2065,6 +2703,28 @@ resource "coralogix_alert" "test_8" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description-8"
   enabled = true
@@ -2131,6 +2791,28 @@ resource "coralogix_alert" "test_9" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description-9"
   enabled = true
@@ -2197,6 +2879,28 @@ resource "coralogix_alert" "test_10" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description-10"
   enabled = true
@@ -2236,6 +2940,16 @@ func variant2Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress, "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress, "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress, "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress, "description", render(run, "@{run}-description")),
 		resource.TestCheckResourceAttr(resourceAddress, "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress, "incidents_settings.notify_on", "Triggered Only"),
@@ -2254,6 +2968,16 @@ func variant2Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress+"_2", "description", render(run, "@{run}-description-2")),
 		resource.TestCheckResourceAttr(resourceAddress+"_2", "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress+"_2", "incidents_settings.notify_on", "Triggered Only"),
@@ -2269,6 +2993,16 @@ func variant2Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress+"_3", "description", render(run, "@{run}-description-3")),
 		resource.TestCheckResourceAttr(resourceAddress+"_3", "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress+"_3", "incidents_settings.notify_on", "Triggered Only"),
@@ -2284,6 +3018,16 @@ func variant2Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress+"_4", "description", render(run, "@{run}-description-4")),
 		resource.TestCheckResourceAttr(resourceAddress+"_4", "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress+"_4", "incidents_settings.notify_on", "Triggered Only"),
@@ -2299,6 +3043,16 @@ func variant2Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress+"_5", "description", render(run, "@{run}-description-5")),
 		resource.TestCheckResourceAttr(resourceAddress+"_5", "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress+"_5", "incidents_settings.notify_on", "Triggered Only"),
@@ -2315,6 +3069,16 @@ func variant2Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress+"_6", "description", render(run, "@{run}-description-6")),
 		resource.TestCheckResourceAttr(resourceAddress+"_6", "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress+"_6", "incidents_settings.notify_on", "Triggered Only"),
@@ -2331,6 +3095,16 @@ func variant2Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress+"_7", "description", render(run, "@{run}-description-7")),
 		resource.TestCheckResourceAttr(resourceAddress+"_7", "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress+"_7", "incidents_settings.notify_on", "Triggered Only"),
@@ -2347,6 +3121,16 @@ func variant2Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress+"_8", "description", render(run, "@{run}-description-8")),
 		resource.TestCheckResourceAttr(resourceAddress+"_8", "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress+"_8", "incidents_settings.notify_on", "Triggered Only"),
@@ -2363,6 +3147,16 @@ func variant2Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress+"_9", "description", render(run, "@{run}-description-9")),
 		resource.TestCheckResourceAttr(resourceAddress+"_9", "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress+"_9", "incidents_settings.notify_on", "Triggered Only"),
@@ -2379,6 +3173,16 @@ func variant2Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress+"_10", "description", render(run, "@{run}-description-10")),
 		resource.TestCheckResourceAttr(resourceAddress+"_10", "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress+"_10", "incidents_settings.notify_on", "Triggered Only"),
@@ -2430,6 +3234,28 @@ const variant3Config = `resource "coralogix_alert" "test" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description"
   enabled = true
@@ -2524,6 +3350,28 @@ resource "coralogix_alert" "test_2" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description-2"
   enabled = true
@@ -2618,6 +3466,28 @@ resource "coralogix_alert" "test_3" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description-3"
   enabled = true
@@ -2712,6 +3582,28 @@ resource "coralogix_alert" "test_4" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description-4"
   enabled = true
@@ -2806,6 +3698,28 @@ resource "coralogix_alert" "test_5" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description-5"
   enabled = true
@@ -2900,6 +3814,28 @@ resource "coralogix_alert" "test_6" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description-6"
   enabled = true
@@ -2994,6 +3930,28 @@ resource "coralogix_alert" "test_7" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description-7"
   enabled = true
@@ -3088,6 +4046,28 @@ resource "coralogix_alert" "test_8" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description-8"
   enabled = true
@@ -3182,6 +4162,28 @@ resource "coralogix_alert" "test_9" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description-9"
   enabled = true
@@ -3276,6 +4278,28 @@ resource "coralogix_alert" "test_10" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description-10"
   enabled = true
@@ -3313,6 +4337,16 @@ func variant3Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress, "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress, "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress, "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress, "description", render(run, "@{run}-description")),
 		resource.TestCheckResourceAttr(resourceAddress, "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress, "incidents_settings.notify_on", "Triggered Only"),
@@ -3337,6 +4371,16 @@ func variant3Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress+"_2", "description", render(run, "@{run}-description-2")),
 		resource.TestCheckResourceAttr(resourceAddress+"_2", "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress+"_2", "incidents_settings.notify_on", "Triggered Only"),
@@ -3361,6 +4405,16 @@ func variant3Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress+"_3", "description", render(run, "@{run}-description-3")),
 		resource.TestCheckResourceAttr(resourceAddress+"_3", "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress+"_3", "incidents_settings.notify_on", "Triggered Only"),
@@ -3385,6 +4439,16 @@ func variant3Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress+"_4", "description", render(run, "@{run}-description-4")),
 		resource.TestCheckResourceAttr(resourceAddress+"_4", "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress+"_4", "incidents_settings.notify_on", "Triggered Only"),
@@ -3409,6 +4473,16 @@ func variant3Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress+"_5", "description", render(run, "@{run}-description-5")),
 		resource.TestCheckResourceAttr(resourceAddress+"_5", "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress+"_5", "incidents_settings.notify_on", "Triggered Only"),
@@ -3433,6 +4507,16 @@ func variant3Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress+"_6", "description", render(run, "@{run}-description-6")),
 		resource.TestCheckResourceAttr(resourceAddress+"_6", "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress+"_6", "incidents_settings.notify_on", "Triggered Only"),
@@ -3457,6 +4541,16 @@ func variant3Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress+"_7", "description", render(run, "@{run}-description-7")),
 		resource.TestCheckResourceAttr(resourceAddress+"_7", "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress+"_7", "incidents_settings.notify_on", "Triggered Only"),
@@ -3481,6 +4575,16 @@ func variant3Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress+"_8", "description", render(run, "@{run}-description-8")),
 		resource.TestCheckResourceAttr(resourceAddress+"_8", "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress+"_8", "incidents_settings.notify_on", "Triggered Only"),
@@ -3505,6 +4609,16 @@ func variant3Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress+"_9", "description", render(run, "@{run}-description-9")),
 		resource.TestCheckResourceAttr(resourceAddress+"_9", "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress+"_9", "incidents_settings.notify_on", "Triggered Only"),
@@ -3529,6 +4643,16 @@ func variant3Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress+"_10", "description", render(run, "@{run}-description-10")),
 		resource.TestCheckResourceAttr(resourceAddress+"_10", "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress+"_10", "incidents_settings.notify_on", "Triggered Only"),
@@ -3589,6 +4713,28 @@ const variant4Config = `resource "coralogix_alert" "test" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description"
   enabled = true
@@ -3664,6 +4810,28 @@ resource "coralogix_alert" "test_2" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description-2"
   enabled = true
@@ -3739,6 +4907,28 @@ resource "coralogix_alert" "test_3" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description-3"
   enabled = true
@@ -3814,6 +5004,28 @@ resource "coralogix_alert" "test_4" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description-4"
   enabled = true
@@ -3889,6 +5101,28 @@ resource "coralogix_alert" "test_5" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description-5"
   enabled = true
@@ -3964,6 +5198,28 @@ resource "coralogix_alert" "test_6" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description-6"
   enabled = true
@@ -4039,6 +5295,28 @@ resource "coralogix_alert" "test_7" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description-7"
   enabled = true
@@ -4114,6 +5392,28 @@ resource "coralogix_alert" "test_8" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description-8"
   enabled = true
@@ -4186,6 +5486,28 @@ resource "coralogix_alert" "test_9" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description-9"
   enabled = true
@@ -4258,6 +5580,28 @@ resource "coralogix_alert" "test_10" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description-10"
   enabled = true
@@ -4297,6 +5641,16 @@ func variant4Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress, "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress, "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress, "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress, "description", render(run, "@{run}-description")),
 		resource.TestCheckResourceAttr(resourceAddress, "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress, "incidents_settings.notify_on", "Triggered Only"),
@@ -4315,6 +5669,16 @@ func variant4Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress+"_2", "description", render(run, "@{run}-description-2")),
 		resource.TestCheckResourceAttr(resourceAddress+"_2", "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress+"_2", "incidents_settings.notify_on", "Triggered Only"),
@@ -4333,6 +5697,16 @@ func variant4Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress+"_3", "description", render(run, "@{run}-description-3")),
 		resource.TestCheckResourceAttr(resourceAddress+"_3", "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress+"_3", "incidents_settings.notify_on", "Triggered Only"),
@@ -4351,6 +5725,16 @@ func variant4Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress+"_4", "description", render(run, "@{run}-description-4")),
 		resource.TestCheckResourceAttr(resourceAddress+"_4", "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress+"_4", "incidents_settings.notify_on", "Triggered Only"),
@@ -4369,6 +5753,16 @@ func variant4Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress+"_5", "description", render(run, "@{run}-description-5")),
 		resource.TestCheckResourceAttr(resourceAddress+"_5", "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress+"_5", "incidents_settings.notify_on", "Triggered Only"),
@@ -4387,6 +5781,16 @@ func variant4Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress+"_6", "description", render(run, "@{run}-description-6")),
 		resource.TestCheckResourceAttr(resourceAddress+"_6", "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress+"_6", "incidents_settings.notify_on", "Triggered Only"),
@@ -4405,6 +5809,16 @@ func variant4Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress+"_7", "description", render(run, "@{run}-description-7")),
 		resource.TestCheckResourceAttr(resourceAddress+"_7", "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress+"_7", "incidents_settings.notify_on", "Triggered Only"),
@@ -4423,6 +5837,16 @@ func variant4Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress+"_8", "description", render(run, "@{run}-description-8")),
 		resource.TestCheckResourceAttr(resourceAddress+"_8", "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress+"_8", "incidents_settings.notify_on", "Triggered Only"),
@@ -4441,6 +5865,16 @@ func variant4Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress+"_9", "description", render(run, "@{run}-description-9")),
 		resource.TestCheckResourceAttr(resourceAddress+"_9", "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress+"_9", "incidents_settings.notify_on", "Triggered Only"),
@@ -4459,6 +5893,16 @@ func variant4Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress+"_10", "description", render(run, "@{run}-description-10")),
 		resource.TestCheckResourceAttr(resourceAddress+"_10", "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress+"_10", "incidents_settings.notify_on", "Triggered Only"),
@@ -4516,6 +5960,28 @@ const variant5Config = `resource "coralogix_alert" "test" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description"
   enabled = true
@@ -4588,6 +6054,28 @@ resource "coralogix_alert" "test_2" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description-2"
   enabled = true
@@ -4655,6 +6143,28 @@ resource "coralogix_alert" "test_3" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description-3"
   enabled = true
@@ -4722,6 +6232,28 @@ resource "coralogix_alert" "test_4" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description-4"
   enabled = true
@@ -4789,6 +6321,28 @@ resource "coralogix_alert" "test_5" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description-5"
   enabled = true
@@ -4856,6 +6410,28 @@ resource "coralogix_alert" "test_6" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description-6"
   enabled = true
@@ -4923,6 +6499,28 @@ resource "coralogix_alert" "test_7" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description-7"
   enabled = true
@@ -4990,6 +6588,28 @@ resource "coralogix_alert" "test_8" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description-8"
   enabled = true
@@ -5057,6 +6677,28 @@ resource "coralogix_alert" "test_9" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description-9"
   enabled = true
@@ -5124,6 +6766,28 @@ resource "coralogix_alert" "test_10" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description-10"
   enabled = true
@@ -5163,6 +6827,16 @@ func variant5Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress, "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress, "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress, "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress, "description", render(run, "@{run}-description")),
 		resource.TestCheckResourceAttr(resourceAddress, "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress, "incidents_settings.notify_on", "Triggered Only"),
@@ -5181,6 +6855,16 @@ func variant5Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress+"_2", "description", render(run, "@{run}-description-2")),
 		resource.TestCheckResourceAttr(resourceAddress+"_2", "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress+"_2", "incidents_settings.notify_on", "Triggered Only"),
@@ -5198,6 +6882,16 @@ func variant5Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress+"_3", "description", render(run, "@{run}-description-3")),
 		resource.TestCheckResourceAttr(resourceAddress+"_3", "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress+"_3", "incidents_settings.notify_on", "Triggered Only"),
@@ -5215,6 +6909,16 @@ func variant5Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress+"_4", "description", render(run, "@{run}-description-4")),
 		resource.TestCheckResourceAttr(resourceAddress+"_4", "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress+"_4", "incidents_settings.notify_on", "Triggered Only"),
@@ -5232,6 +6936,16 @@ func variant5Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress+"_5", "description", render(run, "@{run}-description-5")),
 		resource.TestCheckResourceAttr(resourceAddress+"_5", "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress+"_5", "incidents_settings.notify_on", "Triggered Only"),
@@ -5249,6 +6963,16 @@ func variant5Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress+"_6", "description", render(run, "@{run}-description-6")),
 		resource.TestCheckResourceAttr(resourceAddress+"_6", "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress+"_6", "incidents_settings.notify_on", "Triggered Only"),
@@ -5266,6 +6990,16 @@ func variant5Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress+"_7", "description", render(run, "@{run}-description-7")),
 		resource.TestCheckResourceAttr(resourceAddress+"_7", "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress+"_7", "incidents_settings.notify_on", "Triggered Only"),
@@ -5283,6 +7017,16 @@ func variant5Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress+"_8", "description", render(run, "@{run}-description-8")),
 		resource.TestCheckResourceAttr(resourceAddress+"_8", "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress+"_8", "incidents_settings.notify_on", "Triggered Only"),
@@ -5300,6 +7044,16 @@ func variant5Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress+"_9", "description", render(run, "@{run}-description-9")),
 		resource.TestCheckResourceAttr(resourceAddress+"_9", "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress+"_9", "incidents_settings.notify_on", "Triggered Only"),
@@ -5317,6 +7071,16 @@ func variant5Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress+"_10", "description", render(run, "@{run}-description-10")),
 		resource.TestCheckResourceAttr(resourceAddress+"_10", "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress+"_10", "incidents_settings.notify_on", "Triggered Only"),
@@ -5369,6 +7133,28 @@ const variant6Config = `resource "coralogix_alert" "test" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description"
   enabled = true
@@ -5436,6 +7222,28 @@ resource "coralogix_alert" "test_2" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description-2"
   enabled = true
@@ -5503,6 +7311,28 @@ resource "coralogix_alert" "test_3" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description-3"
   enabled = true
@@ -5556,6 +7386,28 @@ resource "coralogix_alert" "test_4" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description-4"
   enabled = true
@@ -5609,6 +7461,28 @@ resource "coralogix_alert" "test_5" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description-5"
   enabled = true
@@ -5662,6 +7536,28 @@ resource "coralogix_alert" "test_6" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description-6"
   enabled = true
@@ -5715,6 +7611,28 @@ resource "coralogix_alert" "test_7" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description-7"
   enabled = true
@@ -5768,6 +7686,28 @@ resource "coralogix_alert" "test_8" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description-8"
   enabled = true
@@ -5821,6 +7761,28 @@ resource "coralogix_alert" "test_9" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description-9"
   enabled = true
@@ -5874,6 +7836,28 @@ resource "coralogix_alert" "test_10" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description-10"
   enabled = true
@@ -5912,6 +7896,16 @@ func variant6Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress, "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress, "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress, "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress, "description", render(run, "@{run}-description")),
 		resource.TestCheckResourceAttr(resourceAddress, "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress, "incidents_settings.notify_on", "Triggered Only"),
@@ -5929,6 +7923,16 @@ func variant6Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress+"_2", "description", render(run, "@{run}-description-2")),
 		resource.TestCheckResourceAttr(resourceAddress+"_2", "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress+"_2", "incidents_settings.notify_on", "Triggered Only"),
@@ -5946,6 +7950,16 @@ func variant6Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress+"_3", "description", render(run, "@{run}-description-3")),
 		resource.TestCheckResourceAttr(resourceAddress+"_3", "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress+"_3", "incidents_settings.notify_on", "Triggered Only"),
@@ -5960,6 +7974,16 @@ func variant6Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress+"_4", "description", render(run, "@{run}-description-4")),
 		resource.TestCheckResourceAttr(resourceAddress+"_4", "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress+"_4", "incidents_settings.notify_on", "Triggered Only"),
@@ -5974,6 +7998,16 @@ func variant6Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress+"_5", "description", render(run, "@{run}-description-5")),
 		resource.TestCheckResourceAttr(resourceAddress+"_5", "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress+"_5", "incidents_settings.notify_on", "Triggered Only"),
@@ -5988,6 +8022,16 @@ func variant6Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress+"_6", "description", render(run, "@{run}-description-6")),
 		resource.TestCheckResourceAttr(resourceAddress+"_6", "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress+"_6", "incidents_settings.notify_on", "Triggered Only"),
@@ -6002,6 +8046,16 @@ func variant6Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress+"_7", "description", render(run, "@{run}-description-7")),
 		resource.TestCheckResourceAttr(resourceAddress+"_7", "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress+"_7", "incidents_settings.notify_on", "Triggered Only"),
@@ -6016,6 +8070,16 @@ func variant6Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress+"_8", "description", render(run, "@{run}-description-8")),
 		resource.TestCheckResourceAttr(resourceAddress+"_8", "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress+"_8", "incidents_settings.notify_on", "Triggered Only"),
@@ -6030,6 +8094,16 @@ func variant6Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress+"_9", "description", render(run, "@{run}-description-9")),
 		resource.TestCheckResourceAttr(resourceAddress+"_9", "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress+"_9", "incidents_settings.notify_on", "Triggered Only"),
@@ -6044,6 +8118,16 @@ func variant6Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress+"_10", "description", render(run, "@{run}-description-10")),
 		resource.TestCheckResourceAttr(resourceAddress+"_10", "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress+"_10", "incidents_settings.notify_on", "Triggered Only"),
@@ -6082,6 +8166,28 @@ const variant7Config = `resource "coralogix_alert" "test" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description"
   enabled = true
@@ -6135,6 +8241,28 @@ resource "coralogix_alert" "test_2" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description-2"
   enabled = true
@@ -6188,6 +8316,28 @@ resource "coralogix_alert" "test_3" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description-3"
   enabled = true
@@ -6241,6 +8391,28 @@ resource "coralogix_alert" "test_4" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description-4"
   enabled = true
@@ -6294,6 +8466,28 @@ resource "coralogix_alert" "test_5" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description-5"
   enabled = true
@@ -6355,6 +8549,28 @@ resource "coralogix_alert" "test_6" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description-6"
   enabled = true
@@ -6416,6 +8632,28 @@ resource "coralogix_alert" "test_7" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description-7"
   enabled = true
@@ -6477,6 +8715,28 @@ resource "coralogix_alert" "test_8" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description-8"
   enabled = true
@@ -6538,6 +8798,28 @@ resource "coralogix_alert" "test_9" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description-9"
   enabled = true
@@ -6599,6 +8881,28 @@ resource "coralogix_alert" "test_10" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description-10"
   enabled = true
@@ -6634,6 +8938,16 @@ func variant7Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress, "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress, "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress, "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress, "description", render(run, "@{run}-description")),
 		resource.TestCheckResourceAttr(resourceAddress, "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress, "incidents_settings.notify_on", "Triggered Only"),
@@ -6648,6 +8962,16 @@ func variant7Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress+"_2", "description", render(run, "@{run}-description-2")),
 		resource.TestCheckResourceAttr(resourceAddress+"_2", "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress+"_2", "incidents_settings.notify_on", "Triggered Only"),
@@ -6662,6 +8986,16 @@ func variant7Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress+"_3", "description", render(run, "@{run}-description-3")),
 		resource.TestCheckResourceAttr(resourceAddress+"_3", "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress+"_3", "incidents_settings.notify_on", "Triggered Only"),
@@ -6676,6 +9010,16 @@ func variant7Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress+"_4", "description", render(run, "@{run}-description-4")),
 		resource.TestCheckResourceAttr(resourceAddress+"_4", "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress+"_4", "incidents_settings.notify_on", "Triggered Only"),
@@ -6690,6 +9034,16 @@ func variant7Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress+"_5", "description", render(run, "@{run}-description-5")),
 		resource.TestCheckResourceAttr(resourceAddress+"_5", "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress+"_5", "incidents_settings.notify_on", "Triggered Only"),
@@ -6705,6 +9059,16 @@ func variant7Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress+"_6", "description", render(run, "@{run}-description-6")),
 		resource.TestCheckResourceAttr(resourceAddress+"_6", "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress+"_6", "incidents_settings.notify_on", "Triggered Only"),
@@ -6720,6 +9084,16 @@ func variant7Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress+"_7", "description", render(run, "@{run}-description-7")),
 		resource.TestCheckResourceAttr(resourceAddress+"_7", "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress+"_7", "incidents_settings.notify_on", "Triggered Only"),
@@ -6735,6 +9109,16 @@ func variant7Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress+"_8", "description", render(run, "@{run}-description-8")),
 		resource.TestCheckResourceAttr(resourceAddress+"_8", "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress+"_8", "incidents_settings.notify_on", "Triggered Only"),
@@ -6750,6 +9134,16 @@ func variant7Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress+"_9", "description", render(run, "@{run}-description-9")),
 		resource.TestCheckResourceAttr(resourceAddress+"_9", "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress+"_9", "incidents_settings.notify_on", "Triggered Only"),
@@ -6765,6 +9159,16 @@ func variant7Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress+"_10", "description", render(run, "@{run}-description-10")),
 		resource.TestCheckResourceAttr(resourceAddress+"_10", "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress+"_10", "incidents_settings.notify_on", "Triggered Only"),
@@ -6811,6 +9215,28 @@ const variant8Config = `resource "coralogix_alert" "test" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description"
   enabled = true
@@ -6872,6 +9298,28 @@ resource "coralogix_alert" "test_2" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description-2"
   enabled = true
@@ -6933,6 +9381,28 @@ resource "coralogix_alert" "test_3" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description-3"
   enabled = true
@@ -7017,6 +9487,28 @@ resource "coralogix_alert" "test_4" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description-4"
   enabled = true
@@ -7101,6 +9593,28 @@ resource "coralogix_alert" "test_5" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description-5"
   enabled = true
@@ -7185,6 +9699,28 @@ resource "coralogix_alert" "test_6" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description-6"
   enabled = true
@@ -7269,6 +9805,28 @@ resource "coralogix_alert" "test_7" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description-7"
   enabled = true
@@ -7353,6 +9911,28 @@ resource "coralogix_alert" "test_8" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description-8"
   enabled = true
@@ -7437,6 +10017,28 @@ resource "coralogix_alert" "test_9" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description-9"
   enabled = true
@@ -7521,6 +10123,28 @@ resource "coralogix_alert" "test_10" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description-10"
   enabled = true
@@ -7557,6 +10181,16 @@ func variant8Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress, "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress, "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress, "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress, "description", render(run, "@{run}-description")),
 		resource.TestCheckResourceAttr(resourceAddress, "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress, "incidents_settings.notify_on", "Triggered Only"),
@@ -7572,6 +10206,16 @@ func variant8Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress+"_2", "description", render(run, "@{run}-description-2")),
 		resource.TestCheckResourceAttr(resourceAddress+"_2", "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress+"_2", "incidents_settings.notify_on", "Triggered Only"),
@@ -7587,6 +10231,16 @@ func variant8Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress+"_3", "description", render(run, "@{run}-description-3")),
 		resource.TestCheckResourceAttr(resourceAddress+"_3", "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress+"_3", "incidents_settings.notify_on", "Triggered Only"),
@@ -7605,6 +10259,16 @@ func variant8Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_4", "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress+"_4", "description", render(run, "@{run}-description-4")),
 		resource.TestCheckResourceAttr(resourceAddress+"_4", "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress+"_4", "incidents_settings.notify_on", "Triggered Only"),
@@ -7623,6 +10287,16 @@ func variant8Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_5", "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress+"_5", "description", render(run, "@{run}-description-5")),
 		resource.TestCheckResourceAttr(resourceAddress+"_5", "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress+"_5", "incidents_settings.notify_on", "Triggered Only"),
@@ -7641,6 +10315,16 @@ func variant8Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_6", "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress+"_6", "description", render(run, "@{run}-description-6")),
 		resource.TestCheckResourceAttr(resourceAddress+"_6", "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress+"_6", "incidents_settings.notify_on", "Triggered Only"),
@@ -7659,6 +10343,16 @@ func variant8Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_7", "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress+"_7", "description", render(run, "@{run}-description-7")),
 		resource.TestCheckResourceAttr(resourceAddress+"_7", "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress+"_7", "incidents_settings.notify_on", "Triggered Only"),
@@ -7677,6 +10371,16 @@ func variant8Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_8", "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress+"_8", "description", render(run, "@{run}-description-8")),
 		resource.TestCheckResourceAttr(resourceAddress+"_8", "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress+"_8", "incidents_settings.notify_on", "Triggered Only"),
@@ -7695,6 +10399,16 @@ func variant8Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_9", "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress+"_9", "description", render(run, "@{run}-description-9")),
 		resource.TestCheckResourceAttr(resourceAddress+"_9", "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress+"_9", "incidents_settings.notify_on", "Triggered Only"),
@@ -7713,6 +10427,16 @@ func variant8Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_10", "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress+"_10", "description", render(run, "@{run}-description-10")),
 		resource.TestCheckResourceAttr(resourceAddress+"_10", "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress+"_10", "incidents_settings.notify_on", "Triggered Only"),
@@ -7782,6 +10506,28 @@ const variant9Config = `resource "coralogix_alert" "test" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description"
   enabled = true
@@ -7866,6 +10612,28 @@ resource "coralogix_alert" "test_2" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description-2"
   enabled = true
@@ -7950,6 +10718,28 @@ resource "coralogix_alert" "test_3" {
         type = "dataprime"
       },
     ]
+    overrides = {
+      kpi = {
+        thresholds = [
+          {
+            enabled = true
+            priority = "ALERT_DEF_CASE_PRIORITY_P1"
+            threshold = "300s"
+            type = "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"
+          },
+        ]
+      }
+      priority_escalation = {
+        enabled = true
+        rules = [
+          {
+            from_priority = "ALERT_DEF_CASE_PRIORITY_P3"
+            period = "36000s"
+            to_priority = "ALERT_DEF_CASE_PRIORITY_P2"
+          },
+        ]
+      }
+    }
   }
   description = "@{run}-description-3"
   enabled = true
@@ -7989,6 +10779,16 @@ func variant9Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress, "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress, "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress, "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress, "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress, "description", render(run, "@{run}-description")),
 		resource.TestCheckResourceAttr(resourceAddress, "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress, "incidents_settings.notify_on", "Triggered Only"),
@@ -8007,6 +10807,16 @@ func variant9Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_2", "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress+"_2", "description", render(run, "@{run}-description-2")),
 		resource.TestCheckResourceAttr(resourceAddress+"_2", "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress+"_2", "incidents_settings.notify_on", "Triggered Only"),
@@ -8025,6 +10835,16 @@ func variant9Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.enrichment_queries.0.query", "source logs | limit 1"),
 		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.enrichment_queries.0.type", "dataprime"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.kpi.thresholds.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.kpi.thresholds.0.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.kpi.thresholds.0.priority", "ALERT_DEF_CASE_PRIORITY_P1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.kpi.thresholds.0.threshold", "300s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.kpi.thresholds.0.type", "ALERT_DEF_CASE_KPI_TYPE_TIME_TO_ACKNOWLEDGE"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.priority_escalation.enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.priority_escalation.rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.priority_escalation.rules.0.from_priority", "ALERT_DEF_CASE_PRIORITY_P3"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.priority_escalation.rules.0.period", "36000s"),
+		resource.TestCheckResourceAttr(resourceAddress+"_3", "case_settings.overrides.priority_escalation.rules.0.to_priority", "ALERT_DEF_CASE_PRIORITY_P2"),
 		resource.TestCheckResourceAttr(resourceAddress+"_3", "description", render(run, "@{run}-description-3")),
 		resource.TestCheckResourceAttr(resourceAddress+"_3", "enabled", "true"),
 		resource.TestCheckResourceAttr(resourceAddress+"_3", "incidents_settings.notify_on", "Triggered Only"),

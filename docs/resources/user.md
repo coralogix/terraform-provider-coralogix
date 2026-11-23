@@ -102,7 +102,7 @@ Optional:
 <a id="nestedatt--emails"></a>
 ### Nested Schema for `emails`
 
-Optional:
+Read-Only:
 
 - `primary` (Boolean) Whether the email is the primary one. The API has one email per user, and it is primary.
 - `type` (String) The kind of the email. The API has one kind: work.

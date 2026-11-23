@@ -115,10 +115,38 @@ type AlertDefCaseEnrichmentQueryModel struct {
 	Type  types.String `tfsdk:"type"`
 }
 
+type AlertDefCaseKpiThresholdModel struct {
+	Enabled   types.Bool   `tfsdk:"enabled"`
+	Priority  types.String `tfsdk:"priority"`
+	Threshold types.String `tfsdk:"threshold"`
+	Type      types.String `tfsdk:"type"`
+}
+
+type AlertDefCaseKpisModel struct {
+	Thresholds types.List `tfsdk:"thresholds"`
+}
+
+type AlertDefCasePriorityEscalationRuleModel struct {
+	FromPriority types.String `tfsdk:"from_priority"`
+	Period       types.String `tfsdk:"period"`
+	ToPriority   types.String `tfsdk:"to_priority"`
+}
+
+type AlertDefCasePriorityEscalationModel struct {
+	Enabled types.Bool `tfsdk:"enabled"`
+	Rules   types.List `tfsdk:"rules"`
+}
+
+type AlertDefCaseSettingsOverridesModel struct {
+	Kpi                *AlertDefCaseKpisModel               `tfsdk:"kpi"`
+	PriorityEscalation *AlertDefCasePriorityEscalationModel `tfsdk:"priority_escalation"`
+}
+
 type AlertDefCaseSettingsModel struct {
-	AutoResolveMode   types.String `tfsdk:"auto_resolve_mode"`
-	Destinations      types.List   `tfsdk:"destinations"`
-	EnrichmentQueries types.List   `tfsdk:"enrichment_queries"`
+	AutoResolveMode   types.String                        `tfsdk:"auto_resolve_mode"`
+	Destinations      types.List                          `tfsdk:"destinations"`
+	EnrichmentQueries types.List                          `tfsdk:"enrichment_queries"`
+	Overrides         *AlertDefCaseSettingsOverridesModel `tfsdk:"overrides"`
 }
 
 type AlertDefDataSourceModel struct {
