@@ -12,6 +12,14 @@ active  tftypes.Bool computed
     description: Whether the user is active. The provider manages the whole status of the user through this attribute: `false` deactivates the user, `true` activates them. It defaults to `true`.
 allowed_login_mode  tftypes.List[tftypes.String] computed
     description: List of allowed login modes. Can include SSO, local authentication, or both. The order and repetitions of the configuration are kept in the state: the backend answers them in its own order, and the resource matches the configuration to that answer when it reads. Removing the attribute from the configuration keeps the modes the backend has; clearing them takes an explicit empty list `[]`.
+emails  nested SET computed
+    description: The emails of the user, as the SCIM API returned them: exactly one primary work email, whose value is the `user_name`.
+emails.primary  tftypes.Bool computed
+    description: Whether the email is the primary one. The API has one email per user, and it is primary.
+emails.type  tftypes.String computed
+    description: The kind of the email. The API has one kind: work.
+emails.value  tftypes.String computed
+    description: The email address. It is the `user_name` of the user.
 groups  tftypes.Set[tftypes.String] computed
     description: The ids of the groups the user belongs to, as decimal strings, the values SCIM returned in groups[].value. A user with no memberships has a known empty set.
 id  tftypes.String optional,computed

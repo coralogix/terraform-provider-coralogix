@@ -18,6 +18,7 @@
       "access_type": null,
       "active": null,
       "allowed_login_mode": null,
+      "emails": null,
       "groups": null,
       "id": "00000000-0000-4000-8000-999999999999",
       "name": null,

@@ -14,6 +14,7 @@ type RbacV2UserModel struct {
 	UserId           types.String `tfsdk:"id"`
 	Username         types.String `tfsdk:"user_name"`
 	Active           types.Bool   `tfsdk:"active"`
+	Emails           types.Set    `tfsdk:"emails"`
 	Groups           types.Set    `tfsdk:"groups"`
 	Name             types.Object `tfsdk:"name"`
 }

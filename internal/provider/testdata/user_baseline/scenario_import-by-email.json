@@ -24,6 +24,13 @@
       },
       "active": true,
       "allowed_login_mode": [],
+      "emails": [
+        {
+          "primary": true,
+          "type": "work",
+          "value": "tf-acc-user-1@coralogix.com"
+        }
+      ],
       "groups": [],
       "id": "00000000-0000-4000-8000-000000000002",
       "name": {
@@ -38,6 +45,8 @@
       "AttributeName(\"access_type\").AttributeName(\"temporary_access\")",
       "AttributeName(\"active\")",
       "AttributeName(\"allowed_login_mode\")",
+      "AttributeName(\"emails\")",
+      "AttributeName(\"emails\").ElementKeyValue(tftypes.Object[\"primary\":tftypes.Bool, \"type\":tftypes.String, \"value\":tftypes.String]<\"primary\":tftypes.Bool<\"true\">, \"type\":tftypes.String<\"work\">, \"value\":tftypes.String<\"tf-acc-user-1@coralogix.com\">>)",
       "AttributeName(\"groups\")",
       "AttributeName(\"name\")",
       "AttributeName(\"name\").AttributeName(\"family_name\")",
@@ -61,6 +70,7 @@
       },
       "active": true,
       "allowed_login_mode": [],
+      "emails": [],
       "groups": [],
       "id": "00000000-0000-4000-8000-000000000002",
       "name": {
@@ -69,7 +79,16 @@
       },
       "user_name": "tf-acc-user-1@coralogix.com"
     },
-    "noChange": true,
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/users/v2?page_size=100",
+        "status": 200
+      }
+    ],
+    "inconsistentResult": [
+      "emails"
+    ],
     "state": {
       "access_type": {
         "permanent_access": {},
@@ -77,6 +96,13 @@
       },
       "active": true,
       "allowed_login_mode": [],
+      "emails": [
+        {
+          "primary": true,
+          "type": "work",
+          "value": "tf-acc-user-1@coralogix.com"
+        }
+      ],
       "groups": [],
       "id": "00000000-0000-4000-8000-000000000002",
       "name": {
@@ -84,6 +110,14 @@
         "given_name": "Test"
       },
       "user_name": "tf-acc-user-1@coralogix.com"
-    }
+    },
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"emails\")",
+      "AttributeName(\"emails\").ElementKeyValue(tftypes.Object[\"primary\":tftypes.Bool, \"type\":tftypes.String, \"value\":tftypes.String]<\"primary\":tftypes.Bool<\"true\">, \"type\":tftypes.String<\"work\">, \"value\":tftypes.String<\"tf-acc-user-1@coralogix.com\">>)",
+      "AttributeName(\"emails\").ElementKeyValue(tftypes.Object[\"primary\":tftypes.Bool, \"type\":tftypes.String, \"value\":tftypes.String]<\"primary\":tftypes.Bool<\"true\">, \"type\":tftypes.String<\"work\">, \"value\":tftypes.String<\"tf-acc-user-1@coralogix.com\">>).AttributeName(\"primary\")",
+      "AttributeName(\"emails\").ElementKeyValue(tftypes.Object[\"primary\":tftypes.Bool, \"type\":tftypes.String, \"value\":tftypes.String]<\"primary\":tftypes.Bool<\"true\">, \"type\":tftypes.String<\"work\">, \"value\":tftypes.String<\"tf-acc-user-1@coralogix.com\">>).AttributeName(\"type\")",
+      "AttributeName(\"emails\").ElementKeyValue(tftypes.Object[\"primary\":tftypes.Bool, \"type\":tftypes.String, \"value\":tftypes.String]<\"primary\":tftypes.Bool<\"true\">, \"type\":tftypes.String<\"work\">, \"value\":tftypes.String<\"tf-acc-user-1@coralogix.com\">>).AttributeName(\"value\")"
+    ]
   }
 ]

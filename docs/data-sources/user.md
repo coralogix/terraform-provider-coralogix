@@ -42,19 +42,19 @@ resource "coralogix_user" "example" {
   }
 }
 
-# The data source reads one user by id or by user_name: exactly one of the two is set.
-data "coralogix_user" "by_id" {
+data "coralogix_user" "imported_by_id" {
   id = coralogix_user.example.id
 }
 
-data "coralogix_user" "by_user_name" {
-  user_name = coralogix_user.example.user_name
+data "coralogix_user" "imported_by_user_name" {
+  user_name  = "example@coralogix.com"
+  depends_on = [coralogix_user.example]
 }
 
-resource "coralogix_group" "members" {
-  display_name = "example-members"
+resource "coralogix_group" "members_by_email" {
+  display_name = "example-members-by-email"
   role         = coralogix_custom_role.example.name
-  members      = [data.coralogix_user.by_id.id]
+  members      = [data.coralogix_user.imported_by_user_name.id]
 }
 ```
 
@@ -71,6 +71,7 @@ resource "coralogix_group" "members" {
 - `access_type` (Attributes) Access type configuration - defines whether user access is permanent or temporary with expiration (see [below for nested schema](#nestedatt--access_type))
 - `active` (Boolean) Whether the user is active. The provider manages the whole status of the user through this attribute: `false` deactivates the user, `true` activates them. It defaults to `true`.
 - `allowed_login_mode` (List of String) List of allowed login modes. Can include SSO, local authentication, or both. The order and repetitions of the configuration are kept in the state: the backend answers them in its own order, and the resource matches the configuration to that answer when it reads. Removing the attribute from the configuration keeps the modes the backend has; clearing them takes an explicit empty list `[]`.
+- `emails` (Attributes Set) The emails of the user, as the SCIM API returned them: exactly one primary work email, whose value is the `user_name`. (see [below for nested schema](#nestedatt--emails))
 - `groups` (Set of String) The ids of the groups the user belongs to, as decimal strings, the values SCIM returned in groups[].value. A user with no memberships has a known empty set.
 - `name` (Attributes) The name of the user. (see [below for nested schema](#nestedatt--name))
 
@@ -93,6 +94,16 @@ Read-Only:
 
 - `expire_at` (String) Timestamp when the user's temporary access will expire. After this time, the user will no longer be able to access the system.
 
+
+
+<a id="nestedatt--emails"></a>
+### Nested Schema for `emails`
+
+Read-Only:
+
+- `primary` (Boolean) Whether the email is the primary one. The API has one email per user, and it is primary.
+- `type` (String) The kind of the email. The API has one kind: work.
+- `value` (String) The email address. It is the `user_name` of the user.
 
 
 <a id="nestedatt--name"></a>

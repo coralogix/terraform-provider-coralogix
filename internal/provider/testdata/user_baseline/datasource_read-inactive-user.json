@@ -18,6 +18,13 @@
       },
       "active": false,
       "allowed_login_mode": [],
+      "emails": [
+        {
+          "primary": true,
+          "type": "work",
+          "value": "tf-acc-user-1@coralogix.com"
+        }
+      ],
       "groups": [],
       "id": "00000000-0000-4000-8000-000000000001",
       "name": null,

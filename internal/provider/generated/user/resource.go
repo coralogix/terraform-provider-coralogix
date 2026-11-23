@@ -444,6 +444,19 @@ func (r *Resource) setState(ctx context.Context, v *users_management_service.Rba
 	if prior != nil {
 		// The API holds no value of this attribute. Start with the value from the plan or prior
 		// state, then let AfterFlatten replace it when the API supplies another value.
+		var kept types.Set
+		if !prior.GetAttribute(ctx, path.Root("emails"), &kept).HasError() && !kept.IsNull() && !kept.IsUnknown() {
+			// A value of another shape cannot enter state. One with an unknown value inside, such
+			// as an Optional and Computed child that the configuration leaves out, is kept for
+			// AfterFlatten to fill in; it is checked below, after the hook has run.
+			if _, err := kept.ToTerraformValue(ctx); err == nil && kept.Type(ctx).Equal(types.SetType{ElemType: types.ObjectType{AttrTypes: map[string]attr.Type{"primary": types.BoolType, "type": types.StringType, "value": types.StringType}}}) {
+				m.Emails = kept
+			}
+		}
+	}
+	if prior != nil {
+		// The API holds no value of this attribute. Start with the value from the plan or prior
+		// state, then let AfterFlatten replace it when the API supplies another value.
 		var kept types.Object
 		if !prior.GetAttribute(ctx, path.Root("name"), &kept).HasError() && !kept.IsNull() && !kept.IsUnknown() {
 			// A value of another shape cannot enter state. One with an unknown value inside, such
@@ -459,6 +472,12 @@ func (r *Resource) setState(ctx context.Context, v *users_management_service.Rba
 		if diags.HasError() {
 			return diags
 		}
+	}
+	// State cannot hold an unknown value. A value that the plan left unknown inside the object
+	// must have been set by AfterFlatten.
+	if value, err := m.Emails.ToTerraformValue(ctx); err == nil && !value.IsFullyKnown() {
+		diags.AddError("Unable to write the state of "+TypeName, fmt.Sprintf("the attribute %q has a value inside it that is still unknown after the API response was read; the AfterFlatten hook must set it", "emails"))
+		return diags
 	}
 	// State cannot hold an unknown value. A value that the plan left unknown inside the object
 	// must have been set by AfterFlatten.

@@ -525,5 +525,43 @@ func userAfterFlatten(ctx context.Context, m *user.RbacV2UserModel, v *users_man
 	set, d := basetypes.NewSetValueFrom(ctx, basetypes.StringType{}, ids)
 	diags.Append(d...)
 	m.Groups = set
+	// emails is the released view of the username: the Users API has no email
+	// collection, and the SCIM read always returned exactly one primary work
+	// email whose value was the username. The set holds that one entry, with the
+	// spelling of the configuration (the model already keeps it).
+	emails, d := deriveUserEmails(ctx, m.Username)
+	diags.Append(d...)
+	m.Emails = emails
 	return diags
 }
+
+// userEmailAttrTypes are the attribute types of one emails entry.
+var userEmailAttrTypes = map[string]attr.Type{
+	"primary": basetypes.BoolType{},
+	"type":    basetypes.StringType{},
+	"value":   basetypes.StringType{},
+}
+
+// deriveUserEmails builds the computed emails set from the username: exactly one
+// primary work email, as the released resource recorded.
+func deriveUserEmails(ctx context.Context, username basetypes.StringValue) (types.Set, diag.Diagnostics) {
+	var diags diag.Diagnostics
+	if username.IsNull() || username.IsUnknown() {
+		return types.SetNull(types.ObjectType{AttrTypes: userEmailAttrTypes}), diags
+	}
+	object, d := basetypes.NewObjectValue(userEmailAttrTypes, map[string]attr.Value{
+		"primary": basetypes.NewBoolValue(true),
+		"type":    basetypes.NewStringValue(userEmailType),
+		"value":   basetypes.NewStringValue(username.ValueString()),
+	})
+	diags.Append(d...)
+	if diags.HasError() {
+		return types.SetNull(types.ObjectType{AttrTypes: userEmailAttrTypes}), diags
+	}
+	set, d := basetypes.NewSetValueFrom(ctx, types.ObjectType{AttrTypes: userEmailAttrTypes}, []attr.Value{object})
+	diags.Append(d...)
+	return set, diags
+}
+
+// userEmailType is the email type SCIM returned for every user.
+const userEmailType = "work"

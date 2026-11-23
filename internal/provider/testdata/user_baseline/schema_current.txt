@@ -16,6 +16,16 @@ active  BoolAttribute optional computed
 allowed_login_mode  ListAttribute optional computed elem=basetypes.StringType
     markdown: "List of allowed login modes. Can include SSO, local authentication, or both. The order and repetitions of the configuration are kept in the state: the backend answers them in its own order, and the resource matches the configuration to that answer when it reads. Removing the attribute from the configuration keeps the modes the backend has; clearing them takes an explicit empty list `[]`."
     plan modifier: listplanmodifier.useStateForUnknownModifier Once set, the value of this attribute in state will not change.
+emails  SetNestedAttribute optional computed
+    default: setdefault.staticValueDefault value defaults to []
+    markdown: "The emails of the user, as the SCIM API returned them: exactly one primary work email, whose value is the `user_name`."
+emails[]  NestedObject
+emails[].primary  BoolAttribute optional
+    markdown: "Whether the email is the primary one. The API has one email per user, and it is primary."
+emails[].type  StringAttribute optional
+    markdown: "The kind of the email. The API has one kind: work."
+emails[].value  StringAttribute optional
+    markdown: "The email address. It is the `user_name` of the user."
 groups  SetAttribute computed elem=basetypes.StringType
     markdown: "The ids of the groups the user belongs to, as decimal strings, the values SCIM returned in groups[].value. A user with no memberships has a known empty set."
     plan modifier: setplanmodifier.useStateForUnknownModifier Once set, the value of this attribute in state will not change.

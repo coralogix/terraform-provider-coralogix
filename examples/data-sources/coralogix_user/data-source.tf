@@ -27,17 +27,17 @@ resource "coralogix_user" "example" {
   }
 }
 
-# The data source reads one user by id or by user_name: exactly one of the two is set.
-data "coralogix_user" "by_id" {
+data "coralogix_user" "imported_by_id" {
   id = coralogix_user.example.id
 }
 
-data "coralogix_user" "by_user_name" {
-  user_name = coralogix_user.example.user_name
+data "coralogix_user" "imported_by_user_name" {
+  user_name  = "example@coralogix.com"
+  depends_on = [coralogix_user.example]
 }
 
-resource "coralogix_group" "members" {
-  display_name = "example-members"
+resource "coralogix_group" "members_by_email" {
+  display_name = "example-members-by-email"
   role         = coralogix_custom_role.example.name
-  members      = [data.coralogix_user.by_id.id]
+  members      = [data.coralogix_user.imported_by_user_name.id]
 }

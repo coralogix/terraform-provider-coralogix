@@ -98,6 +98,7 @@ var computedAttrs = map[string]bool{
 	"allowed_login_mode": true,
 	"id":                 true,
 	"active":             true,
+	"emails":             true,
 	"groups":             true,
 	"name":               true,
 }
@@ -438,6 +439,7 @@ func flattenRbacV2User(ctx context.Context, p path.Path, v *users_management_ser
 		out.Username = keepEquivalentText(prior.Username, out.Username, caseInsensitiveEqual)
 	}
 	out.Active = types.BoolNull()
+	out.Emails = types.SetNull(types.ObjectType{AttrTypes: map[string]attr.Type{"primary": types.BoolType, "type": types.StringType, "value": types.StringType}})
 	out.Groups = types.SetNull(types.StringType)
 	out.Name = types.ObjectNull(map[string]attr.Type{"family_name": types.StringType, "given_name": types.StringType})
 	return out

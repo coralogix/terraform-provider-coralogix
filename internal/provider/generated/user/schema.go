@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/setdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/setplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -81,6 +82,28 @@ func Schema() schema.Schema {
 				Computed:            true,
 				Default:             booldefault.StaticBool(true),
 				MarkdownDescription: "Whether the user is active. The provider manages the whole status of the user through this attribute: `false` deactivates the user, `true` activates them. It defaults to `true`.",
+			},
+			"emails": schema.SetNestedAttribute{
+				Optional: true,
+				Computed: true,
+				Default:  setdefault.StaticValue(types.SetValueMust(types.ObjectType{AttrTypes: map[string]attr.Type{"primary": types.BoolType, "type": types.StringType, "value": types.StringType}}, []attr.Value{})),
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"primary": schema.BoolAttribute{
+							Optional:            true,
+							MarkdownDescription: "Whether the email is the primary one. The API has one email per user, and it is primary.",
+						},
+						"type": schema.StringAttribute{
+							Optional:            true,
+							MarkdownDescription: "The kind of the email. The API has one kind: work.",
+						},
+						"value": schema.StringAttribute{
+							Optional:            true,
+							MarkdownDescription: "The email address. It is the `user_name` of the user.",
+						},
+					},
+				},
+				MarkdownDescription: "The emails of the user, as the SCIM API returned them: exactly one primary work email, whose value is the `user_name`.",
 			},
 			"groups": schema.SetAttribute{
 				Computed:    true,
