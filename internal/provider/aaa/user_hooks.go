@@ -15,6 +15,7 @@
 package aaa
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -256,7 +257,6 @@ func (r *UserResource) Create(ctx context.Context, req resource.CreateRequest, r
 	if d := req.Plan.Get(ctx, &plan); d.HasError() || plan.Username.IsNull() || plan.Username.IsUnknown() {
 		return
 	}
-	username := plan.Username.ValueString()
 	for i, d := range resp.Diagnostics {
 		if d.Severity() != diag.SeverityError {
 			continue
@@ -267,26 +267,16 @@ func (r *UserResource) Create(ctx context.Context, req resource.CreateRequest, r
 		case strings.Contains(detail, "the API created the user, but returned no resource"):
 			resp.Diagnostics[i] = diag.NewErrorDiagnostic(summary,
 				fmt.Sprintf("user %q was invited rather than created, so it has no id until the invitation is accepted", plan.Username.ValueString()))
-		case summary == "Unable to create user" && strings.Contains(detail, "the API did not create the user") &&
-			strings.HasSuffix(detail, "the API did not create the user") && r.client != nil:
-			// The backend sends no message for a message-less failure, so the
-			// wrapper asks the API what happened: an account with that username
-			// means the released "already exists" diagnostic. Anything else —
-			// an invitation pending or a status the API did not name — keeps
-			// the generated error: only the account's existence is knowable
-			// here, and the invitation family has its own generated error
-			// ("created, but returned no resource") handled above.
-			found, _, err := r.client.UsersMgmtServiceSearchUsers(ctx).Username(username).PageSize(2).Execute()
-			if err != nil || found == nil {
-				return
-			}
-			for _, candidate := range found.GetUsers() {
-				if strings.EqualFold(candidate.GetUsername(), username) {
-					resp.Diagnostics[i] = diag.NewErrorDiagnostic(summary,
-						fmt.Sprintf("user %q already exists. Import it with `terraform import` instead of creating it.", plan.Username.ValueString()))
-					return
-				}
-			}
+		case summary == "Unable to create user" && strings.Contains(detail, "status CREATE_USER_STATUS_ALREADY_INVITED"):
+			// The generated error now names the refusing status; the released
+			// resource answered this one with the invitation wording.
+			resp.Diagnostics[i] = diag.NewErrorDiagnostic(summary,
+				fmt.Sprintf("user %q was invited rather than created, so it has no id until the invitation is accepted", plan.Username.ValueString()))
+		case summary == "Unable to create user" && strings.Contains(detail, "status CREATE_USER_STATUS_ALREADY_EXISTS") && r.client != nil:
+			// An account with that username already exists: the released
+			// diagnostic says to import it.
+			resp.Diagnostics[i] = diag.NewErrorDiagnostic(summary,
+				fmt.Sprintf("user %q already exists. Import it with `terraform import` instead of creating it.", plan.Username.ValueString()))
 		}
 	}
 }
@@ -363,13 +353,15 @@ func (r *UserResource) ImportState(ctx context.Context, req resource.ImportState
 	// import left the username in the state, and the read of the refresh filters
 	// with it — write it through the passthrough state so the follow-up read is
 	// hinted (the context of ImportState does not reach that Read).
-	email := req.ID
 	req.ID = user.GetUserId()
 	r.Resource.ImportState(ctx, req, resp)
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	_ = resp.State.SetAttribute(ctx, path.Root("user_name"), email)
+	// The released import stored the username as the API holds it: a lookup in
+	// another letter case resolves to the stored spelling, which the reads of the
+	// refresh keep.
+	_ = resp.State.SetAttribute(ctx, path.Root("user_name"), user.GetUsername())
 }
 
 // resolveUserByUsername resolves a user_name to the one user whose username equals
@@ -544,6 +536,12 @@ func (r *UserResource) Update(ctx context.Context, req resource.UpdateRequest, r
 				}
 			}
 			out.Users = users
+			if pageToken > 0 {
+				// The loop ran out of pages with the token still moving: a
+				// search this deep is the server misbehaving, and continuing
+				// would send a PUT without the values the answers may hold.
+				return out, fmt.Errorf("the search did not end within %d pages; give up or report this to the provider developers", userLookupPageCap)
+			}
 			return out, nil
 		})
 	}
@@ -561,7 +559,9 @@ func searchError(raw *http.Response, err error) error {
 	if readErr != nil || len(body) == 0 {
 		return err
 	}
-	return fmt.Errorf("%w — %s", err, body)
+	// The raw body ends with the newline the gateway appends; the released
+	// messages carried the JSON alone.
+	return fmt.Errorf("%w — %s", err, bytes.TrimSpace(body))
 }
 
 // userGet pages the Search at the released page size: the released read sent
@@ -702,29 +702,44 @@ func userBeforeWrite(ctx context.Context, _ tfsdk.Config, plan tfsdk.Plan, state
 					return diags
 				}
 			} else if found != nil {
-				// The state id names the user when the state carries it; the
-				// username matches the rest, case-insensitively as the backend
-				// folds the case of an SSO login.
+				// The state id names the user when the state carries it — the
+				// only key that survives a rename outside Terraform, so the
+				// unfiltered answers match by id, and by username only when the
+				// state carries no id (the backend folds the case of an SSO
+				// login). A user no answer names means the state no longer
+				// describes the API: the update stops, because sending the PUT
+				// without the modes would clear them.
+				matched := false
 				for i := range found.Users {
 					idMatch := prior.UserId.IsNull() || found.Users[i].GetUserId() == prior.UserId.ValueString()
-					if idMatch && (strings.EqualFold(found.Users[i].GetUsername(), prior.Username.ValueString()) || prior.Username.ValueString() == "") {
-						if template.AllowedLoginMode == nil {
-							template.AllowedLoginMode = found.Users[i].AllowedLoginMode
-						}
+					if !idMatch {
+						continue
+					}
+					matched = true
+					if template.AllowedLoginMode == nil {
+						template.AllowedLoginMode = found.Users[i].AllowedLoginMode
+					}
+					if template.AccessType == nil {
+						// A user without an explicit access type in the API is
+						// permanent-access; send it literally so the PUT keeps
+						// the user's access rather than relying on the backend
+						// default.
+						template.AccessType = found.Users[i].AccessType
 						if template.AccessType == nil {
-							// A user without an explicit access type in the API is
-							// permanent-access; send it literally so the PUT keeps
-							// the user's access rather than relying on the backend
-							// default.
-							template.AccessType = found.Users[i].AccessType
-							if template.AccessType == nil {
-								template.AccessType = &users_management_service.AccessType{
-									AccessType:      "permanent",
-									PermanentAccess: map[string]interface{}{},
-								}
+							template.AccessType = &users_management_service.AccessType{
+								AccessType:      "permanent",
+								PermanentAccess: map[string]interface{}{},
 							}
 						}
 					}
+				}
+				if !matched && !prior.UserId.IsNull() {
+					// Neither search named the user the state carries: the state
+					// no longer describes the API, and the PUT of a user the API
+					// may not hold would clear the modes and the access type.
+					diags.AddAttributeError(path.Root("allowed_login_mode"), "Unable to recover the login modes of the user",
+						fmt.Sprintf("The state names user %q (id %s), but the API answers no user with that id or name. Refresh the resource, or import the user again, then update.", prior.Username.ValueString(), prior.UserId.ValueString()))
+					return diags
 				}
 			}
 		}

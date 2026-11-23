@@ -273,10 +273,12 @@ func (r *Resource) create(ctx context.Context, body *member_hook_service.CreateM
 		created = true
 	}
 	if !created {
+		// The released resource named the refusing status in the error: the
+		// message the result carries says why, the status says which refusal.
 		if result.Message != nil && *result.Message != "" {
-			return nil, fmt.Errorf("the API did not create the %s: %s", TypeName, *result.Message)
+			return nil, fmt.Errorf("the API did not create the %s (status %v): %s", TypeName, *result.Status, *result.Message)
 		}
-		return nil, fmt.Errorf("the API did not create the %s", TypeName)
+		return nil, fmt.Errorf("the API did not create the %s (status %v)", TypeName, *result.Status)
 	}
 	if result.Member == nil {
 		return nil, fmt.Errorf("the API created the %s, but returned no resource", TypeName)

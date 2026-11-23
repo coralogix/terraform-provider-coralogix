@@ -43,11 +43,6 @@
           }
         ],
         "status": 200
-      },
-      {
-        "method": "GET",
-        "path": "/mgmt/openapi/5/aaa/users/v2?page_size=2&username=tf-acc-user-1%40coralogix.com",
-        "status": 200
       }
     ],
     "applyDiagnostics": [

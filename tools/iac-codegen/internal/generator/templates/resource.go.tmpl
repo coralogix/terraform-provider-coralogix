@@ -764,12 +764,12 @@ func (r *Resource) create(ctx context.Context, body *{{$sdk}}.{{$.Conv.CreateBod
 	{{- end}}
 	}
 	if !created {
-	{{- if .Create.Result.Message}}
+		// The released resource named the refusing status in the error: the
+		// message the result carries says why, the status says which refusal.
 		if result.{{.Create.Result.Message}} != nil && *result.{{.Create.Result.Message}} != "" {
-			return nil, fmt.Errorf("the API did not create the %s: %s", TypeName, *result.{{.Create.Result.Message}})
+			return nil, fmt.Errorf("the API did not create the %s (status %v): %s", TypeName, *result.Status, *result.{{.Create.Result.Message}})
 		}
-	{{- end}}
-		return nil, fmt.Errorf("the API did not create the %s", TypeName)
+		return nil, fmt.Errorf("the API did not create the %s (status %v)", TypeName, *result.Status)
 	}
 	if result.{{.Create.Result.Resource}} == nil {
 		return nil, fmt.Errorf("the API created the %s, but returned no resource", TypeName)

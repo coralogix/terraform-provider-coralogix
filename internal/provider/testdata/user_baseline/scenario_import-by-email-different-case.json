@@ -13,7 +13,7 @@
       },
       {
         "method": "GET",
-        "path": "/mgmt/openapi/5/aaa/users/v2?page_size=100&username=TF-ACC-USER-1%40CORALOGIX.COM",
+        "path": "/mgmt/openapi/5/aaa/users/v2?page_size=100&username=tf-acc-user-1%40coralogix.com",
         "status": 200
       }
     ],
@@ -28,7 +28,7 @@
         {
           "primary": true,
           "type": "work",
-          "value": "TF-ACC-USER-1@CORALOGIX.COM"
+          "value": "tf-acc-user-1@coralogix.com"
         }
       ],
       "groups": [],
@@ -37,7 +37,7 @@
         "family_name": "User",
         "given_name": "Test"
       },
-      "user_name": "TF-ACC-USER-1@CORALOGIX.COM"
+      "user_name": "tf-acc-user-1@coralogix.com"
     },
     "drift": [
       "AttributeName(\"access_type\")",
@@ -46,7 +46,7 @@
       "AttributeName(\"active\")",
       "AttributeName(\"allowed_login_mode\")",
       "AttributeName(\"emails\")",
-      "AttributeName(\"emails\").ElementKeyValue(tftypes.Object[\"primary\":tftypes.Bool, \"type\":tftypes.String, \"value\":tftypes.String]<\"primary\":tftypes.Bool<\"true\">, \"type\":tftypes.String<\"work\">, \"value\":tftypes.String<\"TF-ACC-USER-1@CORALOGIX.COM\">>)",
+      "AttributeName(\"emails\").ElementKeyValue(tftypes.Object[\"primary\":tftypes.Bool, \"type\":tftypes.String, \"value\":tftypes.String]<\"primary\":tftypes.Bool<\"true\">, \"type\":tftypes.String<\"work\">, \"value\":tftypes.String<\"tf-acc-user-1@coralogix.com\">>)",
       "AttributeName(\"groups\")",
       "AttributeName(\"name\")",
       "AttributeName(\"name\").AttributeName(\"family_name\")",
@@ -73,7 +73,7 @@
         {
           "primary": true,
           "type": "work",
-          "value": "TF-ACC-USER-1@CORALOGIX.COM"
+          "value": "tf-acc-user-1@coralogix.com"
         }
       ],
       "groups": [],
@@ -82,7 +82,7 @@
         "family_name": "User",
         "given_name": "Test"
       },
-      "user_name": "TF-ACC-USER-1@CORALOGIX.COM"
+      "user_name": "tf-acc-user-1@coralogix.com"
     },
     "noChange": true,
     "state": {
@@ -96,7 +96,7 @@
         {
           "primary": true,
           "type": "work",
-          "value": "TF-ACC-USER-1@CORALOGIX.COM"
+          "value": "tf-acc-user-1@coralogix.com"
         }
       ],
       "groups": [],
@@ -105,7 +105,7 @@
         "family_name": "User",
         "given_name": "Test"
       },
-      "user_name": "TF-ACC-USER-1@CORALOGIX.COM"
+      "user_name": "tf-acc-user-1@coralogix.com"
     }
   }
 ]
