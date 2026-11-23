@@ -359,12 +359,12 @@ var userScenarios = map[string]func(h *grHarness){
 		config := userConfig(userA, j{"name": userTestName})
 		s := h.Apply("create", h.null(), config)
 		h.users().change(idOf(s), j{"username": "TF-ACC-USER-1@CORALOGIX.COM"})
-		s = h.RefreshPlan("refresh rewrites user_name to the case of the backend, and the replan stays empty", s)
+		s = h.RefreshPlan("refresh keeps the case of the configuration, and the replan stays empty", s)
 		h.Apply("apply the config again", s, config)
 	},
 	"user-name-case-only-change": func(h *grHarness) {
 		s := h.Apply("create", h.null(), userConfig(userA, j{"name": userTestName}))
-		s = h.Apply("change only the case of user_name: nothing is planned", s, userConfig("TF-ACC-USER-1@Coralogix.com", j{"name": userTestName}))
+		s = h.Apply("change only the case of user_name: the update runs and the state keeps the configured case", s, userConfig("TF-ACC-USER-1@Coralogix.com", j{"name": userTestName}))
 		h.RefreshPlan("refresh and replan", s)
 	},
 	"user-name-rename-rejected": func(h *grHarness) {
@@ -630,6 +630,16 @@ var userScenarios = map[string]func(h *grHarness){
 		id := h.users().seed(j{"username": userA, "firstName": "Test", "lastName": "User"})
 		h.Import("import by user id: the scan reads three pages", id)
 	},
+	"import-by-email-stuck-page-token": func(h *grHarness) {
+		h.users().pageLimit = 2
+		h.users().stuckPageToken = 2
+		for _, name := range []string{"tf-acc-user-3@coralogix.com", "tf-acc-user-4@coralogix.com", "tf-acc-user-5@coralogix.com"} {
+			h.users().seed(j{"username": name})
+		}
+		h.users().seed(j{"username": userA, "firstName": "Test", "lastName": "User"})
+		s := h.Import("import by email: the page token stops advancing, so the scan stops", userA)
+		h.Apply("plan matching config", s, userConfig(userA, j{"name": userTestName}))
+	},
 	"import-by-id-stuck-page-token": func(h *grHarness) {
 		h.users().pageLimit = 2
 		h.users().stuckPageToken = 2
@@ -646,6 +656,15 @@ var userDataSourceScenarios = map[string]func(h *grHarness){
 		h.users().seed(j{"username": userB})
 		id := h.users().seed(j{"username": userA, "firstName": "Test", "lastName": "User"})
 		h.ReadDataSource("read by id", j{"id": id})
+	},
+	"read-by-user-name-stuck-page-token": func(h *grHarness) {
+		h.users().pageLimit = 2
+		h.users().stuckPageToken = 2
+		for _, name := range []string{"tf-acc-user-3@coralogix.com", "tf-acc-user-4@coralogix.com", "tf-acc-user-5@coralogix.com"} {
+			h.users().seed(j{"username": name})
+		}
+		h.users().seed(j{"username": userA, "firstName": "Test", "lastName": "User"})
+		h.ReadDataSource("read by user_name: the page token stops advancing, so the scan stops", j{"user_name": userA})
 	},
 	"read-by-user-name": func(h *grHarness) {
 		h.users().seed(j{"username": userB})

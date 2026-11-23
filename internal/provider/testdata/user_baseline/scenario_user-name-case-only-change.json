@@ -56,7 +56,7 @@
     "replanEmpty": true
   },
   {
-    "step": "change only the case of user_name: nothing is planned",
+    "step": "change only the case of user_name: the update runs and the state keeps the configured case",
     "config": {
       "name": {
         "family_name": "User",

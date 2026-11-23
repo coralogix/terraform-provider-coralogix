@@ -56,7 +56,7 @@
     "replanEmpty": true
   },
   {
-    "step": "refresh rewrites user_name to the case of the backend, and the replan stays empty",
+    "step": "refresh keeps the case of the configuration, and the replan stays empty",
     "requests": [
       {
         "method": "GET",

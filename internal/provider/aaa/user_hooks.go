@@ -21,6 +21,7 @@ import (
 	"strconv"
 	"strings"
 
+	cxsdk "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
 	"github.com/coralogix/coralogix-management-sdk/go/openapi/gen/users_management_service"
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/user"
@@ -193,7 +194,7 @@ func (r *UserResource) ImportState(ctx context.Context, req resource.ImportState
 			"The resource has no users client to resolve the user_name of the import. Import with the user id instead.")
 		return
 	}
-	user, diags := resolveUserByUsername(ctx, r.client, req.ID)
+	user, diags := resolveUserByUsername(ctx, r.client, req.ID, "Error importing User")
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -205,8 +206,11 @@ func (r *UserResource) ImportState(ctx context.Context, req resource.ImportState
 // resolveUserByUsername resolves a user_name to the one user whose username equals
 // it case-insensitively: the search narrows server-side with the username filter,
 // and the wrapper pages the result. The data-source lookup and the import share
-// the semantics the released resource recorded.
-func resolveUserByUsername(ctx context.Context, client *users_management_service.UsersManagementServiceAPIService, userName string) (*users_management_service.RbacV2User, diag.Diagnostics) {
+// the semantics the released resource recorded, including the page loop of the
+// released search: it stops when the token does not move forward, so a server
+// that repeats a token cannot turn one match into several. The summary is the
+// diagnostic summary of a failed search, which the caller words for its context.
+func resolveUserByUsername(ctx context.Context, client *users_management_service.UsersManagementServiceAPIService, userName, summary string) (*users_management_service.RbacV2User, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	var matches []*users_management_service.RbacV2User
 	pageToken := int64(0)
@@ -215,9 +219,9 @@ func resolveUserByUsername(ctx context.Context, client *users_management_service
 		if pageToken != 0 {
 			request = request.PageToken(pageToken)
 		}
-		out, _, err := request.Execute()
+		out, httpResp, err := request.Execute()
 		if err != nil {
-			diags.AddError("Error importing User", fmt.Sprintf("The search for user_name %q failed: %s", userName, err))
+			diags.AddError(summary, cxsdk.NewAPIError(httpResp, err).Error())
 			return nil, diags
 		}
 		for i := range out.GetUsers() {
@@ -225,10 +229,21 @@ func resolveUserByUsername(ctx context.Context, client *users_management_service
 				matches = append(matches, &out.Users[i])
 			}
 		}
-		pageToken = out.GetNextPageToken()
-		if pageToken == 0 || pageToken < 0 || len(out.GetUsers()) == 0 {
+		next := out.GetNextPageToken()
+		if next <= pageToken {
+			// The token is an offset into the result set. A missing token, or one
+			// that does not move forward, means this was the last page, as the
+			// released search recorded.
 			break
 		}
+		pageToken = next
+		if len(out.GetUsers()) == 0 {
+			break
+		}
+	}
+	if pageToken >= userLookupPageCap {
+		diags.AddError(summary, fmt.Sprintf("The search for user_name %q did not end within %d pages; give up or report this to the provider developers.", userName, userLookupPageCap))
+		return nil, diags
 	}
 	switch len(matches) {
 	case 0:
@@ -256,6 +271,10 @@ func resolveUserByUsername(ctx context.Context, client *users_management_service
 	}
 	return nil, diags
 }
+
+// userLookupPageCap is the most pages of a username lookup. The page loop of the
+// released search had no cap; the cap only guards a server that paginates forever.
+const userLookupPageCap = 100
 
 // UserResource wraps the generated user resource: Update hands the users client to
 // the hook through the context, and Configure captures it from the provider data.

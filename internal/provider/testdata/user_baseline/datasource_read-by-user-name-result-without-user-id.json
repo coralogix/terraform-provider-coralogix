@@ -12,7 +12,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Unable to read coralogix_user | The search for user_name \"tf-acc-user-1@coralogix.com\" failed: no value given for required property userId"
+      "error: Unable to read coralogix_user | no value given for required property userId — {\"totalCount\":1,\"users\":[{\"accessType\":{\"accessType\":\"permanent\",\"permanentAccess\":{}},\"allowedLoginMode\":[],\"firstName\":\"Test\",\"groupIds\":[],\"lastName\":\"User\",\"status\":\"USER_STATUS_ACTIVE\",\"userAccountId\":1001,\"username\":\"tf-acc-user-1@coralogix.com\"}]}"
     ],
     "state": {
       "access_type": null,
