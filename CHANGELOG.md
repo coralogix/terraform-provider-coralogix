@@ -1,5 +1,8 @@
 # Unreleased
 
+#### provider
+- FIX: A generated resource that has a set of oneOf items keeps an explicit empty set inside a chosen arm, such as an empty `filters` list in a condition, instead of failing with an inconsistent-result error.
+
 #### data-source/coralogix_alert
 - FEAT: Add `case_settings.overrides`, `case_settings.overrides.kpi`, `case_settings.overrides.kpi.thresholds`, `case_settings.overrides.kpi.thresholds.enabled`, `case_settings.overrides.kpi.thresholds.priority`, `case_settings.overrides.kpi.thresholds.threshold`, `case_settings.overrides.kpi.thresholds.type`, `case_settings.overrides.priority_escalation`, `case_settings.overrides.priority_escalation.enabled`, `case_settings.overrides.priority_escalation.rules`, `case_settings.overrides.priority_escalation.rules.from_priority`, `case_settings.overrides.priority_escalation.rules.period`, `case_settings.overrides.priority_escalation.rules.to_priority` from the API contract of Management SDK `v1.9.4-0.20261123163026-0c61264a7f60`.
 

@@ -275,9 +275,9 @@ func emptyNormal(at string, v attr.Value) attr.Value {
 		if emptyValue(at, v) {
 			return types.ObjectNull(v.AttributeTypes(ctx))
 		}
-		if oneOfArms[at] {
-			return v
-		}
+		// A oneOf arm is never empty (emptyValue keeps it), so it stays present. Its descendants
+		// still take the normal form, or an empty set inside a chosen arm would not match the null
+		// that the API returns.
 		attrs := v.Attributes()
 		out := make(map[string]attr.Value, len(attrs))
 		for name, child := range attrs {
