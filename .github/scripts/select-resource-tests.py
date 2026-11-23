@@ -85,7 +85,7 @@ def resources() -> dict[str, list[tuple[str, str]]]:
         cwd=ROOT, text=True,
     )
     mapping: dict[str, list[tuple[str, str]]] = {}
-    for component, out, name in (line.split() for line in output.splitlines()):
+    for component, out, name, *_flags in (line.split() for line in output.splitlines()):
         mapping.setdefault(component, []).append((out, name))
     return mapping
 

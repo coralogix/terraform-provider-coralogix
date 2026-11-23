@@ -55,8 +55,9 @@ else
   (cd tools/iac-codegen && go build -o "$binary" ./cmd/tfgen)
 fi
 
-while read -r resource out; do
-  (cd "$work/regenerated" && "$binary" generate --resource "$resource" --out "internal/provider/generated/$out")
+while read -r resource out flags; do
+  # shellcheck disable=SC2086 # flags is a list of words that codegen-list.sh built.
+  (cd "$work/regenerated" && "$binary" generate --resource "$resource" --out "internal/provider/generated/$out" $flags)
 done <"$work/resources"
 
 for path in internal/provider/generated examples; do

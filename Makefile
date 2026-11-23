@@ -97,7 +97,8 @@ generate:
 
 # Generate one resource with the IaC generator, then the docs.
 # Example: make codegen RESOURCE=GlobalRouter OUT=globalrouter
+# A service whose operation IDs do not end in Get<RESOURCE> names them: GET=<operationId> UPDATE=<operationId>.
 codegen:
 	@test -n "$(RESOURCE)" && test -n "$(OUT)" || { echo "usage: make codegen RESOURCE=<OpenAPI component> OUT=<directory in internal/provider/generated>"; exit 2; }
-	cd tools/iac-codegen && go run ./cmd/tfgen generate --resource '$(RESOURCE)' --out ../../internal/provider/generated/$(OUT)
+	cd tools/iac-codegen && go run ./cmd/tfgen generate --resource '$(RESOURCE)' --out ../../internal/provider/generated/$(OUT)$(if $(GET), --get-operation '$(GET)')$(if $(UPDATE), --update-operation '$(UPDATE)')
 	$(MAKE) generate

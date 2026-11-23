@@ -83,13 +83,14 @@ fi
 
 # Each binary runs from the provider root, so it finds the pinned SDK from the provider go.mod.
 generate() {
-  local side=$1 binary=$2 resource=$3 out=$4
-  (cd "$work/$side-tree" && "$binary" generate --resource "$resource" --out "internal/provider/generated/$out") \
+  local side=$1 binary=$2 resource=$3 out=$4 flags=${5:-}
+  # shellcheck disable=SC2086 # flags is a list of words that codegen-list.sh built.
+  (cd "$work/$side-tree" && "$binary" generate --resource "$resource" --out "internal/provider/generated/$out" $flags) \
     >"$work/$side-out/resources/$out.generate.txt" 2>&1 || echo "exit $?" >>"$work/$side-out/resources/$out.generate.txt"
 }
-while read -r resource out; do
-  generate old "$old" "$resource" "$out"
-  generate new "$new" "$resource" "$out"
+while read -r resource out flags; do
+  generate old "$old" "$resource" "$out" "$flags"
+  generate new "$new" "$resource" "$out" "$flags"
 done < <("$scripts/codegen-list.sh")
 
 check() {

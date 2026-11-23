@@ -61,11 +61,11 @@ printf 'SDK services changed since %s: %s\n' "$previous" "$(paste -sd, - <"$work
 # A generated resource uses the SDK services that its package imports.
 "$scripts/codegen-list.sh" --names >"$work/resources"
 : >"$work/selected"
-while read -r resource out name; do
+while read -r resource out name flags; do
   { grep -hoE 'coralogix-management-sdk/go/openapi/gen/[A-Za-z0-9_]+' "internal/provider/generated/$out"/*.go || true; } |
     sed 's#.*/##' | sort -u >"$work/imports"
   if [[ -n $(comm -12 "$work/imports" "$work/services") ]]; then
-    printf '%s %s %s\n' "$resource" "$out" "$name" >>"$work/selected"
+    printf '%s %s %s %s\n' "$resource" "$out" "$name" "$flags" >>"$work/selected"
   fi
 done <"$work/resources"
 
@@ -75,9 +75,10 @@ if [[ ! -s "$work/selected" ]]; then
   printf '%s\n' 'No generated resource uses a changed SDK service.' >&2
   exit 0
 fi
-while read -r resource out name; do
+while read -r resource out name flags; do
   printf 'Generating %s into %s\n' "$resource" "$out" >&2
-  if "$binary" generate --resource "$resource" --out "internal/provider/generated/$out" >&2 </dev/null; then
+  # shellcheck disable=SC2086 # flags is a list of words that codegen-list.sh built.
+  if "$binary" generate --resource "$resource" --out "internal/provider/generated/$out" $flags >&2 </dev/null; then
     continue
   fi
   # The generator can stop after it wrote some files: put back the committed ones.

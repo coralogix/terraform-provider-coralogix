@@ -20,6 +20,10 @@ integration: v0.1.0-beta.97
 ipaccess: v0.1.0-beta.97
 parsingrules: v0.1.0-beta.97
 preset: v0.1.0-beta.97
+productanalyticsfunnels: v0.1.0-beta.97
+productanalyticsheatmaps: v0.1.0-beta.97
+productanalyticspathways: v0.1.0-beta.97
+productanalyticssettings: v0.1.0-beta.97
 quotaallocationruleset: v0.1.0-beta.97
 recordingrulesgroupsset: v0.1.0-beta.97
 scope: v0.1.0-beta.97
