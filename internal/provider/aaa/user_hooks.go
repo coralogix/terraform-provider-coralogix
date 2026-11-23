@@ -799,6 +799,7 @@ func userAfterFlatten(ctx context.Context, m *user.RbacV2UserModel, v *users_man
 		FamilyName: emptyAsNull(v.LastName),
 	}
 	apiCleared := name.GivenName.IsNull() && name.FamilyName.IsNull()
+	keepName := false
 	if !m.Name.IsNull() && !m.Name.IsUnknown() {
 		// The released preserveUserName: the prior form survives when both of
 		// its components read the same as the API's (a null component reads as
@@ -811,20 +812,20 @@ func userAfterFlatten(ctx context.Context, m *user.RbacV2UserModel, v *users_man
 		if diags.HasError() {
 			return diags
 		}
-		if prior.GivenName.ValueString() == name.GivenName.ValueString() &&
-			prior.FamilyName.ValueString() == name.FamilyName.ValueString() {
-			return diags
-		}
+		keepName = prior.GivenName.ValueString() == name.GivenName.ValueString() &&
+			prior.FamilyName.ValueString() == name.FamilyName.ValueString()
 	}
-	if apiCleared {
-		m.Name = basetypes.NewObjectNull(userNameAttrTypes)
-	} else {
-		object, d := basetypes.NewObjectValue(userNameAttrTypes, map[string]attr.Value{
-			"given_name":  name.GivenName,
-			"family_name": name.FamilyName,
-		})
-		diags.Append(d...)
-		m.Name = object
+	if !keepName {
+		if apiCleared {
+			m.Name = basetypes.NewObjectNull(userNameAttrTypes)
+		} else {
+			object, d := basetypes.NewObjectValue(userNameAttrTypes, map[string]attr.Value{
+				"given_name":  name.GivenName,
+				"family_name": name.FamilyName,
+			})
+			diags.Append(d...)
+			m.Name = object
+		}
 	}
 	// active is ACTIVE; every other status is inactive: an unknown status never reports a
 	// user as usable.

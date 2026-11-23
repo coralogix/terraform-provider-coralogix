@@ -45,15 +45,12 @@
         "status": 200
       }
     ],
-    "inconsistentResult": [
-      "active"
-    ],
     "state": {
       "access_type": {
         "permanent_access": {},
         "temporary_access": null
       },
-      "active": null,
+      "active": true,
       "allowed_login_mode": [],
       "emails": [
         {
@@ -62,7 +59,7 @@
           "value": "tf-acc-user-1@coralogix.com"
         }
       ],
-      "groups": null,
+      "groups": [],
       "id": "00000000-0000-4000-8000-000000000001",
       "name": {
         "family_name": "User",
@@ -70,10 +67,7 @@
       },
       "user_name": "tf-acc-user-1@coralogix.com"
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"active\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "refresh stores the temporary access and its expiry",
@@ -91,7 +85,7 @@
           "expire_at": "2030-01-01T00:00:00Z"
         }
       },
-      "active": null,
+      "active": true,
       "allowed_login_mode": [
         "ALLOWED_LOGIN_MODE_SSO",
         "ALLOWED_LOGIN_MODE_LOCAL"
@@ -103,7 +97,7 @@
           "value": "tf-acc-user-1@coralogix.com"
         }
       ],
-      "groups": null,
+      "groups": [],
       "id": "00000000-0000-4000-8000-000000000001",
       "name": {
         "family_name": "User",
@@ -119,10 +113,7 @@
       "AttributeName(\"allowed_login_mode\").ElementKeyInt(0)",
       "AttributeName(\"allowed_login_mode\").ElementKeyInt(1)"
     ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"active\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "rename: the PUT sends the temporary access back",
@@ -152,7 +143,7 @@
           "value": "tf-acc-user-1@coralogix.com"
         }
       ],
-      "groups": null,
+      "groups": [],
       "id": "00000000-0000-4000-8000-000000000001",
       "name": {
         "family_name": "Person",
@@ -188,9 +179,6 @@
         "status": 200
       }
     ],
-    "inconsistentResult": [
-      "active"
-    ],
     "state": {
       "access_type": {
         "permanent_access": null,
@@ -198,7 +186,7 @@
           "expire_at": "2030-01-01T00:00:00Z"
         }
       },
-      "active": null,
+      "active": true,
       "allowed_login_mode": [
         "ALLOWED_LOGIN_MODE_SSO",
         "ALLOWED_LOGIN_MODE_LOCAL"
@@ -210,7 +198,7 @@
           "value": "tf-acc-user-1@coralogix.com"
         }
       ],
-      "groups": null,
+      "groups": [],
       "id": "00000000-0000-4000-8000-000000000001",
       "name": {
         "family_name": "Person",
@@ -218,10 +206,7 @@
       },
       "user_name": "tf-acc-user-1@coralogix.com"
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"active\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "refresh and replan after the rename",
@@ -239,7 +224,7 @@
           "expire_at": "2030-01-01T00:00:00Z"
         }
       },
-      "active": null,
+      "active": true,
       "allowed_login_mode": [
         "ALLOWED_LOGIN_MODE_SSO",
         "ALLOWED_LOGIN_MODE_LOCAL"
@@ -251,7 +236,7 @@
           "value": "tf-acc-user-1@coralogix.com"
         }
       ],
-      "groups": null,
+      "groups": [],
       "id": "00000000-0000-4000-8000-000000000001",
       "name": {
         "family_name": "Person",
@@ -259,10 +244,7 @@
       },
       "user_name": "tf-acc-user-1@coralogix.com"
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"active\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "destroy: the PUT sends the temporary access back",
