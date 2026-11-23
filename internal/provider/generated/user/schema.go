@@ -74,7 +74,7 @@ func Schema() schema.Schema {
 			},
 			"user_name": schema.StringAttribute{
 				Required:            true,
-				MarkdownDescription: "User name (email). Comparison is case-insensitive: when the backend normalizes the letter case of an SSO login, the read matches the state and plans no change. A configuration that changes the letter case of the name still plans an update, which the resource refuses: the API ignores a username change.",
+				MarkdownDescription: "User name (email). Comparison is case-insensitive: when the backend normalizes the letter case of an SSO login, the read matches the state and plans no change. A configuration that changes the letter case of the name plans an update; the API keeps the stored name and the read keeps the spelling of the configuration. A configuration that changes the name itself fails: the API ignores a username change.",
 			},
 			"active": schema.BoolAttribute{
 				Optional:            true,

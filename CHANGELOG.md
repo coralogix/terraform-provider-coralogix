@@ -8,7 +8,7 @@
 - BREAKING: `data.coralogix_user` loses the `user_name` lookup until the generator can send a configured value as a Search filter (the V6 follow-up): it reads by `id` only, and a configuration that sets `user_name` is rejected as a read-only attribute.
 - BREAKING: `emails` is removed. The Users API has no email collection: the released set always held exactly one primary work email whose value was `user_name`, which a configuration can read from `user_name` directly. The state upgrade drops it.
 - BREAKING: A user can no longer be imported by `user_name` (an email): the generated import reads by `id`, as the Users API has no lookup by email. Import with the user id instead.
-- BREAKING: A case-only `user_name` change (e.g. `User@x.com` to `user@x.com`) now plans an update, which the API answers by keeping the old name: the update fails with a clear diagnostic instead of silently matching. The backend folds the case of an SSO login itself, so an SSO login that the backend recased reads as no change.
+- BREAKING: A case-only `user_name` change (e.g. `User@x.com` to `user@x.com`) now plans an update, which the released plan modifier suppressed. The update succeeds: the API keeps the stored name, and the read keeps the spelling the configuration wrote, so the next plan is empty. A change to a different name still fails with a clear diagnostic, as the released resource did: the API ignores a username change. The backend folds the case of an SSO login itself, so an SSO login that the backend recased reads as no change.
 
 #### data-source/coralogix_user
 

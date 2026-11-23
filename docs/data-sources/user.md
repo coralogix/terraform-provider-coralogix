@@ -13,6 +13,20 @@ Coralogix User. For more info please review - https://coralogix.com/docs/user-gu
 ## Example Usage
 
 ```terraform
+terraform {
+  required_providers {
+    coralogix = {
+      version = "~> 3.0"
+      source  = "coralogix/coralogix"
+    }
+  }
+}
+
+provider "coralogix" {
+  #api_key = "<add your api key here or add env variable CORALOGIX_API_KEY>"
+  #env = "<add the environment you want to work at or add env variable CORALOGIX_ENV>"
+}
+
 resource "coralogix_custom_role" "example" {
   name        = "Example custom role"
   description = "This role is created with terraform!"
@@ -28,19 +42,15 @@ resource "coralogix_user" "example" {
   }
 }
 
-data "coralogix_user" "imported_by_id" {
+# The data source reads one user by id: the Users API has no username lookup.
+data "coralogix_user" "by_id" {
   id = coralogix_user.example.id
 }
 
-data "coralogix_user" "imported_by_user_name" {
-  user_name  = "example@coralogix.com"
-  depends_on = [coralogix_user.example]
-}
-
-resource "coralogix_group" "members_by_email" {
-  display_name = "example-members-by-email"
+resource "coralogix_group" "members" {
+  display_name = "example-members"
   role         = coralogix_custom_role.example.name
-  members      = [data.coralogix_user.imported_by_user_name.id]
+  members      = [data.coralogix_user.by_id.id]
 }
 ```
 
@@ -58,7 +68,7 @@ resource "coralogix_group" "members_by_email" {
 - `allowed_login_mode` (List of String) List of allowed login modes. Can include SSO, local authentication, or both. The order and repetitions of the configuration are kept in the state: the backend answers them in its own order, and the resource matches the configuration to that answer when it reads. Removing the attribute from the configuration keeps the modes the backend has; clearing them takes an explicit empty list `[]`.
 - `groups` (Set of String) The ids of the groups the user belongs to, as decimal strings, the values SCIM returned in groups[].value. A user with no memberships has a known empty set.
 - `name` (Attributes) The name of the user. (see [below for nested schema](#nestedatt--name))
-- `user_name` (String) User name (email). Comparison is case-insensitive: when the backend normalizes the letter case of an SSO login, the read matches the state and plans no change. A configuration that changes the letter case of the name still plans an update, which the resource refuses: the API ignores a username change.
+- `user_name` (String) User name (email). Comparison is case-insensitive: when the backend normalizes the letter case of an SSO login, the read matches the state and plans no change. A configuration that changes the letter case of the name plans an update; the API keeps the stored name and the read keeps the spelling of the configuration. A configuration that changes the name itself fails: the API ignores a username change.
 
 <a id="nestedatt--access_type"></a>
 ### Nested Schema for `access_type`
