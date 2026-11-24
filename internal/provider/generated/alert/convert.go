@@ -1671,7 +1671,10 @@ func flattenAlertDefCaseSettings(ctx context.Context, p path.Path, v *alert_defi
 	out := &AlertDefCaseSettingsModel{}
 	out.AutoResolveMode = flattenEnumMapped(p.AtName("auto_resolve_mode"), v.AutoResolveMode, alertDefCaseAutoResolveModeFromAPI, diags)
 	out.Destinations = types.ListNull(types.ObjectType{AttrTypes: alertDefCaseDestinationAttrTypes()})
-	if len(v.Destinations) != 0 {
+	if v.Destinations == nil {
+		out.Destinations = types.ListValueMust(types.ObjectType{AttrTypes: alertDefCaseDestinationAttrTypes()}, []attr.Value{})
+	}
+	if v.Destinations != nil {
 		items := make([]AlertDefCaseDestinationModel, 0, len(v.Destinations))
 		for i := range v.Destinations {
 			items = append(items, *flattenAlertDefCaseDestination(ctx, p.AtName("destinations").AtListIndex(i), &v.Destinations[i], diags))
@@ -1679,7 +1682,10 @@ func flattenAlertDefCaseSettings(ctx context.Context, p path.Path, v *alert_defi
 		out.Destinations = flattenList(ctx, types.ObjectType{AttrTypes: alertDefCaseDestinationAttrTypes()}, items, diags)
 	}
 	out.EnrichmentQueries = types.ListNull(types.ObjectType{AttrTypes: alertDefCaseEnrichmentQueryAttrTypes()})
-	if len(v.EnrichmentQueries) != 0 {
+	if v.EnrichmentQueries == nil {
+		out.EnrichmentQueries = types.ListValueMust(types.ObjectType{AttrTypes: alertDefCaseEnrichmentQueryAttrTypes()}, []attr.Value{})
+	}
+	if v.EnrichmentQueries != nil {
 		items := make([]AlertDefCaseEnrichmentQueryModel, 0, len(v.EnrichmentQueries))
 		for i := range v.EnrichmentQueries {
 			items = append(items, *flattenAlertDefCaseEnrichmentQuery(ctx, p.AtName("enrichment_queries").AtListIndex(i), &v.EnrichmentQueries[i], diags))

@@ -126,8 +126,9 @@ types:
   AlertDefCaseSettings:
     fields:
       autoResolveMode: {computed: true, default: enabled, validators: [{enumExceptZero: true}]}
-      destinations: {computed: true, default: [], markdownDescription: "Notification Center destinations notified about the cases opened by this alert. The API accepts at most 100 destinations and rejects two destinations with the same `connector_id`, `preset_id` and `condition`."}
-      enrichmentQueries: {computed: true, default: [], markdownDescription: "Queries that enrich the cases opened by this alert. The API accepts at most one query."}
+      # Empty API lists must match the schema's [] defaults after import.
+      destinations: {computed: true, default: [], readNullAs: empty, markdownDescription: "Notification Center destinations notified about the cases opened by this alert. The API accepts at most 100 destinations and rejects two destinations with the same `connector_id`, `preset_id` and `condition`."}
+      enrichmentQueries: {computed: true, default: [], readNullAs: empty, markdownDescription: "Queries that enrich the cases opened by this alert. The API accepts at most one query."}
   AlertDefCaseEnrichmentQuery:
     fields:
       type: {computed: true, default: dataprime, validators: [{enumExceptZero: true}]}
