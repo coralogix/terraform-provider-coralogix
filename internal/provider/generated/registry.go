@@ -8,14 +8,29 @@ package generated
 import (
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
+
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/productanalyticsfunnels"
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/productanalyticsheatmaps"
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/productanalyticspathways"
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/productanalyticssettings"
 )
 
 // Resources returns the constructors of the new generated resources.
 func Resources() []func() resource.Resource {
-	return []func() resource.Resource{}
+	return []func() resource.Resource{
+		productanalyticsfunnels.NewResource,
+		productanalyticsheatmaps.NewResource,
+		productanalyticspathways.NewResource,
+		productanalyticssettings.NewResource,
+	}
 }
 
 // DataSources returns the constructors of the data sources of the new generated resources.
 func DataSources() []func() datasource.DataSource {
-	return []func() datasource.DataSource{}
+	return []func() datasource.DataSource{
+		productanalyticsfunnels.NewDataSource,
+		productanalyticsheatmaps.NewDataSource,
+		productanalyticspathways.NewDataSource,
+		productanalyticssettings.NewDataSource,
+	}
 }

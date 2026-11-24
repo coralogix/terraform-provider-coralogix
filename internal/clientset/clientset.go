@@ -44,6 +44,10 @@ import (
 	webhhooks "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/outgoing_webhooks_service"
 	tcoPolicys "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/policies_service"
 	presets "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/presets_service"
+	productAnalyticsFunnels "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/product_analytics_funnels_service"
+	productAnalyticsHeatmaps "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/product_analytics_heatmaps_service"
+	productAnalyticsPathways "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/product_analytics_pathways_service"
+	productAnalyticsSettings "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/product_analytics_settings_service"
 	quotaRules "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/quota_allocation_rule_set_service"
 	recRuless "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/recording_rules_service"
 	retss "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/retentions_service"
@@ -65,40 +69,44 @@ type ClientSet struct {
 	ruleGroups     *cxsdk.RuleGroupsClient
 	events2Metrics *e2ms.Events2MetricsServiceAPIService
 
-	dahboardsFolders      *dbfs.DashboardFoldersServiceAPIService
-	viewsFolders          *viewsfolders.FoldersForViewsServiceAPIService
-	views                 *viewsservice.ViewsServiceAPIService
-	customDataEnrichments *cess.CustomEnrichmentsServiceAPIService
-	dataEnrichments       *ess.EnrichmentsServiceAPIService
-	parsingRuleGroups     *prgs.RuleGroupsServiceAPIService
-	archiveMetrics        *ams.MetricsDataArchiveServiceAPIService
-	archiveLogs           *archiveLogs.TargetServiceAPIService
-	archiveRetentions     *retss.RetentionsServiceAPIService
-	dashboards            *dashboardservice.DashboardServiceAPIService
-	recordingRuleGroups   *recRuless.RecordingRulesServiceAPIService
-	tcoPolicies           *tcoPolicys.PoliciesServiceAPIService
-	quotaAllocationRules  *quotaRules.QuotaAllocationRuleSetServiceAPIService
-	actions               *actionss.ActionsServiceAPIService
-	alerts                *alerts.AlertDefinitionsServiceAPIService
-	alertScheduler        *alertScheduler.AlertSchedulerRuleServiceAPIService
-	apikeys               *apiKeys.APIKeysServiceAPIService
-	webhooks              *webhhooks.OutgoingWebhooksServiceAPIService
-	slos                  *slos.SlosServiceAPIService
-	customRole            *roless.RoleManagementServiceAPIService
-	scopes                *scopess.ScopesServiceAPIService
-	configurationGroups   *cfggroups.FleetManagerConfigurationGroupsAPIService
-	connectors            *connectors.ConnectorsServiceAPIService
-	presets               *presets.PresetsServiceAPIService
-	globalRouters         *globalRouters.GlobalRoutersServiceAPIService
-	ipaccess              *ipaccess.IPAccessServiceAPIService
-	integrations          *integrations.IntegrationServiceAPIService
-	aiApplications        *aiapplications.AIApplicationsServiceAPIService
-	aiEvaluations         *aievaluations.AIEvaluationsServiceAPIService
-	grafana               *GrafanaClient
-	groups                *GroupsClient
-	teamGroups            *teamGroupss.TeamGroupsManagementServiceAPIService
-	teams                 *teamsservice.TeamsServiceAPIService
-	users                 *usersservice.UsersManagementServiceAPIService
+	dahboardsFolders         *dbfs.DashboardFoldersServiceAPIService
+	viewsFolders             *viewsfolders.FoldersForViewsServiceAPIService
+	views                    *viewsservice.ViewsServiceAPIService
+	customDataEnrichments    *cess.CustomEnrichmentsServiceAPIService
+	dataEnrichments          *ess.EnrichmentsServiceAPIService
+	parsingRuleGroups        *prgs.RuleGroupsServiceAPIService
+	archiveMetrics           *ams.MetricsDataArchiveServiceAPIService
+	archiveLogs              *archiveLogs.TargetServiceAPIService
+	archiveRetentions        *retss.RetentionsServiceAPIService
+	dashboards               *dashboardservice.DashboardServiceAPIService
+	recordingRuleGroups      *recRuless.RecordingRulesServiceAPIService
+	tcoPolicies              *tcoPolicys.PoliciesServiceAPIService
+	quotaAllocationRules     *quotaRules.QuotaAllocationRuleSetServiceAPIService
+	actions                  *actionss.ActionsServiceAPIService
+	alerts                   *alerts.AlertDefinitionsServiceAPIService
+	alertScheduler           *alertScheduler.AlertSchedulerRuleServiceAPIService
+	apikeys                  *apiKeys.APIKeysServiceAPIService
+	webhooks                 *webhhooks.OutgoingWebhooksServiceAPIService
+	slos                     *slos.SlosServiceAPIService
+	customRole               *roless.RoleManagementServiceAPIService
+	scopes                   *scopess.ScopesServiceAPIService
+	configurationGroups      *cfggroups.FleetManagerConfigurationGroupsAPIService
+	connectors               *connectors.ConnectorsServiceAPIService
+	presets                  *presets.PresetsServiceAPIService
+	globalRouters            *globalRouters.GlobalRoutersServiceAPIService
+	ipaccess                 *ipaccess.IPAccessServiceAPIService
+	integrations             *integrations.IntegrationServiceAPIService
+	aiApplications           *aiapplications.AIApplicationsServiceAPIService
+	aiEvaluations            *aievaluations.AIEvaluationsServiceAPIService
+	grafana                  *GrafanaClient
+	groups                   *GroupsClient
+	teamGroups               *teamGroupss.TeamGroupsManagementServiceAPIService
+	teams                    *teamsservice.TeamsServiceAPIService
+	users                    *usersservice.UsersManagementServiceAPIService
+	productAnalyticsFunnels  *productAnalyticsFunnels.ProductAnalyticsFunnelsServiceAPIService
+	productAnalyticsHeatmaps *productAnalyticsHeatmaps.ProductAnalyticsHeatmapsServiceAPIService
+	productAnalyticsPathways *productAnalyticsPathways.ProductAnalyticsPathwaysServiceAPIService
+	productAnalyticsSettings *productAnalyticsSettings.ProductAnalyticsSettingsServiceAPIService
 }
 
 func (c *ClientSet) ParsingRuleGroups() *prgs.RuleGroupsServiceAPIService {
@@ -213,6 +221,22 @@ func (c *ClientSet) Users() *usersservice.UsersManagementServiceAPIService {
 	return c.users
 }
 
+func (c *ClientSet) ProductAnalyticsFunnels() *productAnalyticsFunnels.ProductAnalyticsFunnelsServiceAPIService {
+	return c.productAnalyticsFunnels
+}
+
+func (c *ClientSet) ProductAnalyticsHeatmaps() *productAnalyticsHeatmaps.ProductAnalyticsHeatmapsServiceAPIService {
+	return c.productAnalyticsHeatmaps
+}
+
+func (c *ClientSet) ProductAnalyticsPathways() *productAnalyticsPathways.ProductAnalyticsPathwaysServiceAPIService {
+	return c.productAnalyticsPathways
+}
+
+func (c *ClientSet) ProductAnalyticsSettings() *productAnalyticsSettings.ProductAnalyticsSettingsServiceAPIService {
+	return c.productAnalyticsSettings
+}
+
 func (c *ClientSet) Scopes() *scopess.ScopesServiceAPIService {
 	return c.scopes
 }
@@ -303,39 +327,43 @@ func NewClientSet(region string, apiKey string, grpcTarget string) *ClientSet {
 
 		events2Metrics: cs.Events2Metrics(),
 
-		dahboardsFolders:      cs.DashboardFolders(),
-		viewsFolders:          cs.ViewsFolders(),
-		views:                 cs.Views(),
-		parsingRuleGroups:     cs.RuleGroups(),
-		archiveMetrics:        cs.ArchiveMetrics(),
-		alerts:                cs.Alerts(),
-		archiveRetentions:     cs.ArchiveRetentions(),
-		dashboards:            cs.Dashboards(),
-		configurationGroups:   newConfigurationGroupsClient(region, apiKey),
-		recordingRuleGroups:   cs.RecordingRules(),
-		archiveLogs:           cs.ArchiveLogs(),
-		tcoPolicies:           cs.TCOPolicies(),
-		quotaAllocationRules:  cs.Quotas(),
-		actions:               cs.Actions(),
-		customRole:            cs.CustomRoles(),
-		scopes:                cs.Scopes(),
-		presets:               cs.Presets(),
-		connectors:            cs.Connectors(),
-		globalRouters:         cs.GlobalRouters(),
-		integrations:          cs.Integrations(),
-		slos:                  cs.SLOs(),
-		apikeys:               cs.APIKeys(),
-		webhooks:              cs.Webhooks(),
-		ipaccess:              cs.IPAccess(),
-		aiApplications:        cs.AIApplications(),
-		aiEvaluations:         cs.AIEvaluations(),
-		dataEnrichments:       cs.Enrichments(),
-		customDataEnrichments: cs.CustomEnrichments(),
-		alertScheduler:        cs.AlertScheduler(),
-		grafana:               NewGrafanaClient(apikeyCPC),
-		groups:                NewGroupsClient(region, apiKey),
-		teamGroups:            cs.Groups(),
-		teams:                 cs.Teams(),
-		users:                 cs.Users(),
+		dahboardsFolders:         cs.DashboardFolders(),
+		viewsFolders:             cs.ViewsFolders(),
+		views:                    cs.Views(),
+		parsingRuleGroups:        cs.RuleGroups(),
+		archiveMetrics:           cs.ArchiveMetrics(),
+		alerts:                   cs.Alerts(),
+		archiveRetentions:        cs.ArchiveRetentions(),
+		dashboards:               cs.Dashboards(),
+		configurationGroups:      newConfigurationGroupsClient(region, apiKey),
+		recordingRuleGroups:      cs.RecordingRules(),
+		archiveLogs:              cs.ArchiveLogs(),
+		tcoPolicies:              cs.TCOPolicies(),
+		quotaAllocationRules:     cs.Quotas(),
+		actions:                  cs.Actions(),
+		customRole:               cs.CustomRoles(),
+		scopes:                   cs.Scopes(),
+		presets:                  cs.Presets(),
+		connectors:               cs.Connectors(),
+		globalRouters:            cs.GlobalRouters(),
+		integrations:             cs.Integrations(),
+		slos:                     cs.SLOs(),
+		apikeys:                  cs.APIKeys(),
+		webhooks:                 cs.Webhooks(),
+		ipaccess:                 cs.IPAccess(),
+		aiApplications:           cs.AIApplications(),
+		aiEvaluations:            cs.AIEvaluations(),
+		dataEnrichments:          cs.Enrichments(),
+		customDataEnrichments:    cs.CustomEnrichments(),
+		alertScheduler:           cs.AlertScheduler(),
+		grafana:                  NewGrafanaClient(apikeyCPC),
+		groups:                   NewGroupsClient(region, apiKey),
+		teamGroups:               cs.Groups(),
+		teams:                    cs.Teams(),
+		users:                    cs.Users(),
+		productAnalyticsFunnels:  cs.ProductAnalyticsFunnels(),
+		productAnalyticsHeatmaps: cs.ProductAnalyticsHeatmaps(),
+		productAnalyticsPathways: cs.ProductAnalyticsPathways(),
+		productAnalyticsSettings: cs.ProductAnalyticsSettings(),
 	}
 }
