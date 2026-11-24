@@ -13,6 +13,8 @@ import (
 {{- end}}
 {{- if or .Float32Paths .EnumAliases}}
 	"strings"
+{{- else if and .CRUD.Create.Result .CRUD.Create.Result.Echo}}
+	"strings"
 {{- end}}
 {{- if .Float32Paths}}
 	"math/big"
@@ -752,7 +754,23 @@ func (r *Resource) create(ctx context.Context, body *{{$sdk}}.{{$.Conv.CreateBod
 	if out == nil || len(out.{{.Create.Result.Items}}) == 0 {
 		return nil, fmt.Errorf("the API returned no result for the new %s", TypeName)
 	}
+{{- if .Create.Result.Echo}}
+	// The result echoes the value the request sent: only the result that belongs
+	// to the one item this request sent counts, as the released resource insisted.
+	at := -1
+	for i := range out.{{.Create.Result.Items}} {
+		if strings.EqualFold(out.{{.Create.Result.Items}}[i].{{.Create.Result.Echo}}, *({{.Create.Result.EchoFrom}})) {
+			at = i
+			break
+		}
+	}
+	if at < 0 {
+		return nil, fmt.Errorf("create returned no result for %q", *({{.Create.Result.EchoFrom}}))
+	}
+	result := out.{{.Create.Result.Items}}[at]
+{{- else}}
 	result := out.{{.Create.Result.Items}}[0]
+{{- end}}
 	if result.{{.Create.Result.Status}} == nil {
 		return nil, fmt.Errorf("the API returned no status for the new %s", TypeName)
 	}

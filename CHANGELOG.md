@@ -46,6 +46,7 @@
 - FIX: A refresh of a user renamed outside Terraform keeps the resource in state and reports the name drift, as the released read did: the filtered Search that misses is retried without the filter before the user is removed. Before, the user was removed from state and the next plan proposed a create that fails with "already exists".
 - FIX: An update of a user the API no longer has fails with "Resource no longer exists" instead of the generated "Missing Resource State After Update".
 - FIX: Destroy deactivates the user through the status operation of the API (`PATCH /aaa/users/v2:updateStatuses`) instead of echoing the user's values in a PUT.
+- FIX: The create accepts only the batch result that echoes the requested `user_name`, as the released resource insisted: a response whose result belongs to another user fails with `create returned no result for %q` instead of adopting a stranger's id.
 - FIX: The errors of a failed create keep the wording of the released resource: a create the API refused names the refusing status (`CREATE_USER_STATUS_…`), an account that already exists says to import it, an invitation that was never accepted says the user has no id, and the message the API sends follows the status.
 
 #### data-source/coralogix_user
