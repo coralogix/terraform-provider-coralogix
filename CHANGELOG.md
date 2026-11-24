@@ -1,5 +1,7 @@
 # Unreleased
 
+# Release 3.28.0
+
 #### data-source/coralogix_product_analytics_settings
 - FEAT: Add `data.coralogix_product_analytics_settings`, generated from the API contract.
 
