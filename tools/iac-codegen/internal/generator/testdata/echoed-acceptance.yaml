@@ -1,0 +1,3 @@
+# The acceptance file of the synthetic echo thing. It sets no value: the test makes up every one,
+# also the entry of the map of objects.
+resource: EchoThing

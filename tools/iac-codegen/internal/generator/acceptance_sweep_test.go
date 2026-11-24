@@ -438,6 +438,25 @@ func TestSweepSetsEveryValueOfAListOfEnums(t *testing.T) {
 	}
 }
 
+// An enum below a map of objects is swept like one below a list: every value is set by a config.
+func TestSweepSetsEveryValueOfAnEnumInAMapOfObjects(t *testing.T) {
+	preset := &tfAttr{Name: "preset", Kind: "String", Optional: true, EnumSchema: "Color", EnumChoices: []enumOption{
+		{"COLOR_RED", "red"}, {"COLOR_GREEN", "green"}, {"COLOR_BLUE", "blue"}}}
+	res := &tfResource{Package: "p", CRUD: &crudData{TypeName: "board", IDAttr: "id", Resource: "Board"}, Attributes: []*tfAttr{
+		{Name: "name", Kind: "String", Required: true},
+		{Name: "color_overrides", Kind: "MapNested", Optional: true, Attributes: []*tfAttr{preset}},
+	}}
+	all, err := sweepAll(t, res)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{`preset = "red"`, `preset = "green"`, `preset = "blue"`} {
+		if !strings.Contains(all, want) {
+			t.Errorf("no config sets %s:\n%s", want, all)
+		}
+	}
+}
+
 // When the sweep ends, an arm or an enum value that no config set and that no skip names is an error.
 func TestSweepFailsWhenAValueStaysOut(t *testing.T) {
 	res := sweepResource()

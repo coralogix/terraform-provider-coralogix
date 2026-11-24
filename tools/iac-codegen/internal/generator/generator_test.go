@@ -3633,3 +3633,47 @@ func TestWrappedIDThingKeysAreChecked(t *testing.T) {
 		})
 	}
 }
+
+// The acceptance test of a resource with a map of objects (entries) makes one entry, with the key
+// `key`, and checks the value of the entry by its key. Only the acceptance test is compared.
+func TestGoldenAcceptanceEchoThingMapOfObjects(t *testing.T) {
+	spec, err := os.ReadFile(filepath.Join("testdata", "echoed.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = spec
+	out := filepath.Join(t.TempDir(), "echothing")
+	options := Options{
+		Resource:       "EchoThing",
+		OutputDir:      out,
+		OverridesPath:  filepath.Join("testdata", "echoed-overrides.yaml"),
+		AcceptancePath: filepath.Join("testdata", "echoed-acceptance.yaml"),
+	}
+	if err := generateFromInput(options, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	got, err := os.ReadFile(filepath.Join(out, "acceptance_test.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	golden := filepath.Join("testdata", "golden", "echothing-acceptance", "acceptance_test.go")
+	if *updateGolden {
+		if err := os.MkdirAll(filepath.Dir(golden), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(golden, got, 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	want, err := os.ReadFile(golden)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(want) != string(got) {
+		t.Fatalf("golden acceptance test differs; run go test ./internal/generator -run TestGoldenAcceptanceEchoThingMapOfObjects -update")
+	}
+	if !strings.Contains(string(got), "entries = { key = {") {
+		t.Fatal("the config must hold one entry of the map of objects, with the key `key`")
+	}
+}
