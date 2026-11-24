@@ -281,33 +281,9 @@ func buildAcceptance(res *tfResource, providerModule string, file *acceptance.Fi
 		out.LeftoversImport = providerModule + "/" + dir
 		out.LeftoversCall = filepath.Base(dir) + "." + file.LeftoversFunc()
 	}
-	var full map[string]bool // what the full config sets: the sweep of values-and-choices starts there
-	for _, step := range []struct {
-		mode accMode
-		into **accStep
-	}{{accFull, &out.Full}, {accUpdated, &out.Updated}, {accMinimal, &out.Minimal}} {
-		if step.mode == accFull {
-			s.cov = map[string]bool{} // the full config sets the first value and the first arm
-		}
-		body, checks, err := s.attrs(res.Attributes, "", "", step.mode, true)
-		if err != nil {
-			return nil, fmt.Errorf("acceptance test: %w", err)
-		}
-		config := resourceBlock("coralogix_"+typeName, body)
-		if step.mode == accUpdated && config == out.Full.Config && hasExample(res.Attributes) {
-			// Every value that the updated config would change has an example, so the update would
-			// change nothing. The updated config makes up its values, as it does without examples.
-			s.noExamples = true
-			if body, checks, err = s.attrs(res.Attributes, "", "", step.mode, true); err != nil {
-				return nil, fmt.Errorf("acceptance test: %w", err)
-			}
-			config = resourceBlock("coralogix_"+typeName, body)
-		}
-		*step.into = &accStep{Config: config, Checks: checks}
-		if step.mode == accFull {
-			full = s.cov
-			s.cov = nil // the other configs record nothing
-		}
+	full, err := s.makeConfigs(res, out)
+	if err != nil {
+		return nil, err
 	}
 	if !res.CRUD.Existing {
 		returned := returnedChecks(res.Attributes, res.CRUD.IDAttr)
@@ -338,10 +314,8 @@ func buildAcceptance(res *tfResource, providerModule string, file *acceptance.Fi
 	if err := s.checkAllSet(res); err != nil {
 		return nil, err
 	}
-	for _, path := range file.DataSourceSkip {
-		if !slices.ContainsFunc(out.Full.Checks, func(c accCheck) bool { return c.Path == path }) {
-			return nil, fmt.Errorf("acceptance test: dataSourceSkip %q matches no check of the full config", path)
-		}
+	if err := checkDataSourceSkip(out, file); err != nil {
+		return nil, err
 	}
 	if res.DataSource != nil {
 		out.DataSource = dataSourceStep(res.CRUD, res.DataSource.Name, out.Full.Checks, file.DataSourceSkip)
@@ -350,6 +324,51 @@ func buildAcceptance(res *tfResource, providerModule string, file *acceptance.Fi
 		return nil, err
 	}
 	return out, nil
+}
+
+// checkDataSourceSkip requires that each dataSourceSkip path names a check of the full config.
+func checkDataSourceSkip(out *acceptanceData, file *acceptance.File) error {
+	for _, path := range file.DataSourceSkip {
+		if !slices.ContainsFunc(out.Full.Checks, func(c accCheck) bool { return c.Path == path }) {
+			return fmt.Errorf("acceptance test: dataSourceSkip %q matches no check of the full config", path)
+		}
+	}
+	return nil
+}
+
+// makeConfigs makes the full, the updated, and the minimal config of the resource into out. It
+// returns what the full config sets: the sweep of values-and-choices starts there.
+func (s *accSynth) makeConfigs(res *tfResource, out *acceptanceData) (map[string]bool, error) {
+	typeName := res.CRUD.TypeName
+	var full map[string]bool
+	for _, step := range []struct {
+		mode accMode
+		into **accStep
+	}{{accFull, &out.Full}, {accUpdated, &out.Updated}, {accMinimal, &out.Minimal}} {
+		if step.mode == accFull {
+			s.cov = map[string]bool{} // the full config sets the first value and the first arm
+		}
+		body, checks, err := s.attrs(res.Attributes, "", "", step.mode, true)
+		if err != nil {
+			return nil, fmt.Errorf("acceptance test: %w", err)
+		}
+		config := resourceBlock("coralogix_"+typeName, body)
+		if step.mode == accUpdated && config == out.Full.Config && hasExample(res.Attributes) {
+			// Every value that the updated config would change has an example, so the update would
+			// change nothing. The updated config makes up its values, as it does without examples.
+			s.noExamples = true
+			if body, checks, err = s.attrs(res.Attributes, "", "", step.mode, true); err != nil {
+				return nil, fmt.Errorf("acceptance test: %w", err)
+			}
+			config = resourceBlock("coralogix_"+typeName, body)
+		}
+		*step.into = &accStep{Config: config, Checks: checks}
+		if step.mode == accFull {
+			full = s.cov
+			s.cov = nil // the other configs record nothing
+		}
+	}
+	return full, nil
 }
 
 // returnedChecks checks that each top-level scalar that only the server sets, and that the resource
@@ -822,10 +841,7 @@ func (s *accSynth) include(a *tfAttr, key string, mode accMode, top bool) bool {
 		return false // skipped, or the released provider does not have it
 	}
 	if a.Extra {
-		// extraAttributes are not API fields; a made-up map key is not valid. An optional one is in
-		// the minimal config only when `minimal` lists it, like any optional attribute.
-		_, _, ok := s.fileValue(key)
-		return ok && (a.Required || mode != accMinimal || slices.Contains(s.minimal, key) || s.minimalBelow(key))
+		return s.includeExtra(a, key, mode)
 	}
 	switch {
 	case !a.Required && !a.Optional:
@@ -838,6 +854,14 @@ func (s *accSynth) include(a *tfAttr, key string, mode accMode, top bool) bool {
 		return true // a OneOfRequired group needs one arm; the walk takes the first that is included
 	}
 	return mode != accMinimal || slices.Contains(s.minimal, key) || s.minimalBelow(key)
+}
+
+// includeExtra says whether the config of the mode sets an extra attribute. extraAttributes are not
+// API fields; a made-up map key is not valid. An optional one is in the minimal config only when
+// `minimal` lists it, like any optional attribute.
+func (s *accSynth) includeExtra(a *tfAttr, key string, mode accMode) bool {
+	_, _, ok := s.fileValue(key)
+	return ok && (a.Required || mode != accMinimal || slices.Contains(s.minimal, key) || s.minimalBelow(key))
 }
 
 // inRelease reports whether the released provider of the upgrade test has the attribute. Without
@@ -863,12 +887,7 @@ func (s *accSynth) attrs(attrs []*tfAttr, tfPath, key string, mode accMode, top 
 	var arm *typedArmSet // the arm of a typedArms object that the type names
 	for _, a := range typedFirst(attrs) {
 		attrKey := joinPath(key, a.Name)
-		s.known[attrKey] = true
-		s.settable[attrKey] = a.Required || a.Optional
-		s.required[attrKey] = a.Required
-		if s.excused != nil && (refused(a) || a.Extra || (top && a.Name == s.idAttr) || (a.OneOfGroup != "" && s.skippedArm(a))) {
-			s.excused[attrKey] = true // no config can set it, or the server makes it
-		}
+		s.noteAttr(a, attrKey, top)
 		a, ok := s.included(a, attrKey, arm, mode, top)
 		if !ok {
 			continue
@@ -890,6 +909,17 @@ func (s *accSynth) attrs(attrs []*tfAttr, tfPath, key string, mode accMode, top 
 		}
 	}
 	return strings.Join(lines, "\n"), checks, nil
+}
+
+// noteAttr records what the schema says about the attribute: that it exists, whether a config can
+// set it, whether it is required, and whether no config can set it (excused).
+func (s *accSynth) noteAttr(a *tfAttr, attrKey string, top bool) {
+	s.known[attrKey] = true
+	s.settable[attrKey] = a.Required || a.Optional
+	s.required[attrKey] = a.Required
+	if s.excused != nil && (refused(a) || a.Extra || (top && a.Name == s.idAttr) || (a.OneOfGroup != "" && s.skippedArm(a))) {
+		s.excused[attrKey] = true // no config can set it, or the server makes it
+	}
 }
 
 // requiredArms returns the oneOf groups that have a required arm. A required arm is the arm of its
@@ -1122,25 +1152,8 @@ func (s *accSynth) makeValue(a *tfAttr, tfPath, key string, mode accMode) (strin
 		mode = accFull // a changed immutable attribute replaces the resource
 	}
 	if v, line, ok := s.fileValue(key); ok {
-		s.used[line] = true
-		if u, ok := s.file.UpdatedValues[key]; ok && mode == accUpdated {
-			if s.updated == nil {
-				s.updated = map[string]bool{}
-			}
-			s.updated[key] = true
-			v = u
-		}
-		var checks []accCheck
-		if a.WriteOnly {
-			checks = []accCheck{{Path: tfPath, Absent: true}}
-		} else if _, upgrade := s.file.UpgradeValues[key]; !upgrade {
-			// A line that upgradeValues replaces has another value in the upgrade test, which
-			// reuses the checks of the normal configs, so no check names its value.
-			if state, ok := literalState(a, v); ok {
-				checks = []accCheck{{Path: tfPath, Value: state}}
-			}
-		}
-		return strings.TrimSpace(v), checks, nil
+		v, checks := s.valueOfFile(a, tfPath, key, v, line, mode)
+		return v, checks, nil
 	}
 	switch a.Kind {
 	case "String", "Bool", "Int64", "Int32", "Float64", "Float32", "Number":
@@ -1148,15 +1161,45 @@ func (s *accSynth) makeValue(a *tfAttr, tfPath, key string, mode accMode) (strin
 	case "Map", "List", "Set":
 		return s.collectionValue(a, tfPath, key, mode)
 	case "SingleNested":
-		body, checks, err := s.attrs(a.Attributes, tfPath, key, mode, false)
-		if err != nil {
-			return "", nil, err
-		}
-		return objectHCL(body), checks, nil
+		return s.singleNestedValue(a, tfPath, key, mode)
 	case "ListNested", "SetNested":
 		return s.nestedCollection(a, tfPath, key, mode)
+	case "MapNested":
+		return s.mapNestedValue(a, tfPath, key, mode)
 	}
 	return "", nil, fmt.Errorf("the %s attribute kind is not supported: set the value in %s", a.Kind, acceptance.FileName)
+}
+
+// valueOfFile returns the value that the acceptance file writes for the attribute, and its checks.
+func (s *accSynth) valueOfFile(a *tfAttr, tfPath, key, v, line string, mode accMode) (string, []accCheck) {
+	s.used[line] = true
+	if u, ok := s.file.UpdatedValues[key]; ok && mode == accUpdated {
+		if s.updated == nil {
+			s.updated = map[string]bool{}
+		}
+		s.updated[key] = true
+		v = u
+	}
+	var checks []accCheck
+	if a.WriteOnly {
+		checks = []accCheck{{Path: tfPath, Absent: true}}
+	} else if _, upgrade := s.file.UpgradeValues[key]; !upgrade {
+		// A line that upgradeValues replaces has another value in the upgrade test, which
+		// reuses the checks of the normal configs, so no check names its value.
+		if state, ok := literalState(a, v); ok {
+			checks = []accCheck{{Path: tfPath, Value: state}}
+		}
+	}
+	return strings.TrimSpace(v), checks
+}
+
+// singleNestedValue makes the object of a single nested attribute.
+func (s *accSynth) singleNestedValue(a *tfAttr, tfPath, key string, mode accMode) (string, []accCheck, error) {
+	body, checks, err := s.attrs(a.Attributes, tfPath, key, mode, false)
+	if err != nil {
+		return "", nil, err
+	}
+	return objectHCL(body), checks, nil
 }
 
 // scalarAttr makes the value of a scalar attribute. An enum takes the value that the sweep has not
@@ -1184,6 +1227,20 @@ func objectHCL(body string) string {
 		return "{}"
 	}
 	return "{\n" + indentLines(body) + "\n}"
+}
+
+// mapNestedValue makes a map of objects with one entry. The key is made up as the key of a map of
+// scalars is (key), and the value is an object made as a single nested one is. A path below the map
+// has no [] marker, as below a single nested object: color_overrides.preset.
+func (s *accSynth) mapNestedValue(a *tfAttr, tfPath, key string, mode accMode) (string, []accCheck, error) {
+	if err := checkOneElement(a); err != nil {
+		return "", nil, err
+	}
+	body, checks, err := s.attrs(a.Attributes, tfPath+".key", key, mode, false)
+	if err != nil {
+		return "", nil, err
+	}
+	return "{ key = " + objectHCL(body) + " }", checks, nil
 }
 
 func (s *accSynth) nestedCollection(a *tfAttr, tfPath, key string, mode accMode) (string, []accCheck, error) {

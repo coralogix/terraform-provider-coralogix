@@ -1148,3 +1148,42 @@ func TestNoLiteralCheckForAnUpgradeValuesLine(t *testing.T) {
 		t.Errorf("other checks = %v, %v, want one check of fixed", checks, err)
 	}
 }
+
+// A map of objects holds one entry. The key is made up like the key of a map of scalars, and the
+// value is an object made like a single nested one, so an enum below it takes a value that it has.
+func TestAcceptanceMakesOneEntryOfAMapOfObjects(t *testing.T) {
+	colors := func(validators ...string) *tfAttr {
+		return &tfAttr{Name: "color_overrides", Kind: "MapNested", Optional: true, Validators: validators, Attributes: []*tfAttr{
+			{Name: "preset", Kind: "String", Optional: true, Validators: []string{`stringvalidator.OneOf("red_300", "blue_500")`}},
+		}}
+	}
+	body, checks, err := testSynth(t, "").attrs([]*tfAttr{colors()}, "", "", accFull, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "color_overrides = { key = {\n  preset = \"red_300\"\n} }"
+	if body != want {
+		t.Fatalf("config = %q, want %q", body, want)
+	}
+	if len(checks) != 1 || checks[0].Path != "color_overrides.key.preset" || checks[0].Value != "red_300" {
+		t.Fatalf("checks = %+v, want the value of the entry named by its key", checks)
+	}
+
+	// One made-up entry must pass the size validators of the map.
+	if _, _, err := testSynth(t, "").attrs([]*tfAttr{colors("mapvalidator.SizeAtMost(1000)")}, "", "", accFull, true); err != nil {
+		t.Fatalf("one entry fits SizeAtMost(1000): %v", err)
+	}
+	_, _, err = testSynth(t, "").attrs([]*tfAttr{colors("mapvalidator.SizeAtLeast(2)")}, "", "", accFull, true)
+	if err == nil || !strings.Contains(err.Error(), "set the value") {
+		t.Fatalf("err = %v, want a request for a value: one entry does not fit SizeAtLeast(2)", err)
+	}
+
+	// A value in the file wins, and a path below the map has no [] marker.
+	body, _, err = testSynth(t, "values:\n  color_overrides.preset: '\"blue_500\"'\n").attrs([]*tfAttr{colors()}, "", "", accFull, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(body, `preset = "blue_500"`) {
+		t.Fatalf("a value of the file must win below the map:\n%s", body)
+	}
+}
