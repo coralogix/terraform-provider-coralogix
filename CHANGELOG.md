@@ -1,5 +1,29 @@
 # Unreleased
 
+#### data-source/coralogix_product_analytics_settings
+- FEAT: Add `data.coralogix_product_analytics_settings`, generated from the API contract.
+
+#### resource/coralogix_product_analytics_settings
+- FEAT: Add `coralogix_product_analytics_settings`, generated from the API contract.
+
+#### data-source/coralogix_saved_heatmap
+- FEAT: Add `data.coralogix_saved_heatmap`, generated from the API contract.
+
+#### resource/coralogix_saved_heatmap
+- FEAT: Add `coralogix_saved_heatmap`, generated from the API contract.
+
+#### data-source/coralogix_saved_pathway
+- FEAT: Add `data.coralogix_saved_pathway`, generated from the API contract.
+
+#### resource/coralogix_saved_pathway
+- FEAT: Add `coralogix_saved_pathway`, generated from the API contract.
+
+#### data-source/coralogix_saved_funnel
+- FEAT: Add `data.coralogix_saved_funnel`, generated from the API contract.
+
+#### resource/coralogix_saved_funnel
+- FEAT: Add `coralogix_saved_funnel`, generated from the API contract.
+
 #### provider
 - FIX: A generated resource that has a set of oneOf items keeps an explicit empty set inside a chosen arm, such as an empty `filters` list in a condition, instead of failing with an inconsistent-result error.
 

@@ -3,7 +3,7 @@ module github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen
 go 1.26.10
 
 require (
-	github.com/coralogix/coralogix-management-sdk/iac v0.0.0-20261120072210-187bce0dc380
+	github.com/coralogix/coralogix-management-sdk/iac v0.0.0-20261124065845-8c88012b1501
 	github.com/hashicorp/hcl/v2 v2.24.0
 	github.com/pb33f/libopenapi v0.40.0
 	go.yaml.in/yaml/v4 v4.0.0-rc.6
