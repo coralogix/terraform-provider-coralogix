@@ -156,6 +156,10 @@ type crudResult struct {
 	Status      string   // result field that holds the status enum
 	CreatedVals []string // enum constants that mean created
 	Message     string   // result field with the message; "" when the line names none
+	// Echo is the result field that echoes the value the request sent, and EchoFrom the Go
+	// expression of that value on the request item: the create joins the results to the one
+	// request item on them, so a result of another item cannot pass for this one. "" for none.
+	Echo, EchoFrom string
 }
 
 // upgradeData is a state upgrader. It reads the resource from the API, so the prior schema is
@@ -587,6 +591,31 @@ func buildCRUDOp(ix *refIndex, o crudSpec, client, resource string, r *model.Res
 		if err != nil {
 			return out, err
 		}
+		// The contract may echo the username of the request item on every
+		// result (api.batchWrite.createResult.matchUsername): the create then
+		// joins the answers to the one item on it, so a result of another item
+		// cannot pass for this one — the released resource refused such an
+		// answer.
+		if line := o.op.Response.Result; line.MatchUsername != "" {
+			echo, err := ix.fieldRef(o.name + ".result." + line.MatchUsername)
+			if err != nil {
+				return out, fmt.Errorf("%s.result.%s: %w", o.name, line.MatchUsername, err)
+			}
+			if echo.Want != "string" && echo.Want != "*string" {
+				return out, fmt.Errorf("%s.result.%s: the SDK field is a %s, want a string the join can compare", o.name, line.MatchUsername, echo.Want)
+			}
+			wrapper := r.Policy.WrapperOf(true)
+			wrapperRef, err := ix.fieldRef(o.name + ".body." + wrapper)
+			if err != nil {
+				return out, fmt.Errorf("%s.body.%s: %w", o.name, wrapper, err)
+			}
+			itemRef, err := ix.fieldRef(o.name + ".body." + echoFieldOf(r, line.MatchUsername))
+			if err != nil {
+				return out, fmt.Errorf("%s.body: the echo %q names no field of the request item", o.name, line.MatchUsername)
+			}
+			result.Echo = echo.Name
+			result.EchoFrom = "body." + wrapperRef.Name + "." + itemRef.Name
+		}
 		out.Result = result
 		return out, nil
 	}
@@ -682,6 +711,20 @@ func buildCRUDResult(ix *refIndex, o crudSpec, result *model.WriteResult) (*crud
 		out.Message = message.Name
 	}
 	return out, nil
+}
+
+// echoFieldOf names the model field whose Create request carries the SDK property
+// prop: the field's request path, or its name when the requests use the name.
+func echoFieldOf(r *model.Resource, prop string) string {
+	for _, f := range r.Fields {
+		if f.Create == nil {
+			continue
+		}
+		if f.RequestPath == prop || (f.RequestPath == "" && f.Name == prop) {
+			return f.Name
+		}
+	}
+	return prop
 }
 
 // providerNames sets the provider clientset and accessor names (F17).
