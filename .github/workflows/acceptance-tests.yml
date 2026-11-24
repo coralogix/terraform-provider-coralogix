@@ -40,6 +40,10 @@ env:
   GENERATED_UPGRADE_ACC_PATTERN: &generated_upgrade_acc_pattern 'GeneratedUpgrade$'
   # These tests mutate the singleton IP access setting. Keep them in one serial shard.
   IP_ACCESS_ACC_PATTERN: &ip_access_acc_pattern '^Test(AccCoralogixDataSourceIpAccess|IpAccessResource|IpAccessGeneratedLiveAcceptance|AccCoralogixResourceIpAccessGenerated)$'
+  # The settings test switches Product Analytics on and off for the whole team, and the funnel,
+  # pathway and heatmap tests need it on. The product-analytics shard runs them one package at a
+  # time. The settings test ends with the switch on, so enable it once before the first run.
+  PRODUCT_ANALYTICS_ACC_PATTERN: &product_analytics_acc_pattern '^TestAccCoralogixResource(ProductAnalyticsSettings|SavedFunnel|SavedPathway|SavedHeatmap)Generated$'
   # The archive logs target, the metrics archive, and the retention tags are one per company each,
   # so their tests must not run at the same time. The archive-logs shard runs all of them
   # (handwritten, generated, and generated upgrade) with -p 1; every other job skips them.
@@ -389,7 +393,7 @@ jobs:
             "$NON_DASHBOARD_SHARD_ACCESS_CONTROL"
             "$NON_DASHBOARD_SHARD_SLO_AI_VIEWS_AND_RECORDING_RULES"
           )
-          skip_pattern="$DASHBOARD_ACC_PATTERN|$EVENTS2METRIC_MIGRATION_ACC_PATTERN|$USER_MIGRATION_ACC_PATTERN|$ARCHIVE_LOGS_ACC_PATTERN|$QUOTA_ACC_PATTERN|$RULE_GROUPS_ACC_PATTERN|$TCO_ACC_PATTERN|$TEAM_ACC_PATTERN|$IP_ACCESS_ACC_PATTERN"
+          skip_pattern="$DASHBOARD_ACC_PATTERN|$EVENTS2METRIC_MIGRATION_ACC_PATTERN|$USER_MIGRATION_ACC_PATTERN|$ARCHIVE_LOGS_ACC_PATTERN|$QUOTA_ACC_PATTERN|$RULE_GROUPS_ACC_PATTERN|$TCO_ACC_PATTERN|$TEAM_ACC_PATTERN|$IP_ACCESS_ACC_PATTERN|$PRODUCT_ANALYTICS_ACC_PATTERN"
           for pattern in "${shard_patterns[@]}"; do
             skip_pattern+="|($pattern)"
           done
@@ -649,6 +653,9 @@ jobs:
             pattern: *global_router_migration_acc_pattern
           - shard: ip-access
             pattern: *ip_access_acc_pattern
+            procs: 1
+          - shard: product-analytics
+            pattern: *product_analytics_acc_pattern
             procs: 1
           - shard: generated-upgrade
             pattern: *generated_upgrade_acc_pattern

@@ -39,7 +39,9 @@ EXTRA_ROOT_TESTS = {
 }
 SERIAL_OUTS = {
     "archivelogs", "archivemetrics", "archiveretentions", "globalrouter",
-    "ipaccess", "parsingrules", "quotaallocationruleset", "recordingrulesgroupsset",
+    "ipaccess", "parsingrules", "productanalyticsfunnels", "productanalyticsheatmaps",
+    "productanalyticspathways", "productanalyticssettings", "quotaallocationruleset",
+    "recordingrulesgroupsset",
     "tcopolicieslogs", "tcopoliciesrum", "tcopoliciestraces",
 }
 MIGRATION_GATES = {
