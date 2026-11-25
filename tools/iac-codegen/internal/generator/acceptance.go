@@ -104,6 +104,11 @@ type acceptanceData struct {
 	Address                string // address of the resource in the config
 	TypeName               string // the Terraform type, such as coralogix_alert
 	FailPathsImport        string // import path of the package that checks the failure paths
+	// FailReportImport is the package that turns an error of a step into one line with a failure code.
+	FailReportImport string
+	// APIFields name the API field of each attribute, by its Terraform path without list positions:
+	// "search.text" is "IacSearch.text". The failure line shows the field.
+	APIFields []apiFieldPair
 	// FailSingleton and FailNoDelete tell the failure path test what the API has: one resource of the
 	// kind (a singleton, or a list that one write replaces), and no delete.
 	FailSingleton, FailNoDelete bool
@@ -275,6 +280,8 @@ func buildAcceptance(res *tfResource, providerModule string, file *acceptance.Fi
 		FailNoDelete:     res.CRUD.NoDelete,
 		FailReadFromList: res.CRUD.Get.FromList,
 		FailPathsImport:  providerModule + "/internal/acctest/failpaths",
+		FailReportImport: providerModule + "/internal/acctest/failreport",
+		APIFields:        apiFieldPairs(res.Attributes),
 		IDAttr:           res.CRUD.IDAttr,
 		IDCustom:         res.CRUD.IDAttr != "id",
 		Env:              file.Env,
@@ -1748,4 +1755,23 @@ func (s *accSynth) fileValue(key string) (value, line string, ok bool) {
 		}
 	}
 	return "", "", false
+}
+
+// apiFieldPair is one line of the apiFields map of the generated test.
+type apiFieldPair struct{ Path, Field string }
+
+// apiFieldPairs lists the API field of every attribute that has one, sorted by path. The path has
+// no list positions, because the error of a step names the position of an item.
+func apiFieldPairs(attrs []*tfAttr) []apiFieldPair {
+	all := map[string]*tfAttr{}
+	schemaAttrs(all, "", attrs)
+	var out []apiFieldPair
+	for _, path := range sortedStringKeys(all) {
+		a := all[path]
+		if a.Extra || a.Component == "" || a.Property == "" {
+			continue
+		}
+		out = append(out, apiFieldPair{Path: strings.ReplaceAll(path, "[]", ""), Field: contractField(a, nil)})
+	}
+	return out
 }

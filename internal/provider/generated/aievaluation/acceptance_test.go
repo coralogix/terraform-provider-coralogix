@@ -15,10 +15,47 @@ import (
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/acctest"
 	"github.com/coralogix/terraform-provider-coralogix/internal/acctest/failpaths"
+	"github.com/coralogix/terraform-provider-coralogix/internal/acctest/failreport"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider"
 )
 
 const resourceAddress = "coralogix_ai_evaluation.test"
+
+// apiFields name the API field of each attribute, by its Terraform path without list positions.
+// ErrorCheck shows the field in the line of a failure.
+var apiFields = map[string]string{
+	"application":                                "AiEvaluation.application",
+	"config":                                     "AiEvaluation.config",
+	"config.allowed_topics":                      "EvaluationConfig.allowedTopics",
+	"config.allowed_topics.topics":               "AllowedTopicsConfig.topics",
+	"config.competition":                         "EvaluationConfig.competition",
+	"config.competition.competitors":             "CompetitionConfig.competitors",
+	"config.hallucination_completeness":          "EvaluationConfig.hallucinationCompleteness",
+	"config.hallucination_context_adherence":     "EvaluationConfig.hallucinationContextAdherence",
+	"config.hallucination_context_relevance":     "EvaluationConfig.hallucinationContextRelevance",
+	"config.hallucination_correctness":           "EvaluationConfig.hallucinationCorrectness",
+	"config.hallucination_task_adherence":        "EvaluationConfig.hallucinationTaskAdherence",
+	"config.language_mismatch":                   "EvaluationConfig.languageMismatch",
+	"config.pii":                                 "EvaluationConfig.pii",
+	"config.pii.categories":                      "PiiConfig.categories",
+	"config.prompt_injection":                    "EvaluationConfig.promptInjection",
+	"config.prompt_injection.additional_context": "PromptInjectionConfig.additionalContext",
+	"config.restricted_topics":                   "EvaluationConfig.restrictedTopics",
+	"config.restricted_topics.topics":            "RestrictedTopicsConfig.topics",
+	"config.sexism":                              "EvaluationConfig.sexism",
+	"config.sql_allowed_tables":                  "EvaluationConfig.sqlAllowedTables",
+	"config.sql_allowed_tables.tables":           "SqlAllowedTablesConfig.tables",
+	"config.sql_hallucination":                   "EvaluationConfig.sqlHallucination",
+	"config.sql_read_only":                       "EvaluationConfig.sqlReadOnly",
+	"config.sql_restricted_tables":               "EvaluationConfig.sqlRestrictedTables",
+	"config.sql_restricted_tables.tables":        "SqlRestrictedTablesConfig.tables",
+	"config.toxicity":                            "EvaluationConfig.toxicity",
+	"id":                                         "AiEvaluation.id",
+	"is_enabled":                                 "AiEvaluation.isEnabled",
+	"subsystem":                                  "AiEvaluation.subsystem",
+	"target":                                     "AiEvaluation.target",
+	"threshold":                                  "AiEvaluation.threshold",
+}
 
 // requiredEnv are the variables that the test config reads, besides the API key.
 var requiredEnv = []string{"AI_EVALUATION_APPLICATION", "AI_EVALUATION_SUBSYSTEM"}
@@ -159,6 +196,7 @@ var importPlanStep = resource.TestStep{
 // so that a failure in one does not hide the others. After every apply, the framework plans again and
 // fails when the plan is not empty.
 func TestAccCoralogixResourceAiEvaluationGenerated(t *testing.T) {
+	failreport.Install() // records the HTTP calls that ErrorCheck shows in the line of a failure
 	// full-lifecycle sets every attribute, imports, changes the attributes, and imports again.
 	t.Run("full-lifecycle", func(t *testing.T) {
 		run := newRun()
@@ -168,12 +206,13 @@ func TestAccCoralogixResourceAiEvaluationGenerated(t *testing.T) {
 				acctest.RemoveLeftoverAiEvaluations(t, config(run, fullConfig), config(run, updatedConfig))
 			},
 			ProtoV6ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
+			ErrorCheck:               failreport.ErrorCheck(apiFields),
+			Steps: failreport.Steps(t, []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 				importStep,
 				{Config: config(run, updatedConfig), Check: updatedChecks(run)},
 				importStep,
-			},
+			}),
 		})
 	})
 
@@ -187,14 +226,15 @@ func TestAccCoralogixResourceAiEvaluationGenerated(t *testing.T) {
 				acctest.RemoveLeftoverAiEvaluations(t, config(run, minimalConfig), config(run, fullConfig))
 			},
 			ProtoV6ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
+			ErrorCheck:               failreport.ErrorCheck(apiFields),
+			Steps: failreport.Steps(t, []resource.TestStep{
 				{Config: config(run, minimalConfig), Check: minimalChecks(run)},
 				importStep,
 				importPlanStep,
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 				{Config: config(run, minimalConfig), Check: minimalChecks(run)},
 				importStep,
-			},
+			}),
 		})
 	})
 
@@ -211,10 +251,11 @@ func TestAccCoralogixResourceAiEvaluationGenerated(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			PreCheck:                 func() { preCheck(t); acctest.RemoveLeftoverAiEvaluations(t, config(run, fullConfig)) },
 			ProtoV6ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
+			ErrorCheck:               failreport.ErrorCheck(apiFields),
+			Steps: failreport.Steps(t, []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 				{Config: config(run, variant1Config), Check: variant1Checks(run)},
-			},
+			}),
 		})
 	})
 	t.Run("values-and-choices-2", func(t *testing.T) {
@@ -222,10 +263,11 @@ func TestAccCoralogixResourceAiEvaluationGenerated(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			PreCheck:                 func() { preCheck(t); acctest.RemoveLeftoverAiEvaluations(t, config(run, fullConfig)) },
 			ProtoV6ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
+			ErrorCheck:               failreport.ErrorCheck(apiFields),
+			Steps: failreport.Steps(t, []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 				{Config: config(run, variant2Config), Check: variant2Checks(run)},
-			},
+			}),
 		})
 	})
 	t.Run("values-and-choices-3", func(t *testing.T) {
@@ -233,10 +275,11 @@ func TestAccCoralogixResourceAiEvaluationGenerated(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			PreCheck:                 func() { preCheck(t); acctest.RemoveLeftoverAiEvaluations(t, config(run, fullConfig)) },
 			ProtoV6ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
+			ErrorCheck:               failreport.ErrorCheck(apiFields),
+			Steps: failreport.Steps(t, []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 				{Config: config(run, variant3Config), Check: variant3Checks(run)},
-			},
+			}),
 		})
 	})
 	t.Run("values-and-choices-4", func(t *testing.T) {
@@ -244,10 +287,11 @@ func TestAccCoralogixResourceAiEvaluationGenerated(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			PreCheck:                 func() { preCheck(t); acctest.RemoveLeftoverAiEvaluations(t, config(run, fullConfig)) },
 			ProtoV6ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
+			ErrorCheck:               failreport.ErrorCheck(apiFields),
+			Steps: failreport.Steps(t, []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 				{Config: config(run, variant4Config), Check: variant4Checks(run)},
-			},
+			}),
 		})
 	})
 	t.Run("values-and-choices-5", func(t *testing.T) {
@@ -255,10 +299,11 @@ func TestAccCoralogixResourceAiEvaluationGenerated(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			PreCheck:                 func() { preCheck(t); acctest.RemoveLeftoverAiEvaluations(t, config(run, fullConfig)) },
 			ProtoV6ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
+			ErrorCheck:               failreport.ErrorCheck(apiFields),
+			Steps: failreport.Steps(t, []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 				{Config: config(run, variant5Config), Check: variant5Checks(run)},
-			},
+			}),
 		})
 	})
 	t.Run("values-and-choices-6", func(t *testing.T) {
@@ -266,10 +311,11 @@ func TestAccCoralogixResourceAiEvaluationGenerated(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			PreCheck:                 func() { preCheck(t); acctest.RemoveLeftoverAiEvaluations(t, config(run, fullConfig)) },
 			ProtoV6ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
+			ErrorCheck:               failreport.ErrorCheck(apiFields),
+			Steps: failreport.Steps(t, []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 				{Config: config(run, variant6Config), Check: variant6Checks(run)},
-			},
+			}),
 		})
 	})
 	t.Run("values-and-choices-7", func(t *testing.T) {
@@ -277,10 +323,11 @@ func TestAccCoralogixResourceAiEvaluationGenerated(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			PreCheck:                 func() { preCheck(t); acctest.RemoveLeftoverAiEvaluations(t, config(run, fullConfig)) },
 			ProtoV6ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
+			ErrorCheck:               failreport.ErrorCheck(apiFields),
+			Steps: failreport.Steps(t, []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 				{Config: config(run, variant7Config), Check: variant7Checks(run)},
-			},
+			}),
 		})
 	})
 	t.Run("values-and-choices-8", func(t *testing.T) {
@@ -288,10 +335,11 @@ func TestAccCoralogixResourceAiEvaluationGenerated(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			PreCheck:                 func() { preCheck(t); acctest.RemoveLeftoverAiEvaluations(t, config(run, fullConfig)) },
 			ProtoV6ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
+			ErrorCheck:               failreport.ErrorCheck(apiFields),
+			Steps: failreport.Steps(t, []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 				{Config: config(run, variant8Config), Check: variant8Checks(run)},
-			},
+			}),
 		})
 	})
 	t.Run("values-and-choices-9", func(t *testing.T) {
@@ -299,10 +347,11 @@ func TestAccCoralogixResourceAiEvaluationGenerated(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			PreCheck:                 func() { preCheck(t); acctest.RemoveLeftoverAiEvaluations(t, config(run, fullConfig)) },
 			ProtoV6ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
+			ErrorCheck:               failreport.ErrorCheck(apiFields),
+			Steps: failreport.Steps(t, []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 				{Config: config(run, variant9Config), Check: variant9Checks(run)},
-			},
+			}),
 		})
 	})
 	t.Run("values-and-choices-10", func(t *testing.T) {
@@ -310,10 +359,11 @@ func TestAccCoralogixResourceAiEvaluationGenerated(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			PreCheck:                 func() { preCheck(t); acctest.RemoveLeftoverAiEvaluations(t, config(run, fullConfig)) },
 			ProtoV6ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
+			ErrorCheck:               failreport.ErrorCheck(apiFields),
+			Steps: failreport.Steps(t, []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 				{Config: config(run, variant10Config), Check: variant10Checks(run)},
-			},
+			}),
 		})
 	})
 	t.Run("values-and-choices-11", func(t *testing.T) {
@@ -321,10 +371,11 @@ func TestAccCoralogixResourceAiEvaluationGenerated(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			PreCheck:                 func() { preCheck(t); acctest.RemoveLeftoverAiEvaluations(t, config(run, fullConfig)) },
 			ProtoV6ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
+			ErrorCheck:               failreport.ErrorCheck(apiFields),
+			Steps: failreport.Steps(t, []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 				{Config: config(run, variant11Config), Check: variant11Checks(run)},
-			},
+			}),
 		})
 	})
 	t.Run("values-and-choices-12", func(t *testing.T) {
@@ -332,10 +383,11 @@ func TestAccCoralogixResourceAiEvaluationGenerated(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			PreCheck:                 func() { preCheck(t); acctest.RemoveLeftoverAiEvaluations(t, config(run, fullConfig)) },
 			ProtoV6ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
+			ErrorCheck:               failreport.ErrorCheck(apiFields),
+			Steps: failreport.Steps(t, []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 				{Config: config(run, variant12Config), Check: variant12Checks(run)},
-			},
+			}),
 		})
 	})
 	t.Run("values-and-choices-13", func(t *testing.T) {
@@ -343,10 +395,11 @@ func TestAccCoralogixResourceAiEvaluationGenerated(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			PreCheck:                 func() { preCheck(t); acctest.RemoveLeftoverAiEvaluations(t, config(run, fullConfig)) },
 			ProtoV6ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
+			ErrorCheck:               failreport.ErrorCheck(apiFields),
+			Steps: failreport.Steps(t, []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 				{Config: config(run, variant13Config), Check: variant13Checks(run)},
-			},
+			}),
 		})
 	})
 	t.Run("values-and-choices-14", func(t *testing.T) {
@@ -354,10 +407,11 @@ func TestAccCoralogixResourceAiEvaluationGenerated(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			PreCheck:                 func() { preCheck(t); acctest.RemoveLeftoverAiEvaluations(t, config(run, fullConfig)) },
 			ProtoV6ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
+			ErrorCheck:               failreport.ErrorCheck(apiFields),
+			Steps: failreport.Steps(t, []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 				{Config: config(run, variant14Config), Check: variant14Checks(run)},
-			},
+			}),
 		})
 	})
 	t.Run("values-and-choices-15", func(t *testing.T) {
@@ -365,10 +419,11 @@ func TestAccCoralogixResourceAiEvaluationGenerated(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			PreCheck:                 func() { preCheck(t); acctest.RemoveLeftoverAiEvaluations(t, config(run, fullConfig)) },
 			ProtoV6ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
+			ErrorCheck:               failreport.ErrorCheck(apiFields),
+			Steps: failreport.Steps(t, []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 				{Config: config(run, variant15Config), Check: variant15Checks(run)},
-			},
+			}),
 		})
 	})
 	t.Run("values-and-choices-16", func(t *testing.T) {
@@ -376,10 +431,11 @@ func TestAccCoralogixResourceAiEvaluationGenerated(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			PreCheck:                 func() { preCheck(t); acctest.RemoveLeftoverAiEvaluations(t, config(run, fullConfig)) },
 			ProtoV6ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
+			ErrorCheck:               failreport.ErrorCheck(apiFields),
+			Steps: failreport.Steps(t, []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 				{Config: config(run, variant16Config), Check: variant16Checks(run)},
-			},
+			}),
 		})
 	})
 	t.Run("values-and-choices-17", func(t *testing.T) {
@@ -387,10 +443,11 @@ func TestAccCoralogixResourceAiEvaluationGenerated(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			PreCheck:                 func() { preCheck(t); acctest.RemoveLeftoverAiEvaluations(t, config(run, fullConfig)) },
 			ProtoV6ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
+			ErrorCheck:               failreport.ErrorCheck(apiFields),
+			Steps: failreport.Steps(t, []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 				{Config: config(run, variant17Config), Check: variant17Checks(run)},
-			},
+			}),
 		})
 	})
 	t.Run("values-and-choices-18", func(t *testing.T) {
@@ -398,10 +455,11 @@ func TestAccCoralogixResourceAiEvaluationGenerated(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			PreCheck:                 func() { preCheck(t); acctest.RemoveLeftoverAiEvaluations(t, config(run, fullConfig)) },
 			ProtoV6ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
+			ErrorCheck:               failreport.ErrorCheck(apiFields),
+			Steps: failreport.Steps(t, []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 				{Config: config(run, variant18Config), Check: variant18Checks(run)},
-			},
+			}),
 		})
 	})
 	t.Run("values-and-choices-19", func(t *testing.T) {
@@ -409,10 +467,11 @@ func TestAccCoralogixResourceAiEvaluationGenerated(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			PreCheck:                 func() { preCheck(t); acctest.RemoveLeftoverAiEvaluations(t, config(run, fullConfig)) },
 			ProtoV6ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
+			ErrorCheck:               failreport.ErrorCheck(apiFields),
+			Steps: failreport.Steps(t, []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 				{Config: config(run, variant19Config), Check: variant19Checks(run)},
-			},
+			}),
 		})
 	})
 	t.Run("values-and-choices-20", func(t *testing.T) {
@@ -420,10 +479,11 @@ func TestAccCoralogixResourceAiEvaluationGenerated(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			PreCheck:                 func() { preCheck(t); acctest.RemoveLeftoverAiEvaluations(t, config(run, fullConfig)) },
 			ProtoV6ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
+			ErrorCheck:               failreport.ErrorCheck(apiFields),
+			Steps: failreport.Steps(t, []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 				{Config: config(run, variant20Config), Check: variant20Checks(run)},
-			},
+			}),
 		})
 	})
 }

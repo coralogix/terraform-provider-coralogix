@@ -16,10 +16,45 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/acctest/failpaths"
+	"github.com/coralogix/terraform-provider-coralogix/internal/acctest/failreport"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider"
 )
 
 const resourceAddress = "coralogix_tco_policies_logs.test"
+
+// apiFields name the API field of each attribute, by its Terraform path without list positions.
+// ErrorCheck shows the field in the line of a failure.
+var apiFields = map[string]string{
+	"policies":                                           "GetCompanyPoliciesResponse.policies",
+	"policies.applications":                              "Policy.applicationRule",
+	"policies.applications.names":                        "quota.v1.Rule.name",
+	"policies.applications.rule_type":                    "quota.v1.Rule.ruleTypeId",
+	"policies.archive_retention_id":                      "Policy.archiveRetention",
+	"policies.description":                               "Policy.description",
+	"policies.dpxl_expression":                           "Policy.dpxlExpression",
+	"policies.enabled":                                   "Policy.enabled",
+	"policies.id":                                        "Policy.id",
+	"policies.name":                                      "Policy.name",
+	"policies.order":                                     "Policy.order",
+	"policies.priority":                                  "Policy.priority",
+	"policies.quota_based_priority_override":             "Policy.priorityOverride",
+	"policies.quota_based_priority_override.usage_tiers": "QuotaBased.usageTiers",
+	"policies.quota_based_priority_override.usage_tiers.daily_quota_percentage": "UsageTier.dailyQuotaPercentage",
+	"policies.quota_based_priority_override.usage_tiers.priority":               "UsageTier.priority",
+	"policies.severities":                            "Policy.severities",
+	"policies.subsystems":                            "Policy.subsystemRule",
+	"policies.subsystems.names":                      "quota.v1.Rule.name",
+	"policies.subsystems.rule_type":                  "quota.v1.Rule.ruleTypeId",
+	"policies.targets":                               "Policy.targets",
+	"policies.targets.archive_retention_id":          "v1.Target.archiveRetention",
+	"policies.targets.dataset":                       "v1.Target.dataset",
+	"policies.targets.dataspace":                     "v1.Target.dataspace",
+	"policies.targets.priority":                      "v1.Target.priority",
+	"policies.targets.priority_override":             "v1.Target.priorityOverride",
+	"policies.targets.priority_override.usage_tiers": "QuotaBased.usageTiers",
+	"policies.targets.priority_override.usage_tiers.daily_quota_percentage": "UsageTier.dailyQuotaPercentage",
+	"policies.targets.priority_override.usage_tiers.priority":               "UsageTier.priority",
+}
 
 // requiredEnv are the variables that the test config reads, besides the API key.
 var requiredEnv = []string{}
@@ -233,19 +268,21 @@ var importPlanStep = resource.TestStep{
 // so that a failure in one does not hide the others. After every apply, the framework plans again and
 // fails when the plan is not empty.
 func TestAccCoralogixResourceTcoPoliciesLogsGenerated(t *testing.T) {
+	failreport.Install() // records the HTTP calls that ErrorCheck shows in the line of a failure
 	// full-lifecycle sets every attribute, imports, reads the data source, changes the attributes, and imports again.
 	t.Run("full-lifecycle", func(t *testing.T) {
 		run := newRun()
 		resource.Test(t, resource.TestCase{
 			PreCheck:                 func() { preCheck(t) },
 			ProtoV6ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
+			ErrorCheck:               failreport.ErrorCheck(apiFields),
+			Steps: failreport.Steps(t, []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 				importStep,
 				{Config: config(run, fullConfig+"\n\n"+dataSourceConfig), Check: dataSourceChecks()},
 				{Config: config(run, updatedConfig), Check: updatedChecks(run)},
 				importStep,
-			},
+			}),
 		})
 	})
 
@@ -256,14 +293,15 @@ func TestAccCoralogixResourceTcoPoliciesLogsGenerated(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			PreCheck:                 func() { preCheck(t) },
 			ProtoV6ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
+			ErrorCheck:               failreport.ErrorCheck(apiFields),
+			Steps: failreport.Steps(t, []resource.TestStep{
 				{Config: config(run, minimalConfig), Check: minimalChecks(run)},
 				importStep,
 				importPlanStep,
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 				{Config: config(run, minimalConfig), Check: minimalChecks(run)},
 				importStep,
-			},
+			}),
 		})
 	})
 
@@ -277,10 +315,11 @@ func TestAccCoralogixResourceTcoPoliciesLogsGenerated(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			PreCheck:                 func() { preCheck(t) },
 			ProtoV6ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
+			ErrorCheck:               failreport.ErrorCheck(apiFields),
+			Steps: failreport.Steps(t, []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 				{Config: config(run, variant1Config), Check: variant1Checks(run)},
-			},
+			}),
 		})
 	})
 }

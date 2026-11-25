@@ -16,10 +16,28 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/acctest/failpaths"
+	"github.com/coralogix/terraform-provider-coralogix/internal/acctest/failreport"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider"
 )
 
 const resourceAddress = "coralogix_api_key.test"
+
+// apiFields name the API field of each attribute, by its Terraform path without list positions.
+// ErrorCheck shows the field in the line of a failure.
+var apiFields = map[string]string{
+	"access_policy":         "KeyInfo.accessPolicy",
+	"active":                "KeyInfo.active",
+	"hashed":                "KeyInfo.hashed",
+	"id":                    "KeyInfo.id",
+	"name":                  "KeyInfo.name",
+	"owner":                 "KeyInfo.owner",
+	"owner.organisation_id": "Owner.organisationId",
+	"owner.team_id":         "Owner.teamId",
+	"owner.user_id":         "Owner.userId",
+	"permissions":           "KeyInfo.permissions",
+	"presets":               "KeyInfo.presets",
+	"value":                 "KeyInfo.value",
+}
 
 // requiredEnv are the variables that the test config reads, besides the API key.
 var requiredEnv = []string{"TEST_TEAM_ID"}
@@ -176,19 +194,21 @@ var importPlanStep = resource.TestStep{
 // so that a failure in one does not hide the others. After every apply, the framework plans again and
 // fails when the plan is not empty.
 func TestAccCoralogixResourceApiKeyGenerated(t *testing.T) {
+	failreport.Install() // records the HTTP calls that ErrorCheck shows in the line of a failure
 	// full-lifecycle sets every attribute, imports, reads the data source, changes the attributes, and imports again.
 	t.Run("full-lifecycle", func(t *testing.T) {
 		run := newRun()
 		resource.Test(t, resource.TestCase{
 			PreCheck:                 func() { preCheck(t) },
 			ProtoV6ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
+			ErrorCheck:               failreport.ErrorCheck(apiFields),
+			Steps: failreport.Steps(t, []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 				importStep,
 				{Config: config(run, fullConfig+"\n\n"+dataSourceConfig), Check: dataSourceChecks()},
 				{Config: config(run, updatedConfig), Check: updatedChecks(run)},
 				importStep,
-			},
+			}),
 		})
 	})
 
@@ -199,14 +219,15 @@ func TestAccCoralogixResourceApiKeyGenerated(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			PreCheck:                 func() { preCheck(t) },
 			ProtoV6ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
+			ErrorCheck:               failreport.ErrorCheck(apiFields),
+			Steps: failreport.Steps(t, []resource.TestStep{
 				{Config: config(run, minimalConfig), Check: minimalChecks(run)},
 				importStep,
 				importPlanStep,
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 				{Config: config(run, minimalConfig), Check: minimalChecks(run)},
 				importStep,
-			},
+			}),
 		})
 	})
 }

@@ -14,10 +14,37 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/acctest/failpaths"
+	"github.com/coralogix/terraform-provider-coralogix/internal/acctest/failreport"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider"
 )
 
 const resourceAddress = "coralogix_mask_thing.test"
+
+// apiFields name the API field of each attribute, by its Terraform path without list positions.
+// ErrorCheck shows the field in the line of a failure.
+var apiFields = map[string]string{
+	"create_time":                 "MaskThing.createTime",
+	"description":                 "MaskThing.description",
+	"filters":                     "MaskThing.filters",
+	"filters.bool_filter":         "MaskThingFilter.boolFilter",
+	"filters.bool_filter.value":   "MaskThingBoolFilter.value",
+	"filters.string_filter":       "MaskThingFilter.stringFilter",
+	"filters.string_filter.field": "MaskThingStringFilter.field",
+	"filters.string_filter.value": "MaskThingStringFilter.value",
+	"id":                          "MaskThing.id",
+	"limits":                      "MaskThing.limits",
+	"limits.applied":              "MaskThingLimits.applied",
+	"limits.max":                  "MaskThingLimits.max",
+	"limits.min":                  "MaskThingLimits.min",
+	"name":                        "MaskThing.name",
+	"owner":                       "MaskThing.owner",
+	"range":                       "MaskThing.range",
+	"range.fixed":                 "MaskThingRange.fixed",
+	"range.fixed.end":             "MaskThingFixed.end",
+	"range.fixed.start":           "MaskThingFixed.start",
+	"range.relative":              "MaskThingRange.relative",
+	"range.relative.minutes":      "MaskThingRelative.minutes",
+}
 
 // requiredEnv are the variables that the test config reads, besides the API key.
 var requiredEnv = []string{}
@@ -208,19 +235,21 @@ var importPlanStep = resource.TestStep{
 // so that a failure in one does not hide the others. After every apply, the framework plans again and
 // fails when the plan is not empty.
 func TestAccCoralogixResourceMaskThingGenerated(t *testing.T) {
+	failreport.Install() // records the HTTP calls that ErrorCheck shows in the line of a failure
 	// full-lifecycle sets every attribute, imports, reads the data source, changes the attributes, and imports again.
 	t.Run("full-lifecycle", func(t *testing.T) {
 		run := newRun()
 		resource.Test(t, resource.TestCase{
 			PreCheck:                 func() { preCheck(t) },
 			ProtoV6ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
+			ErrorCheck:               failreport.ErrorCheck(apiFields),
+			Steps: failreport.Steps(t, []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 				importStep,
 				{Config: config(run, fullConfig+"\n\n"+dataSourceConfig), Check: dataSourceChecks()},
 				{Config: config(run, updatedConfig), Check: updatedChecks(run)},
 				importStep,
-			},
+			}),
 		})
 	})
 
@@ -231,14 +260,15 @@ func TestAccCoralogixResourceMaskThingGenerated(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			PreCheck:                 func() { preCheck(t) },
 			ProtoV6ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
+			ErrorCheck:               failreport.ErrorCheck(apiFields),
+			Steps: failreport.Steps(t, []resource.TestStep{
 				{Config: config(run, minimalConfig), Check: minimalChecks(run)},
 				importStep,
 				importPlanStep,
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 				{Config: config(run, minimalConfig), Check: minimalChecks(run)},
 				importStep,
-			},
+			}),
 		})
 	})
 
@@ -252,10 +282,11 @@ func TestAccCoralogixResourceMaskThingGenerated(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			PreCheck:                 func() { preCheck(t) },
 			ProtoV6ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
+			ErrorCheck:               failreport.ErrorCheck(apiFields),
+			Steps: failreport.Steps(t, []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 				{Config: config(run, variant1Config), Check: variant1Checks(run)},
-			},
+			}),
 		})
 	})
 }

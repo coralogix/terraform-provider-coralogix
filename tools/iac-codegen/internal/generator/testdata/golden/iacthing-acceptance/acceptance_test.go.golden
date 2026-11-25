@@ -14,10 +14,37 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 
 	"example.com/provider/internal/acctest/failpaths"
+	"example.com/provider/internal/acctest/failreport"
 	"example.com/provider/internal/provider"
 )
 
 const resourceAddress = "coralogix_iac_thing.test"
+
+// apiFields name the API field of each attribute, by its Terraform path without list positions.
+// ErrorCheck shows the field in the line of a failure.
+var apiFields = map[string]string{
+	"colors":               "IacThing.colors",
+	"colors.color":         "IacColor.color",
+	"id":                   "IacThing.id",
+	"mode":                 "IacThing.mode",
+	"name":                 "IacThing.name",
+	"note":                 "IacThing.note",
+	"priority":             "IacThing.priority",
+	"search":               "IacThing.search",
+	"search.blob":          "IacSearch.blob",
+	"search.count":         "IacSearch.count",
+	"search.day":           "IacSearch.day",
+	"search.limit":         "IacSearch.limit",
+	"search.ratio":         "IacSearch.ratio",
+	"search.serial":        "IacSearch.serial",
+	"search.tags":          "IacSearch.tags",
+	"search.text":          "IacSearch.text",
+	"source":               "IacThing.source",
+	"source.logs":          "IacSource.logs",
+	"source.logs.query":    "IacLogs.query",
+	"source.metrics":       "IacSource.metrics",
+	"source.metrics.query": "IacMetrics.query",
+}
 
 // requiredEnv are the variables that the test config reads, besides the API key.
 var requiredEnv = []string{}
@@ -184,18 +211,20 @@ var importPlanStep = resource.TestStep{
 // so that a failure in one does not hide the others. After every apply, the framework plans again and
 // fails when the plan is not empty.
 func TestAccCoralogixResourceIacThingGenerated(t *testing.T) {
+	failreport.Install() // records the HTTP calls that ErrorCheck shows in the line of a failure
 	// full-lifecycle sets every attribute, imports, changes the attributes, and imports again.
 	t.Run("full-lifecycle", func(t *testing.T) {
 		run := newRun()
 		resource.Test(t, resource.TestCase{
 			PreCheck:                 func() { preCheck(t) },
 			ProtoV6ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
+			ErrorCheck:               failreport.ErrorCheck(apiFields),
+			Steps: failreport.Steps(t, []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 				importStep,
 				{Config: config(run, updatedConfig), Check: updatedChecks(run)},
 				importStep,
-			},
+			}),
 		})
 	})
 
@@ -206,14 +235,15 @@ func TestAccCoralogixResourceIacThingGenerated(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			PreCheck:                 func() { preCheck(t) },
 			ProtoV6ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
+			ErrorCheck:               failreport.ErrorCheck(apiFields),
+			Steps: failreport.Steps(t, []resource.TestStep{
 				{Config: config(run, minimalConfig), Check: minimalChecks(run)},
 				importStep,
 				importPlanStep,
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 				{Config: config(run, minimalConfig), Check: minimalChecks(run)},
 				importStep,
-			},
+			}),
 		})
 	})
 
@@ -227,10 +257,11 @@ func TestAccCoralogixResourceIacThingGenerated(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			PreCheck:                 func() { preCheck(t) },
 			ProtoV6ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
+			ErrorCheck:               failreport.ErrorCheck(apiFields),
+			Steps: failreport.Steps(t, []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 				{Config: config(run, variant1Config), Check: variant1Checks(run)},
-			},
+			}),
 		})
 	})
 }

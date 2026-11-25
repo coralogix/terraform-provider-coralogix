@@ -17,10 +17,26 @@ import (
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/acctest"
 	"github.com/coralogix/terraform-provider-coralogix/internal/acctest/failpaths"
+	"github.com/coralogix/terraform-provider-coralogix/internal/acctest/failreport"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider"
 )
 
 const resourceAddress = "coralogix_legacy_thing.test"
+
+// apiFields name the API field of each attribute, by its Terraform path without list positions.
+// ErrorCheck shows the field in the line of a failure.
+var apiFields = map[string]string{
+	"create_time":                "LegacyThing.createTime",
+	"id":                         "LegacyThing.id",
+	"labels":                     "LegacyThing.labels",
+	"labels.env":                 "LegacyLabels.env",
+	"name":                       "LegacyThing.name",
+	"rules":                      "LegacyThing.rules",
+	"rules.kind":                 "LegacyRule.kind",
+	"rules.name":                 "LegacyRule.name",
+	"rules.targets":              "LegacyRule.targets",
+	"rules.targets.connector_id": "LegacyTarget.connectorId",
+}
 
 // requiredEnv are the variables that the test config reads, besides the API key.
 var requiredEnv = []string{"LEGACY_TOKEN"}
@@ -245,6 +261,7 @@ var importPlanStep = resource.TestStep{
 // so that a failure in one does not hide the others. After every apply, the framework plans again and
 // fails when the plan is not empty.
 func TestAccCoralogixResourceLegacyThingGenerated(t *testing.T) {
+	failreport.Install() // records the HTTP calls that ErrorCheck shows in the line of a failure
 	// full-lifecycle sets every attribute, imports, reads the data source, changes the attributes, and imports again.
 	t.Run("full-lifecycle", func(t *testing.T) {
 		t.Skip("the test tenant refuses this update")
@@ -255,13 +272,14 @@ func TestAccCoralogixResourceLegacyThingGenerated(t *testing.T) {
 				acctest.RemoveLeftoverLegacyThings(t, config(run, fullConfig), config(run, updatedConfig))
 			},
 			ProtoV6ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
+			ErrorCheck:               failreport.ErrorCheck(apiFields),
+			Steps: failreport.Steps(t, []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 				importStep,
 				{Config: config(run, fullConfig+"\n\n"+dataSourceConfig), Check: dataSourceChecks()},
 				{Config: config(run, updatedConfig), Check: updatedChecks(run)},
 				importStep,
-			},
+			}),
 		})
 	})
 
@@ -275,14 +293,15 @@ func TestAccCoralogixResourceLegacyThingGenerated(t *testing.T) {
 				acctest.RemoveLeftoverLegacyThings(t, config(run, minimalConfig), config(run, fullConfig))
 			},
 			ProtoV6ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
+			ErrorCheck:               failreport.ErrorCheck(apiFields),
+			Steps: failreport.Steps(t, []resource.TestStep{
 				{Config: config(run, minimalConfig), Check: minimalChecks(run)},
 				importStep,
 				importPlanStep,
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 				{Config: config(run, minimalConfig), Check: minimalChecks(run)},
 				importStep,
-			},
+			}),
 		})
 	})
 
@@ -296,10 +315,11 @@ func TestAccCoralogixResourceLegacyThingGenerated(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			PreCheck:                 func() { preCheck(t); acctest.RemoveLeftoverLegacyThings(t, config(run, fullConfig)) },
 			ProtoV6ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
+			ErrorCheck:               failreport.ErrorCheck(apiFields),
+			Steps: failreport.Steps(t, []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 				{Config: config(run, variant1Config), Check: variant1Checks(run)},
-			},
+			}),
 		})
 	})
 }

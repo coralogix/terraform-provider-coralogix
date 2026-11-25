@@ -16,10 +16,56 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/acctest/failpaths"
+	"github.com/coralogix/terraform-provider-coralogix/internal/acctest/failreport"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider"
 )
 
 const resourceAddress = "coralogix_alerts_scheduler.test"
+
+// apiFields name the API field of each attribute, by its Terraform path without list positions.
+// ErrorCheck shows the field in the line of a failure.
+var apiFields = map[string]string{
+	"description":                           "AlertSchedulerRule.description",
+	"enabled":                               "AlertSchedulerRule.enabled",
+	"filter":                                "AlertSchedulerRule.filter",
+	"filter.alerts_unique_ids":              "alert_scheduler_rule_protobuf.v1.Filter.alertUniqueIds",
+	"filter.meta_labels":                    "alert_scheduler_rule_protobuf.v1.Filter.alertMetaLabels",
+	"filter.meta_labels.key":                "meta_labels_protobuf.v1.MetaLabel.key",
+	"filter.meta_labels.value":              "meta_labels_protobuf.v1.MetaLabel.value",
+	"filter.what_expression":                "alert_scheduler_rule_protobuf.v1.Filter.whatExpression",
+	"id":                                    "AlertSchedulerRule.uniqueIdentifier",
+	"meta_labels":                           "AlertSchedulerRule.metaLabels",
+	"meta_labels.key":                       "meta_labels_protobuf.v1.MetaLabel.key",
+	"meta_labels.value":                     "meta_labels_protobuf.v1.MetaLabel.value",
+	"name":                                  "AlertSchedulerRule.name",
+	"schedule":                              "AlertSchedulerRule.schedule",
+	"schedule.one_time":                     "Schedule.oneTime",
+	"schedule.one_time.time_frame":          "OneTime.timeframe",
+	"schedule.one_time.time_frame.duration": "Timeframe.duration",
+	"schedule.one_time.time_frame.duration.for_over":           "v1.Duration.forOver",
+	"schedule.one_time.time_frame.duration.frequency":          "v1.Duration.frequency",
+	"schedule.one_time.time_frame.end_time":                    "Timeframe.endTime",
+	"schedule.one_time.time_frame.start_time":                  "Timeframe.startTime",
+	"schedule.one_time.time_frame.time_zone":                   "Timeframe.timezone",
+	"schedule.operation":                                       "Schedule.scheduleOperation",
+	"schedule.recurring":                                       "Schedule.recurring",
+	"schedule.recurring.always_active":                         "Recurring.alwaysActive",
+	"schedule.recurring.dynamic":                               "Recurring.schedule",
+	"schedule.recurring.dynamic.frequency.daily":               "Recurring.Dynamic.daily",
+	"schedule.recurring.dynamic.frequency.monthly":             "Recurring.Dynamic.monthly",
+	"schedule.recurring.dynamic.frequency.monthly.days":        "Monthly.daysOfMonth",
+	"schedule.recurring.dynamic.frequency.weekly":              "Recurring.Dynamic.weekly",
+	"schedule.recurring.dynamic.frequency.weekly.days":         "Weekly.daysOfWeek",
+	"schedule.recurring.dynamic.repeat_every":                  "Recurring.Dynamic.repeatEvery",
+	"schedule.recurring.dynamic.termination_date":              "Recurring.Dynamic.terminationDate",
+	"schedule.recurring.dynamic.time_frame":                    "Recurring.Dynamic.timeframe",
+	"schedule.recurring.dynamic.time_frame.duration":           "Timeframe.duration",
+	"schedule.recurring.dynamic.time_frame.duration.for_over":  "v1.Duration.forOver",
+	"schedule.recurring.dynamic.time_frame.duration.frequency": "v1.Duration.frequency",
+	"schedule.recurring.dynamic.time_frame.end_time":           "Timeframe.endTime",
+	"schedule.recurring.dynamic.time_frame.start_time":         "Timeframe.startTime",
+	"schedule.recurring.dynamic.time_frame.time_zone":          "Timeframe.timezone",
+}
 
 // requiredEnv are the variables that the test config reads, besides the API key.
 var requiredEnv = []string{}
@@ -297,19 +343,21 @@ var importPlanStep = resource.TestStep{
 // so that a failure in one does not hide the others. After every apply, the framework plans again and
 // fails when the plan is not empty.
 func TestAccCoralogixResourceAlertsSchedulerGenerated(t *testing.T) {
+	failreport.Install() // records the HTTP calls that ErrorCheck shows in the line of a failure
 	// full-lifecycle sets every attribute, imports, reads the data source, changes the attributes, and imports again.
 	t.Run("full-lifecycle", func(t *testing.T) {
 		run := newRun()
 		resource.Test(t, resource.TestCase{
 			PreCheck:                 func() { preCheck(t) },
 			ProtoV6ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
+			ErrorCheck:               failreport.ErrorCheck(apiFields),
+			Steps: failreport.Steps(t, []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 				importStep,
 				{Config: config(run, fullConfig+"\n\n"+dataSourceConfig), Check: dataSourceChecks()},
 				{Config: config(run, updatedConfig), Check: updatedChecks(run)},
 				importStep,
-			},
+			}),
 		})
 	})
 
@@ -320,14 +368,15 @@ func TestAccCoralogixResourceAlertsSchedulerGenerated(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			PreCheck:                 func() { preCheck(t) },
 			ProtoV6ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
+			ErrorCheck:               failreport.ErrorCheck(apiFields),
+			Steps: failreport.Steps(t, []resource.TestStep{
 				{Config: config(run, minimalConfig), Check: minimalChecks(run)},
 				importStep,
 				importPlanStep,
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 				{Config: config(run, minimalConfig), Check: minimalChecks(run)},
 				importStep,
-			},
+			}),
 		})
 	})
 
@@ -342,11 +391,12 @@ func TestAccCoralogixResourceAlertsSchedulerGenerated(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			PreCheck:                 func() { preCheck(t) },
 			ProtoV6ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
+			ErrorCheck:               failreport.ErrorCheck(apiFields),
+			Steps: failreport.Steps(t, []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 				{Config: config(run, variant1Config), Check: variant1Checks(run)},
 				{Config: config(run, variant2Config), Check: variant2Checks(run)},
-			},
+			}),
 		})
 	})
 }

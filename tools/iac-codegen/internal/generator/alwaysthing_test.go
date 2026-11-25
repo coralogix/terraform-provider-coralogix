@@ -53,7 +53,7 @@ func TestGoldenOutputAlwaysThing(t *testing.T) {
 	// The singleton keeps the last applied state after the test: values-and-choices ends in the full
 	// config, so the singleton ends in the state of the first values.
 	acceptance := readGenerated(t, out, "acceptance_test.go")
-	endsFull := regexp.MustCompile(`variant\d+Checks\(run\)\},\n\t+// The resource always exists[^\n]*\n\t+\{Config: config\(run, fullConfig\), Check: fullChecks\(run\)\},\n\t+\},`)
+	endsFull := regexp.MustCompile(`variant\d+Checks\(run\)\},\n\t+// The resource always exists[^\n]*\n\t+\{Config: config\(run, fullConfig\), Check: fullChecks\(run\)\},\n\t+\}\),`)
 	if !endsFull.MatchString(acceptance) {
 		t.Error("the values-and-choices steps do not end with the full config")
 	}
@@ -275,7 +275,7 @@ func TestAlwaysThingWithoutVariantsEndsInTheFullConfig(t *testing.T) {
 	if strings.Contains(acceptance, "values-and-choices") {
 		t.Fatal("the contract still has a values-and-choices subtest")
 	}
-	endsFull := regexp.MustCompile(`importStep,\n\t+// The resource always exists[^\n]*\n\t+\{Config: config\(run, fullConfig\), Check: fullChecks\(run\)\},\n\t+\},`)
+	endsFull := regexp.MustCompile(`importStep,\n\t+// The resource always exists[^\n]*\n\t+\{Config: config\(run, fullConfig\), Check: fullChecks\(run\)\},\n\t+\}\),`)
 	if !endsFull.MatchString(acceptance) {
 		t.Error("minimal-lifecycle does not end with the full config")
 	}

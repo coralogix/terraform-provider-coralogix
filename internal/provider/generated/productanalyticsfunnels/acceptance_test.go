@@ -14,10 +14,101 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/acctest/failpaths"
+	"github.com/coralogix/terraform-provider-coralogix/internal/acctest/failreport"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider"
 )
 
 const resourceAddress = "coralogix_saved_funnel.test"
+
+// apiFields name the API field of each attribute, by its Terraform path without list positions.
+// ErrorCheck shows the field in the line of a failure.
+var apiFields = map[string]string{
+	"app_name":                           "SavedFunnel.appName",
+	"breakdown":                          "SavedFunnel.breakdown",
+	"breakdown.field":                    "FunnelBreakdown.field",
+	"breakdown.limit":                    "FunnelBreakdown.limit",
+	"created_at":                         "SavedFunnel.createdAt",
+	"definition":                         "SavedFunnel.definition",
+	"definition.conversion_window":       "FunnelDefinition.conversionWindow",
+	"definition.mode":                    "FunnelDefinition.mode",
+	"definition.steps":                   "FunnelDefinition.steps",
+	"definition.steps.conditions":        "FunnelStep.conditions",
+	"definition.steps.conditions.action": "StepCondition.action",
+	"definition.steps.conditions.action.element":                                      "ActionCondition.element",
+	"definition.steps.conditions.action.element.operator":                             "StringCondition.operator",
+	"definition.steps.conditions.action.element.values":                               "StringCondition.values",
+	"definition.steps.conditions.action.event":                                        "ActionCondition.event",
+	"definition.steps.conditions.action.event.operator":                               "StringCondition.operator",
+	"definition.steps.conditions.action.event.values":                                 "StringCondition.values",
+	"definition.steps.conditions.action.filters":                                      "ActionCondition.filters",
+	"definition.steps.conditions.action.filters.bool_filter":                          "ActionFilter.boolFilter",
+	"definition.steps.conditions.action.filters.bool_filter.field":                    "BoolFilter.field",
+	"definition.steps.conditions.action.filters.bool_filter.value":                    "BoolFilter.value",
+	"definition.steps.conditions.action.filters.numeric_filter":                       "ActionFilter.numericFilter",
+	"definition.steps.conditions.action.filters.numeric_filter.condition":             "ActionNumericFilter.condition",
+	"definition.steps.conditions.action.filters.numeric_filter.condition.max":         "NumericCondition.max",
+	"definition.steps.conditions.action.filters.numeric_filter.condition.min":         "NumericCondition.min",
+	"definition.steps.conditions.action.filters.numeric_filter.condition.range":       "NumericCondition.range",
+	"definition.steps.conditions.action.filters.numeric_filter.condition.range.lower": "NumericRange.lower",
+	"definition.steps.conditions.action.filters.numeric_filter.condition.range.upper": "NumericRange.upper",
+	"definition.steps.conditions.action.filters.numeric_filter.field":                 "ActionNumericFilter.field",
+	"definition.steps.conditions.action.filters.string_filter":                        "ActionFilter.stringFilter",
+	"definition.steps.conditions.action.filters.string_filter.condition":              "StringFilter.condition",
+	"definition.steps.conditions.action.filters.string_filter.condition.operator":     "StringCondition.operator",
+	"definition.steps.conditions.action.filters.string_filter.condition.values":       "StringCondition.values",
+	"definition.steps.conditions.action.filters.string_filter.field":                  "StringFilter.field",
+	"definition.steps.conditions.view":                                                "StepCondition.view",
+	"definition.steps.conditions.view.filters":                                        "ViewCondition.filters",
+	"definition.steps.conditions.view.filters.bool_filter":                            "ViewFilter.boolFilter",
+	"definition.steps.conditions.view.filters.bool_filter.field":                      "BoolFilter.field",
+	"definition.steps.conditions.view.filters.bool_filter.value":                      "BoolFilter.value",
+	"definition.steps.conditions.view.filters.numeric_filter":                         "ViewFilter.numericFilter",
+	"definition.steps.conditions.view.filters.numeric_filter.condition":               "NumericFilter.condition",
+	"definition.steps.conditions.view.filters.numeric_filter.condition.max":           "NumericCondition.max",
+	"definition.steps.conditions.view.filters.numeric_filter.condition.min":           "NumericCondition.min",
+	"definition.steps.conditions.view.filters.numeric_filter.condition.range":         "NumericCondition.range",
+	"definition.steps.conditions.view.filters.numeric_filter.condition.range.lower":   "NumericRange.lower",
+	"definition.steps.conditions.view.filters.numeric_filter.condition.range.upper":   "NumericRange.upper",
+	"definition.steps.conditions.view.filters.numeric_filter.field":                   "NumericFilter.field",
+	"definition.steps.conditions.view.filters.string_filter":                          "ViewFilter.stringFilter",
+	"definition.steps.conditions.view.filters.string_filter.condition":                "StringFilter.condition",
+	"definition.steps.conditions.view.filters.string_filter.condition.operator":       "StringCondition.operator",
+	"definition.steps.conditions.view.filters.string_filter.condition.values":         "StringCondition.values",
+	"definition.steps.conditions.view.filters.string_filter.field":                    "StringFilter.field",
+	"definition.steps.conditions.view.name":                                           "ViewCondition.name",
+	"definition.steps.conditions.view.name.operator":                                  "StringCondition.operator",
+	"definition.steps.conditions.view.name.values":                                    "StringCondition.values",
+	"definition.steps.label":                       "FunnelStep.label",
+	"definition.steps.step_id":                     "FunnelStep.stepId",
+	"filters":                                      "SavedFunnel.filters",
+	"filters.bool_filter":                          "ViewFilter.boolFilter",
+	"filters.bool_filter.field":                    "BoolFilter.field",
+	"filters.bool_filter.value":                    "BoolFilter.value",
+	"filters.numeric_filter":                       "ViewFilter.numericFilter",
+	"filters.numeric_filter.condition":             "NumericFilter.condition",
+	"filters.numeric_filter.condition.max":         "NumericCondition.max",
+	"filters.numeric_filter.condition.min":         "NumericCondition.min",
+	"filters.numeric_filter.condition.range":       "NumericCondition.range",
+	"filters.numeric_filter.condition.range.lower": "NumericRange.lower",
+	"filters.numeric_filter.condition.range.upper": "NumericRange.upper",
+	"filters.numeric_filter.field":                 "NumericFilter.field",
+	"filters.string_filter":                        "ViewFilter.stringFilter",
+	"filters.string_filter.condition":              "StringFilter.condition",
+	"filters.string_filter.condition.operator":     "StringCondition.operator",
+	"filters.string_filter.condition.values":       "StringCondition.values",
+	"filters.string_filter.field":                  "StringFilter.field",
+	"id":                                           "SavedFunnel.id",
+	"name":                                         "SavedFunnel.name",
+	"owner":                                        "SavedFunnel.owner",
+	"time_range":                                   "SavedFunnel.timeRange",
+	"time_range.calendar":                          "ViewTimeRange.calendar",
+	"time_range.fixed":                             "ViewTimeRange.fixed",
+	"time_range.fixed.from_timestamp_ms":           "FixedTimeRange.fromTimestampMs",
+	"time_range.fixed.to_timestamp_ms":             "FixedTimeRange.toTimestampMs",
+	"time_range.relative_minutes":                  "ViewTimeRange.relativeMinutes",
+	"updated_at":                                   "SavedFunnel.updatedAt",
+	"version":                                      "SavedFunnel.version",
+}
 
 // requiredEnv are the variables that the test config reads, besides the API key.
 var requiredEnv = []string{}
@@ -315,19 +406,21 @@ var importPlanStep = resource.TestStep{
 // so that a failure in one does not hide the others. After every apply, the framework plans again and
 // fails when the plan is not empty.
 func TestAccCoralogixResourceSavedFunnelGenerated(t *testing.T) {
+	failreport.Install() // records the HTTP calls that ErrorCheck shows in the line of a failure
 	// full-lifecycle sets every attribute, imports, reads the data source, changes the attributes, and imports again.
 	t.Run("full-lifecycle", func(t *testing.T) {
 		run := newRun()
 		resource.Test(t, resource.TestCase{
 			PreCheck:                 func() { preCheck(t) },
 			ProtoV6ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
+			ErrorCheck:               failreport.ErrorCheck(apiFields),
+			Steps: failreport.Steps(t, []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 				importStep,
 				{Config: config(run, fullConfig+"\n\n"+dataSourceConfig), Check: dataSourceChecks()},
 				{Config: config(run, updatedConfig), Check: updatedChecks(run)},
 				importStep,
-			},
+			}),
 		})
 	})
 
@@ -338,14 +431,15 @@ func TestAccCoralogixResourceSavedFunnelGenerated(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			PreCheck:                 func() { preCheck(t) },
 			ProtoV6ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
+			ErrorCheck:               failreport.ErrorCheck(apiFields),
+			Steps: failreport.Steps(t, []resource.TestStep{
 				{Config: config(run, minimalConfig), Check: minimalChecks(run)},
 				importStep,
 				importPlanStep,
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 				{Config: config(run, minimalConfig), Check: minimalChecks(run)},
 				importStep,
-			},
+			}),
 		})
 	})
 
@@ -359,11 +453,12 @@ func TestAccCoralogixResourceSavedFunnelGenerated(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			PreCheck:                 func() { preCheck(t) },
 			ProtoV6ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
+			ErrorCheck:               failreport.ErrorCheck(apiFields),
+			Steps: failreport.Steps(t, []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 				{Config: config(run, variant1Config), Check: variant1Checks(run)},
 				{Config: config(run, variant2Config), Check: variant2Checks(run)},
-			},
+			}),
 		})
 	})
 }

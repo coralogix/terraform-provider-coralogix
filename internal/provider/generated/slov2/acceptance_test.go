@@ -16,10 +16,119 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/acctest/failpaths"
+	"github.com/coralogix/terraform-provider-coralogix/internal/acctest/failreport"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider"
 )
 
 const resourceAddress = "coralogix_slo_v2.test"
+
+// apiFields name the API field of each attribute, by its Terraform path without list positions.
+// ErrorCheck shows the field in the line of a failure.
+var apiFields = map[string]string{
+	"apm_sli_metadata":                                                 "Slo.apmSliMetadata",
+	"apm_sli_metadata.error_config":                                    "ApmSli.errorConfig",
+	"apm_sli_metadata.filters":                                         "ApmSli.filters",
+	"apm_sli_metadata.filters.key":                                     "ApmFilter.key",
+	"apm_sli_metadata.filters.match_operator":                          "ApmFilter.matchOperator",
+	"apm_sli_metadata.filters.values":                                  "ApmFilter.values",
+	"apm_sli_metadata.grouping_keys":                                   "ApmSli.groupingKeys",
+	"apm_sli_metadata.latency_config":                                  "ApmSli.latencyConfig",
+	"apm_sli_metadata.latency_config.average":                          "ApmLatencySli.average",
+	"apm_sli_metadata.latency_config.quantile":                         "ApmLatencySli.quantile",
+	"apm_sli_metadata.latency_config.quantile.percentile":              "ApmLatencyQuantile.percentile",
+	"apm_sli_metadata.latency_config.threshold":                        "ApmLatencySli.threshold",
+	"apm_sli_metadata.latency_config.time_window":                      "ApmLatencySli.timeWindow",
+	"apm_sli_metadata.services":                                        "ApmSli.services",
+	"description":                                                      "Slo.description",
+	"grouping":                                                         "Slo.grouping",
+	"grouping.labels":                                                  "v1.Grouping.labels",
+	"id":                                                               "Slo.id",
+	"labels":                                                           "Slo.labels",
+	"name":                                                             "Slo.name",
+	"ownership_tags":                                                   "Slo.ownershipTags",
+	"ownership_tags.environment":                                       "SloOwnershipTags.environment",
+	"ownership_tags.environment.label_keys":                            "SloOwnershipTag.labelKeys",
+	"ownership_tags.environment.resolved_values":                       "SloOwnershipTag.resolvedValues",
+	"ownership_tags.environment.static_values":                         "SloOwnershipTag.staticValues",
+	"ownership_tags.service":                                           "SloOwnershipTags.service",
+	"ownership_tags.service.label_keys":                                "SloOwnershipTag.labelKeys",
+	"ownership_tags.service.resolved_values":                           "SloOwnershipTag.resolvedValues",
+	"ownership_tags.service.static_values":                             "SloOwnershipTag.staticValues",
+	"ownership_tags.team":                                              "SloOwnershipTags.team",
+	"ownership_tags.team.label_keys":                                   "SloOwnershipTag.labelKeys",
+	"ownership_tags.team.resolved_values":                              "SloOwnershipTag.resolvedValues",
+	"ownership_tags.team.static_values":                                "SloOwnershipTag.staticValues",
+	"product_type":                                                     "Slo.productType",
+	"sli.apm_sli":                                                      "Slo.apmSli",
+	"sli.apm_sli.error_config":                                         "ApmSli.errorConfig",
+	"sli.apm_sli.filters":                                              "ApmSli.filters",
+	"sli.apm_sli.filters.key":                                          "ApmFilter.key",
+	"sli.apm_sli.filters.match_operator":                               "ApmFilter.matchOperator",
+	"sli.apm_sli.filters.values":                                       "ApmFilter.values",
+	"sli.apm_sli.grouping_keys":                                        "ApmSli.groupingKeys",
+	"sli.apm_sli.latency_config":                                       "ApmSli.latencyConfig",
+	"sli.apm_sli.latency_config.average":                               "ApmLatencySli.average",
+	"sli.apm_sli.latency_config.quantile":                              "ApmLatencySli.quantile",
+	"sli.apm_sli.latency_config.quantile.percentile":                   "ApmLatencyQuantile.percentile",
+	"sli.apm_sli.latency_config.threshold":                             "ApmLatencySli.threshold",
+	"sli.apm_sli.latency_config.time_window":                           "ApmLatencySli.timeWindow",
+	"sli.apm_sli.services":                                             "ApmSli.services",
+	"sli.request_based_metric_sli":                                     "Slo.requestBasedMetricSli",
+	"sli.request_based_metric_sli.good_events":                         "RequestBasedMetricSli.goodEvents",
+	"sli.request_based_metric_sli.good_events.query":                   "Metric.query",
+	"sli.request_based_metric_sli.total_events":                        "RequestBasedMetricSli.totalEvents",
+	"sli.request_based_metric_sli.total_events.query":                  "Metric.query",
+	"sli.window_based_metric_sli":                                      "Slo.windowBasedMetricSli",
+	"sli.window_based_metric_sli.comparison_operator":                  "WindowBasedMetricSli.comparisonOperator",
+	"sli.window_based_metric_sli.missing_data_strategy":                "WindowBasedMetricSli.missingDataStrategy",
+	"sli.window_based_metric_sli.query":                                "WindowBasedMetricSli.query",
+	"sli.window_based_metric_sli.query.query":                          "Metric.query",
+	"sli.window_based_metric_sli.threshold":                            "WindowBasedMetricSli.threshold",
+	"sli.window_based_metric_sli.window":                               "WindowBasedMetricSli.window",
+	"sli_definition":                                                   "Slo.sliDefinition",
+	"sli_definition.request_based":                                     "Sli.requestBased",
+	"sli_definition.request_based.apm":                                 "RequestBasedSli.apm",
+	"sli_definition.request_based.apm.availability":                    "ApmRequestBasedSource.availability",
+	"sli_definition.request_based.apm.latency":                         "ApmRequestBasedSource.latency",
+	"sli_definition.request_based.apm.latency.threshold_ms":            "ApmRequestBasedLatency.thresholdMs",
+	"sli_definition.request_based.apm.selector":                        "ApmRequestBasedSource.selector",
+	"sli_definition.request_based.apm.selector.filters":                "ApmSelector.filters",
+	"sli_definition.request_based.apm.selector.filters.key":            "ApmFilter.key",
+	"sli_definition.request_based.apm.selector.filters.match_operator": "ApmFilter.matchOperator",
+	"sli_definition.request_based.apm.selector.filters.values":         "ApmFilter.values",
+	"sli_definition.request_based.apm.selector.grouping_keys":          "ApmSelector.groupingKeys",
+	"sli_definition.request_based.apm.selector.services":               "ApmSelector.services",
+	"sli_definition.request_based.custom":                              "RequestBasedSli.custom",
+	"sli_definition.request_based.custom.good_events":                  "RequestBasedMetricSli.goodEvents",
+	"sli_definition.request_based.custom.good_events.query":            "Metric.query",
+	"sli_definition.request_based.custom.total_events":                 "RequestBasedMetricSli.totalEvents",
+	"sli_definition.request_based.custom.total_events.query":           "Metric.query",
+	"sli_definition.window_based":                                      "Sli.windowBased",
+	"sli_definition.window_based.apm":                                  "WindowBasedSli.apm",
+	"sli_definition.window_based.apm.availability":                     "ApmWindowBasedSource.availability",
+	"sli_definition.window_based.apm.availability.threshold_ratio":     "ApmWindowBasedAvailability.thresholdRatio",
+	"sli_definition.window_based.apm.latency":                          "ApmWindowBasedSource.latency",
+	"sli_definition.window_based.apm.latency.average":                  "ApmWindowBasedLatency.average",
+	"sli_definition.window_based.apm.latency.quantile":                 "ApmWindowBasedLatency.quantile",
+	"sli_definition.window_based.apm.latency.quantile.percentile":      "ApmLatencyQuantile.percentile",
+	"sli_definition.window_based.apm.latency.threshold_ms":             "ApmWindowBasedLatency.thresholdMs",
+	"sli_definition.window_based.apm.selector":                         "ApmWindowBasedSource.selector",
+	"sli_definition.window_based.apm.selector.filters":                 "ApmSelector.filters",
+	"sli_definition.window_based.apm.selector.filters.key":             "ApmFilter.key",
+	"sli_definition.window_based.apm.selector.filters.match_operator":  "ApmFilter.matchOperator",
+	"sli_definition.window_based.apm.selector.filters.values":          "ApmFilter.values",
+	"sli_definition.window_based.apm.selector.grouping_keys":           "ApmSelector.groupingKeys",
+	"sli_definition.window_based.apm.selector.services":                "ApmSelector.services",
+	"sli_definition.window_based.custom":                               "WindowBasedSli.custom",
+	"sli_definition.window_based.custom.comparison_operator":           "CustomWindowBasedSource.comparisonOperator",
+	"sli_definition.window_based.custom.query":                         "CustomWindowBasedSource.query",
+	"sli_definition.window_based.custom.query.query":                   "Metric.query",
+	"sli_definition.window_based.custom.threshold":                     "CustomWindowBasedSource.threshold",
+	"sli_definition.window_based.missing_data_strategy":                "WindowBasedSli.missingDataStrategy",
+	"sli_definition.window_based.window":                               "WindowBasedSli.window",
+	"target_threshold_percentage":                                      "Slo.targetThresholdPercentage",
+	"window.slo_time_frame":                                            "Slo.sloTimeFrame",
+}
 
 // requiredEnv are the variables that the test config reads, besides the API key.
 var requiredEnv = []string{"CORALOGIX_SLO_V2_APM_SERVICE"}
@@ -333,19 +442,21 @@ var importPlanStep = resource.TestStep{
 // so that a failure in one does not hide the others. After every apply, the framework plans again and
 // fails when the plan is not empty.
 func TestAccCoralogixResourceSloV2Generated(t *testing.T) {
+	failreport.Install() // records the HTTP calls that ErrorCheck shows in the line of a failure
 	// full-lifecycle sets every attribute, imports, reads the data source, changes the attributes, and imports again.
 	t.Run("full-lifecycle", func(t *testing.T) {
 		run := newRun()
 		resource.Test(t, resource.TestCase{
 			PreCheck:                 func() { preCheck(t) },
 			ProtoV6ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
+			ErrorCheck:               failreport.ErrorCheck(apiFields),
+			Steps: failreport.Steps(t, []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 				importStep,
 				{Config: config(run, fullConfig+"\n\n"+dataSourceConfig), Check: dataSourceChecks()},
 				{Config: config(run, updatedConfig), Check: updatedChecks(run)},
 				importStep,
-			},
+			}),
 		})
 	})
 
@@ -356,14 +467,15 @@ func TestAccCoralogixResourceSloV2Generated(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			PreCheck:                 func() { preCheck(t) },
 			ProtoV6ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
+			ErrorCheck:               failreport.ErrorCheck(apiFields),
+			Steps: failreport.Steps(t, []resource.TestStep{
 				{Config: config(run, minimalConfig), Check: minimalChecks(run)},
 				importStep,
 				importPlanStep,
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 				{Config: config(run, minimalConfig), Check: minimalChecks(run)},
 				importStep,
-			},
+			}),
 		})
 	})
 
@@ -377,10 +489,11 @@ func TestAccCoralogixResourceSloV2Generated(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			PreCheck:                 func() { preCheck(t) },
 			ProtoV6ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
+			ErrorCheck:               failreport.ErrorCheck(apiFields),
+			Steps: failreport.Steps(t, []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 				{Config: config(run, variant1Config), Check: variant1Checks(run)},
-			},
+			}),
 		})
 	})
 }
