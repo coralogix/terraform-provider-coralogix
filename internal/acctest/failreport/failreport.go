@@ -14,6 +14,7 @@ package failreport
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -78,10 +79,12 @@ type Classification struct {
 
 var (
 	// "path: was X, but now Y". Terraform writes X and Y as a plain value or as a cty value.
-	inconsistent = regexp.MustCompile(`(\S+): was (.+?), but now (.+?)(?:\.\s|\.$|$|\n)`)
-	vanished     = regexp.MustCompile(`(\S+): element "[^"]*" has vanished`)
-	blockCount   = regexp.MustCompile(`(\S+): block count changed from \d+ to 0`)
-	absent       = regexp.MustCompile(`(\S+): resource absent, data source`)
+	// A Terraform path: ".search[0].text", `.items["a b"].name`, ".tags[cty.StringVal(\"a\")]", ".map.%".
+	tfPath       = `((?:\.[\w%#*-]+|\[[^\]]*\])+)`
+	inconsistent = regexp.MustCompile(tfPath + `: was (.+?), but now (.+?)(?:\.\s|\.$|$|\n)`)
+	vanished     = regexp.MustCompile(tfPath + `: element "[^"]*" has vanished`)
+	blockCount   = regexp.MustCompile(tfPath + `: block count changed from \d+ to 0`)
+	absent       = regexp.MustCompile(tfPath + `: resource absent, data source`)
 	unknownField = regexp.MustCompile(`(?s)\b400\b.*unknown field`)
 	rejected     = regexp.MustCompile(`(?is)\b400\b|invalid value for enum|invalid argument|InvalidArgument`)
 )
@@ -125,7 +128,7 @@ func Classify(err error, set map[string]bool) Classification {
 			return Classification{ReadDropsValue, path}
 		case isNull(was) && !isNull(now):
 			return Classification{ServerDefault, path}
-		case set != nil && !set[normalize(path)]:
+		case set != nil && !isSet(set, normalize(path)):
 			return Classification{DerivedDefault, path}
 		}
 		return Classification{ServerNormalize, path}
@@ -138,8 +141,36 @@ func Classify(err error, set map[string]bool) Classification {
 
 var index = regexp.MustCompile(`\.(\d+|\*|%|#)(\.|$)`)
 
-// normalize removes the positions of lists, sets and maps from a Terraform path: "a.0.b" is "a.b".
+// dropBrackets removes every [..] step of a path. A step can hold quotes and brackets of its own
+// (`["a]b"]`, `[cty.StringVal("x")]`), so it is read with a scanner, not a pattern.
+func dropBrackets(path string) string {
+	var out strings.Builder
+	depth, quoted, escaped := 0, false, false
+	for _, r := range path {
+		switch {
+		case depth == 0 && r == '[':
+			depth = 1
+		case depth == 0:
+			out.WriteRune(r)
+		case escaped:
+			escaped = false
+		case quoted && r == '\\':
+			escaped = true
+		case r == '"':
+			quoted = !quoted
+		case !quoted && r == '[':
+			depth++
+		case !quoted && r == ']':
+			depth--
+		}
+	}
+	return out.String()
+}
+
+// normalize removes the positions of lists, sets and maps from a Terraform path: "a.0.b", "a[0].b",
+// `a["k"].b` and `a[cty.StringVal("k")].b` are "a.b".
 func normalize(path string) string {
+	path = dropBrackets(path)
 	for {
 		next := index.ReplaceAllString(path, "$2")
 		if next == path {
@@ -147,6 +178,32 @@ func normalize(path string) string {
 		}
 		path = next
 	}
+}
+
+// isSet says that the config of the step sets the attribute at the path. The paths of the config hold
+// the keys of a map (`colors.cpu.color`), which the path of an error does not, so the segments of the
+// path must be a subsequence of the segments of a config path, with the same first and last segment.
+func isSet(set map[string]bool, path string) bool {
+	if set[path] {
+		return true
+	}
+	want := strings.Split(path, ".")
+	for p := range set {
+		have := strings.Split(p, ".")
+		if len(have) <= len(want) || have[0] != want[0] || have[len(have)-1] != want[len(want)-1] {
+			continue
+		}
+		i := 0
+		for _, seg := range have {
+			if i < len(want) && seg == want[i] {
+				i++
+			}
+		}
+		if i == len(want) {
+			return true
+		}
+	}
+	return false
 }
 
 // Exchange is one HTTP request and its response.
@@ -174,6 +231,8 @@ var (
 	step      string
 	stepPaths map[string]bool
 	installed sync.Once
+	// sensitive are the names of API fields that the schema marks sensitive or write-only, in lower case.
+	sensitive = map[string]bool{}
 )
 
 type recorder struct{ next http.RoundTripper }
@@ -192,6 +251,11 @@ func (r recorder) RoundTrip(req *http.Request) (*http.Response, error) {
 		resp.Body = io.NopCloser(bytes.NewReader(payload))
 		ex.Status, ex.ResponseBody = resp.StatusCode, Redact(payload)
 	} else {
+		// A transport error holds the full URL, with its query. Keep only the cause.
+		var urlError *url.Error
+		if errors.As(err, &urlError) {
+			err = urlError.Err
+		}
 		ex.ResponseBody = err.Error()
 	}
 	mu.Lock()
@@ -204,19 +268,35 @@ func (r recorder) RoundTrip(req *http.Request) (*http.Response, error) {
 
 // Install records the HTTP exchanges of the provider, which the test serves in the same process. The
 // SDK clients use http.DefaultClient, so the DefaultTransport sees all of them. The Authorization header
-// is never read. Call it once at the start of a test; more calls change nothing.
-func Install() {
+// is never read. Call it at the start of a test. sensitiveFields are the API names of the fields that the
+// schema of the resource marks sensitive or write-only (an API key value, for example): they are redacted
+// like the names that end in token or secret, whatever their name is.
+func Install(sensitiveFields ...string) {
+	mu.Lock()
+	for _, name := range sensitiveFields {
+		sensitive[strings.ToLower(name)] = true
+	}
+	mu.Unlock()
 	installed.Do(func() { http.DefaultTransport = recorder{next: http.DefaultTransport} })
 }
 
-var secretKey = regexp.MustCompile(`(?i)(_wo|token|secret|password|apikey|api_key)$`)
+var secretKey = regexp.MustCompile(`(?i)(_wo|token|secret|password|passwd|passphrase|apikey|api_key|privatekey|private_key|secretkey|accesskey|access_key|servicekey|service_key|routingkey|routing_key|integrationkey|integration_key|signingkey|signing_key|encryptionkey|encryption_key|authkey|auth_key|sharedkey|shared_key|masterkey|master_key|credentials?|authorization|cookie)$`)
+
+func isSecret(name string) bool {
+	if secretKey.MatchString(name) {
+		return true
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	return sensitive[strings.ToLower(name)]
+}
 
 func redactURL(u *url.URL) string {
 	c := *u
 	c.User = nil
 	q := c.Query()
 	for k := range q {
-		if secretKey.MatchString(k) {
+		if isSecret(k) {
 			q.Set(k, "[REDACTED]")
 		}
 	}
@@ -237,13 +317,31 @@ func Redact(body []byte) string {
 	}
 	var v any
 	if err := json.Unmarshal(body, &v); err != nil {
-		return cut(string(body))
+		return cut(redactText(string(body)))
 	}
 	out, err := json.Marshal(redactValue(v))
 	if err != nil {
 		return ""
 	}
 	return cut(string(out))
+}
+
+// textSecret matches name=value and name: value pairs of a body that is not JSON (a form, a log line).
+var textSecret = regexp.MustCompile(`(?i)("?[\w.-]*(?:_wo|token|secret|password|passwd|passphrase|apikey|api_key|privatekey|private_key|secretkey|accesskey|access_key|servicekey|service_key|routingkey|routing_key|integrationkey|integration_key|signingkey|signing_key|encryptionkey|encryption_key|authkey|auth_key|sharedkey|shared_key|masterkey|master_key|credentials?|authorization|cookie)"?\s*[:=]\s*)("[^"]*"|[^\s&,;]+)`)
+
+func redactText(s string) string {
+	s = textSecret.ReplaceAllString(s, `${1}"[REDACTED]"`)
+	mu.Lock()
+	names := make([]string, 0, len(sensitive))
+	for n := range sensitive {
+		names = append(names, regexp.QuoteMeta(n))
+	}
+	mu.Unlock()
+	if len(names) == 0 {
+		return s
+	}
+	named := regexp.MustCompile(`(?i)("?(?:` + strings.Join(names, "|") + `)"?\s*[:=]\s*)("[^"]*"|[^\s&,;]+)`)
+	return named.ReplaceAllString(s, `${1}"[REDACTED]"`)
 }
 
 func cut(s string) string {
@@ -257,7 +355,7 @@ func redactValue(v any) any {
 	switch v := v.(type) {
 	case map[string]any:
 		for k, e := range v {
-			if secretKey.MatchString(k) {
+			if isSecret(k) {
 				v[k] = "[REDACTED]"
 				continue
 			}
@@ -287,12 +385,30 @@ func ConfigPaths(config string) map[string]bool {
 		if block.Type != "resource" {
 			continue
 		}
-		for name, attr := range block.Body.Attributes {
-			out[name] = true
-			addPaths(out, name, attr.Expr)
-		}
+		addBody(out, "", block.Body)
 	}
 	return out
+}
+
+// addBody adds the attributes of a body, and of the blocks inside it, with their paths.
+func addBody(out map[string]bool, prefix string, body *hclsyntax.Body) {
+	for name, attr := range body.Attributes {
+		path := joinPath(prefix, name)
+		out[path] = true
+		addPaths(out, path, attr.Expr)
+	}
+	for _, nested := range body.Blocks {
+		path := joinPath(prefix, nested.Type)
+		out[path] = true
+		addBody(out, path, nested.Body)
+	}
+}
+
+func joinPath(prefix, name string) string {
+	if prefix == "" {
+		return name
+	}
+	return prefix + "." + name
 }
 
 func addPaths(out map[string]bool, prefix string, expr hclsyntax.Expression) {

@@ -182,18 +182,32 @@ func conflictCoverKey(key string) string { return "conflict\x00" + key }
 // with is set. Of a group of fields that conflict, one is set. The full config takes the first that
 // it includes. A step of the sweep takes the field that gives the most gain, and the field that no
 // config has set yet comes first, so each field is in a config of its own.
-func (s *accSynth) conflictLosers(attrs []*tfAttr, key string, mode accMode, top bool) map[*tfAttr]bool {
+func (s *accSynth) conflictLosers(attrs []*tfAttr, key string, mode accMode, top bool, selected map[*tfAttr]bool) map[*tfAttr]bool {
 	peers := conflictPeers(attrs)
 	if len(peers) == 0 {
 		return nil
 	}
 	losers := map[*tfAttr]bool{}
 	for _, group := range conflictComponents(attrs, peers) {
+		// Only a field that the config sets can win or lose. An arm that the group of its oneOf does not
+		// take is not set, so it must not hold back a field that it conflicts with.
 		var candidates []*tfAttr
+		requiredIn := false
 		for _, a := range group {
-			if !a.Required && s.include(a, joinPath(key, a.Name), mode, top) {
+			switch {
+			case !selected[a]:
+			case a.Required:
+				requiredIn = true // a required field is always set: the fields that conflict with it never are
+			default:
 				candidates = append(candidates, a)
 			}
+		}
+		if requiredIn {
+			for _, a := range candidates {
+				losers[a] = true
+				s.excuse(joinPath(key, a.Name)) // no config can set it: it always conflicts with a required field
+			}
+			continue
 		}
 		if len(candidates) < 2 {
 			continue
@@ -224,6 +238,33 @@ func (s *accSynth) conflictLosers(attrs []*tfAttr, key string, mode accMode, top
 		}
 	}
 	return losers
+}
+
+// excuse says that no config can set the attribute, so checkAllSet does not ask for one.
+func (s *accSynth) excuse(path string) {
+	if s.excused != nil {
+		s.excused[path] = true
+	}
+}
+
+// forcedConflicts adds to losers the fields that conflict with a field that a requires knob forces:
+// the requirement wins, because the API needs the forced field. It returns the fields that it added.
+// The caller then collects the requirements again, since a loser no longer requires anything.
+func forcedConflicts(attrs []*tfAttr, forced map[*tfAttr]requiredValue, losers map[*tfAttr]bool) []*tfAttr {
+	var added []*tfAttr
+	peers := conflictPeers(attrs)
+	for _, a := range attrs { // in the order of the object, so the result does not depend on the map
+		if _, isForced := forced[a]; !isForced {
+			continue
+		}
+		for _, p := range peers[a] {
+			if _, alsoForced := forced[p]; !p.Required && !losers[p] && !alsoForced {
+				losers[p] = true
+				added = append(added, p)
+			}
+		}
+	}
+	return added
 }
 
 // conflictComponents groups the attributes that conflict, directly or through another, in the order
@@ -268,16 +309,20 @@ type requiredValue struct {
 // forcedByRequires returns the attributes of the object that a config sets because an included
 // attribute requires them. Only one step is followed: a requirement of a forced attribute does not add
 // another.
-func (s *accSynth) forcedByRequires(attrs []*tfAttr, key string, mode accMode, top bool, losers map[*tfAttr]bool) map[*tfAttr]requiredValue {
+func (s *accSynth) forcedByRequires(attrs []*tfAttr, key string, mode accMode, top bool, losers map[*tfAttr]bool, picks map[string]*tfAttr) map[*tfAttr]requiredValue {
 	var forced map[*tfAttr]requiredValue
+	emitted := s.emittedAttrs(attrs, key, mode, top, losers, picks)
 	for _, a := range attrs {
-		if a.IaC == nil || len(a.IaC.Requires) == 0 || losers[a] || !s.include(a, joinPath(key, a.Name), mode, top) {
+		if a.IaC == nil || len(a.IaC.Requires) == 0 || !emitted[a] {
 			continue
 		}
 		for _, r := range a.IaC.Requires {
 			b := sibling(attrs, r.Field)
 			if b == nil || b == a || (!b.Required && !b.Optional) || refused(b) {
 				continue
+			}
+			if b.OneOfGroup != "" && !b.Required && !emitted[b] {
+				continue // an arm that the group does not take cannot be forced: the group has its arm already
 			}
 			if forced == nil {
 				forced = map[*tfAttr]requiredValue{}
@@ -286,6 +331,31 @@ func (s *accSynth) forcedByRequires(attrs []*tfAttr, key string, mode accMode, t
 		}
 	}
 	return forced
+}
+
+// emittedAttrs returns the attributes that the config of the object sets by its own rules, before the
+// attributes that a requires knob forces: an included attribute that no conflict removes, and, of a
+// oneOf group, only the arm that the config takes (the same choice as takeArm, without its effects). A
+// requires knob of an arm that the config leaves out must not force anything.
+func (s *accSynth) emittedAttrs(attrs []*tfAttr, key string, mode accMode, top bool, losers map[*tfAttr]bool, picks map[string]*tfAttr) map[*tfAttr]bool {
+	armTaken := s.requiredArms(attrs, key, mode, top)
+	out := map[*tfAttr]bool{}
+	for _, a := range typedFirst(attrs) {
+		if losers[a] || !s.include(a, joinPath(key, a.Name), mode, top) {
+			continue
+		}
+		if a.OneOfGroup != "" && !a.Required {
+			if refused(a) || armTaken[a.OneOfGroup] {
+				continue
+			}
+			if pick, ok := picks[a.OneOfGroup]; ok && pick != a {
+				continue
+			}
+			armTaken[a.OneOfGroup] = true
+		}
+		out[a] = true
+	}
+	return out
 }
 
 // forcedLiteral writes the value of a requires knob for the attribute: the HCL, and the state text.

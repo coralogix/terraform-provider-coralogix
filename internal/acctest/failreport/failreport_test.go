@@ -29,7 +29,7 @@ func TestErrorCheckGivesOneLinePerCode(t *testing.T) {
 	}{
 		{failreport.ReadDropsValue, `Provider produced inconsistent result after apply: .runbook: was "a", but now null.`, "runbook", "AlertDef.runbook"},
 		{failreport.ReadDropsValue, `.color_overrides: element "key" has vanished.`, "color_overrides", ""},
-		{failreport.ServerDefault, `.search[0].text: was cty.NullVal(cty.String), but now cty.StringVal("x").`, "search[0].text", ""},
+		{failreport.ServerDefault, `.search[0].text: was cty.NullVal(cty.String), but now cty.StringVal("x").`, "search[0].text", "Search.text"},
 		{failreport.ServerNormalize, `.runbook: was "A", but now "a".`, "runbook", "AlertDef.runbook"},
 		{failreport.ValueRejected, `rpc error: 400 invalid value for enum field priority: "acc-1"`, "", ""},
 		{failreport.NotDeployed, `API error: 400 unknown field "runbook"`, "", ""},
@@ -106,6 +106,34 @@ resource "coralogix_x" "test" {
 	}
 }
 
+// A bracket path that Terraform writes (".search[0].text") finds its API field and its set path.
+func TestBracketPathsAreNormalized(t *testing.T) {
+	paths := failreport.ConfigPaths(`
+resource "coralogix_x" "test" {
+  search = [{ text = "t" }]
+}`)
+	got := failreport.Classify(errors.New(`.search[0].text: was "a", but now "b".`), paths)
+	if got.Code != failreport.ServerNormalize {
+		t.Errorf("code = %s, want %s: the path is set by the config", got.Code, failreport.ServerNormalize)
+	}
+	got = failreport.Classify(errors.New(`.items["k"].name: was "a", but now "b".`), map[string]bool{"items.name": true})
+	if got.Code != failreport.ServerNormalize {
+		t.Errorf("map key path: code = %s", got.Code)
+	}
+}
+
+// A field that the schema marks sensitive is redacted, whatever its name is (the value of an API key).
+func TestSensitiveFieldsAreRedacted(t *testing.T) {
+	failreport.Install("value")
+	got := failreport.Redact([]byte(`{"name":"k","value":"plain-secret","nested":{"Value":"x"}}`))
+	if strings.Contains(got, "plain-secret") || strings.Contains(got, `"x"`) {
+		t.Errorf("a sensitive field is in the body: %s", got)
+	}
+	if !strings.Contains(got, `"name":"k"`) {
+		t.Errorf("a plain field was lost: %s", got)
+	}
+}
+
 func TestRedact(t *testing.T) {
 	got := failreport.Redact([]byte(`{"a":1,"apiToken":"t","list":[{"clientSecret":"s","ok":true}],"x_wo":"w"}`))
 	for _, leak := range []string{`"t"`, `"s"`, `"w"`} {
@@ -115,5 +143,105 @@ func TestRedact(t *testing.T) {
 	}
 	if !strings.Contains(got, `"ok":true`) {
 		t.Errorf("redacted body lost a plain field: %s", got)
+	}
+}
+
+// Every form of path that Terraform prints finds its API field and its set path: a bracket index, a
+// quoted map key with a space, a set element written as a cty value, and the key of a map that the
+// config states in HCL.
+func TestPathFormsAreNormalized(t *testing.T) {
+	failreport.Install()
+	apiFields := map[string]string{"search.text": "Search.text", "tags": "Thing.tags", "colors.color": "Color.color"}
+	set := map[string]bool{"search.text": true, "tags": true, "colors": true, "colors.cpu": true, "colors.cpu.color": true}
+	cases := []struct {
+		err  string
+		code failreport.Code
+		api  string
+	}{
+		{`.search[0].text: was "a", but now "b".`, failreport.ServerNormalize, "Search.text"},
+		{`.search.0.text: was "a", but now "b".`, failreport.ServerNormalize, "Search.text"},
+		{`.tags[cty.StringVal("a")]: was cty.StringVal("a"), but now null.`, failreport.ReadDropsValue, "Thing.tags"},
+		{`.colors["a b"].color: was "a", but now "b".`, failreport.ServerNormalize, "Color.color"},
+		{`.colors.cpu.color: was "a", but now "b".`, failreport.ServerNormalize, ""},
+		{`.search[0].limit: was "a", but now "b".`, failreport.DerivedDefault, ""},
+	}
+	for _, c := range cases {
+		got := failreport.Classify(errors.New(c.err), set)
+		if got.Code != c.code {
+			t.Errorf("%s: code = %s, want %s", c.err, got.Code, c.code)
+		}
+		var l failreport.Line
+		if err := json.Unmarshal([]byte(strings.TrimPrefix(failreport.Describe(errors.New(c.err), apiFields), failreport.Marker)), &l); err != nil {
+			t.Fatal(err)
+		}
+		if l.APIField != c.api {
+			t.Errorf("%s: apiField = %q, want %q", c.err, l.APIField, c.api)
+		}
+	}
+}
+
+// The config of a step also gives the paths of nested blocks.
+func TestConfigPathsHoldBlocks(t *testing.T) {
+	paths := failreport.ConfigPaths(`
+resource "coralogix_x" "test" {
+  rule {
+    name = "n"
+    target { id = "i" }
+  }
+}`)
+	for _, want := range []string{"rule", "rule.name", "rule.target", "rule.target.id"} {
+		if !paths[want] {
+			t.Errorf("paths = %v, want %s", paths, want)
+		}
+	}
+}
+
+// A secret never reaches the line: not in a body that is not JSON, not in a transport error, and not
+// under the names that credentials usually have.
+func TestMoreSecretsAreRedacted(t *testing.T) {
+	failreport.Reset()
+	failreport.Install("signingValue")
+	for _, body := range []string{
+		"token=abc123&name=x",
+		"password: hunter2\nname: x",
+		`{"privateKey":"pk-1","Authorization":"Bearer zz","credentials":{"user":"u"},"signingValue":"sv-1"}`,
+		`not json, signingValue = "sv-2"`,
+	} {
+		got := failreport.Redact([]byte(body))
+		for _, leak := range []string{"abc123", "hunter2", "pk-1", "Bearer zz", `"user":"u"`, "sv-1", "sv-2"} {
+			if strings.Contains(got, leak) {
+				t.Errorf("body %q leaks %q: %s", body, leak, got)
+			}
+		}
+	}
+
+	// A refused connection to a URL with a secret in the query: the error names the URL, the line must not.
+	dead := httptest.NewServer(http.NotFoundHandler())
+	url := dead.URL + "/v3/x?apikey=urlsecret"
+	dead.Close()
+	if resp, err := http.Post(url, "application/json", strings.NewReader(`{"a":1}`)); err == nil {
+		_ = resp.Body.Close()
+		t.Fatal("the server is closed: want an error")
+	}
+	line := failreport.Describe(errors.New("something else broke"), nil)
+	if strings.Contains(line, "urlsecret") {
+		t.Errorf("the line holds the secret of the URL: %s", line)
+	}
+	if !strings.Contains(line, `"request":"POST /v3/x`) {
+		t.Errorf("the line lost the request: %s", line)
+	}
+}
+
+// A service key (the routing key of a pager service) is a credential under a name that has no
+// token or secret in it.
+func TestServiceKeysAreRedacted(t *testing.T) {
+	got := failreport.Redact([]byte(`{"serviceKey":"sk-1","routing_key":"rk-1","projectKey":"PROJ"}`))
+	for _, leak := range []string{"sk-1", "rk-1"} {
+		if strings.Contains(got, leak) {
+			t.Errorf("the body leaks %s: %s", leak, got)
+		}
+	}
+	if !strings.Contains(got, "PROJ") {
+		t.Errorf("a plain key field was redacted: %s", got)
 	}
 }

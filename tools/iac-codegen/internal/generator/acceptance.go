@@ -109,6 +109,9 @@ type acceptanceData struct {
 	// APIFields name the API field of each attribute, by its Terraform path without list positions:
 	// "search.text" is "IacSearch.text". The failure line shows the field.
 	APIFields []apiFieldPair
+	// SensitiveFields are the API names of the fields that the schema marks sensitive or write-only. The
+	// recorder redacts them in every request and response.
+	SensitiveFields []string
 	// FailSingleton and FailNoDelete tell the failure path test what the API has: one resource of the
 	// kind (a singleton, or a list that one write replaces), and no delete.
 	FailSingleton, FailNoDelete bool
@@ -282,6 +285,7 @@ func buildAcceptance(res *tfResource, providerModule string, file *acceptance.Fi
 		FailPathsImport:  providerModule + "/internal/acctest/failpaths",
 		FailReportImport: providerModule + "/internal/acctest/failreport",
 		APIFields:        apiFieldPairs(res.Attributes),
+		SensitiveFields:  sensitiveFieldNames(res.Attributes),
 		IDAttr:           res.CRUD.IDAttr,
 		IDCustom:         res.CRUD.IDAttr != "id",
 		Env:              file.Env,
@@ -907,9 +911,19 @@ func (s *accSynth) attrs(attrs []*tfAttr, tfPath, key string, mode accMode, top 
 	var checks []accCheck
 	armTaken := s.requiredArms(attrs, key, mode, top) // the oneOf groups that already have an arm
 	picks := s.armPicks(attrs, key, mode, top)
-	var arm *typedArmSet // the arm of a typedArms object that the type names
-	losers := s.conflictLosers(attrs, key, mode, top)
-	forced := s.forcedByRequires(attrs, key, mode, top, losers)
+	var arm *typedArmSet                                          // the arm of a typedArms object that the type names
+	selected := s.emittedAttrs(attrs, key, mode, top, nil, picks) // what the config sets, before conflicts and requires
+	losers := s.conflictLosers(attrs, key, mode, top, selected)
+	if losers == nil {
+		losers = map[*tfAttr]bool{}
+	}
+	forced := s.forcedByRequires(attrs, key, mode, top, losers, picks)
+	if added := forcedConflicts(attrs, forced, losers); len(added) > 0 {
+		for _, a := range added {
+			s.excuse(joinPath(key, a.Name)) // a field that always loses to the field that another requires
+		}
+		forced = s.forcedByRequires(attrs, key, mode, top, losers, picks)
+	}
 	for _, a := range typedFirst(attrs) {
 		attrKey := joinPath(key, a.Name)
 		s.noteAttr(a, attrKey, top)
@@ -945,6 +959,7 @@ func (s *accSynth) valueOrRequired(a *tfAttr, tfPath, key string, mode accMode, 
 	if forced {
 		if _, _, fixed := s.fileValue(key); !fixed {
 			if hcl, state, ok := forcedLiteral(a, need); ok {
+				s.noteValue(a, key, state) // a forced enum value counts as set by this config
 				return hcl, []accCheck{{Path: tfPath, Value: state}}, nil
 			}
 		}
@@ -1774,4 +1789,38 @@ func apiFieldPairs(attrs []*tfAttr) []apiFieldPair {
 		out = append(out, apiFieldPair{Path: strings.ReplaceAll(path, "[]", ""), Field: contractField(a, nil)})
 	}
 	return out
+}
+
+// sensitiveFieldNames lists the API names of the attributes that Terraform hides (sensitive) or never
+// stores (write-only), sorted and without duplicates.
+func sensitiveFieldNames(attrs []*tfAttr) []string {
+	all := map[string]*tfAttr{}
+	schemaAttrs(all, "", attrs)
+	names := map[string]bool{}
+	for _, a := range all {
+		if !a.Sensitive && !a.WriteOnly {
+			continue
+		}
+		// The body holds the API name. An extra attribute has no API name of its own, and the Terraform
+		// name is kept too, in case a hook or an override writes the value under it.
+		if a.Property != "" && !a.Extra {
+			names[a.Property] = true
+		}
+		// A hook sends an extra attribute under a name that the contract does not tell. By convention it is the
+		// Terraform name without "_wo", in camelCase (service_key_wo is serviceKey).
+		base := strings.TrimSuffix(a.Name, "_wo")
+		names[a.Name], names[base], names[lowerCamel(base)] = true, true, true
+	}
+	return sortedStringKeys(names)
+}
+
+// lowerCamel turns a snake_case name into camelCase: service_key is serviceKey.
+func lowerCamel(name string) string {
+	parts := strings.Split(name, "_")
+	for i := 1; i < len(parts); i++ {
+		if parts[i] != "" {
+			parts[i] = strings.ToUpper(parts[i][:1]) + parts[i][1:]
+		}
+	}
+	return strings.Join(parts, "")
 }

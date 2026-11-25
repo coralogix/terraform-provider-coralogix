@@ -184,3 +184,115 @@ func TestGoldenAcceptanceIaCThing(t *testing.T) {
 		t.Fatalf("golden output differs; run go test ./internal/generator -run TestGoldenAcceptanceIaCThing -update")
 	}
 }
+
+// A requires knob of an arm that the config leaves out forces nothing. The config takes the first arm
+// of the group, so only the requirement of that arm holds.
+func TestIaCRequiresOnlyFromSelectedArm(t *testing.T) {
+	enum := func(values ...string) []enumOption {
+		var out []enumOption
+		for _, v := range values {
+			out = append(out, enumOption{API: v, TF: v})
+		}
+		return out
+	}
+	res := exampleResource(
+		&tfAttr{Name: "name", Kind: "String", Required: true},
+		&tfAttr{Name: "mode", Property: "mode", Kind: "String", Optional: true, EnumChoices: enum("x", "y")},
+		&tfAttr{Name: "first", Property: "first", Kind: "String", Optional: true, OneOfGroup: "g", IaC: &model.IaCHints{
+			Requires: []model.IaCRequires{{Field: "mode", Equals: "x", HasEquals: true}},
+		}},
+		&tfAttr{Name: "second", Property: "second", Kind: "String", Optional: true, OneOfGroup: "g", IaC: &model.IaCHints{
+			Requires: []model.IaCRequires{{Field: "mode", Equals: "y", HasEquals: true}},
+		}},
+	)
+	data := exampleAcceptance(t, res)
+	mustContain(t, "full", data.Full.Config, `first = `, `mode = "x"`)
+	mustNotContain(t, "full", data.Full.Config, `second = `, `mode = "y"`)
+}
+
+// The names of the fields that the schema hides are listed for the recorder, so it redacts them
+// whatever their names are (the value of an API key).
+func TestSensitiveFieldNamesForTheRecorder(t *testing.T) {
+	attrs := []*tfAttr{
+		{Name: "name", Property: "name", Kind: "String", Required: true},
+		{Name: "value", Property: "value", Kind: "String", Computed: true, Sensitive: true},
+		{Name: "nested", Property: "nested", Kind: "SingleNested", Optional: true, Attributes: []*tfAttr{
+			{Name: "pass", Property: "pass", Kind: "String", Optional: true, WriteOnly: true},
+		}},
+	}
+	attrs = append(attrs, &tfAttr{Name: "service_key_wo", Kind: "String", Optional: true, WriteOnly: true, Extra: true})
+	got := strings.Join(sensitiveFieldNames(attrs), " ")
+	// The Terraform name, the name without "_wo", and the camelCase API name that a hook writes.
+	for _, want := range []string{"pass", "value", "service_key_wo", "service_key", "serviceKey"} {
+		if !strings.Contains(" "+got+" ", " "+want+" ") {
+			t.Errorf("sensitive fields = %q, want %s", got, want)
+		}
+	}
+	if strings.Contains(" "+got+" ", " name ") {
+		t.Errorf("sensitive fields = %q: a plain field is listed", got)
+	}
+	golden, err := os.ReadFile(filepath.Join("testdata", "golden", "iacthing-acceptance", "acceptance_test.go.golden"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(golden), "failreport.Install(sensitiveFields...)") {
+		t.Error("the generated test does not pass the sensitive fields to the recorder")
+	}
+}
+
+// A field that conflicts with an arm that the config does not take is still set: the arm is not set,
+// so nothing conflicts.
+func TestIaCConflictIgnoresArmThatIsNotTaken(t *testing.T) {
+	res := exampleResource(
+		&tfAttr{Name: "name", Kind: "String", Required: true},
+		&tfAttr{Name: "first", Property: "first", Kind: "String", Optional: true, OneOfGroup: "g"},
+		&tfAttr{Name: "second", Property: "second", Kind: "String", Optional: true, OneOfGroup: "g", IaC: &model.IaCHints{ConflictsWith: []string{"plain"}}},
+		&tfAttr{Name: "plain", Property: "plain", Kind: "String", Optional: true},
+	)
+	data := exampleAcceptance(t, res)
+	// The group takes "first", so "second" is not set, and "plain" does not lose to it.
+	mustContain(t, "full", data.Full.Config, `first = `, `plain = `)
+	mustNotContain(t, "full", data.Full.Config, `second = `)
+}
+
+// A required field always wins a conflict: the optional field that conflicts with it is never set.
+func TestIaCConflictWithRequiredField(t *testing.T) {
+	res := exampleResource(
+		&tfAttr{Name: "name", Property: "name", Kind: "String", Required: true},
+		&tfAttr{Name: "legacy", Property: "legacy", Kind: "String", Optional: true, IaC: &model.IaCHints{ConflictsWith: []string{"name"}}},
+	)
+	data := exampleAcceptance(t, res)
+	mustContain(t, "full", data.Full.Config, `name = `)
+	mustNotContain(t, "full", data.Full.Config, `legacy = `)
+	for _, v := range data.Variants {
+		mustNotContain(t, "variant", v.Config, `legacy = `)
+	}
+}
+
+// A field that a requires knob forces wins over a field that conflicts with it, and the field that
+// lost no longer forces anything.
+func TestIaCRequiresWinsOverConflict(t *testing.T) {
+	res := exampleResource(
+		&tfAttr{Name: "name", Kind: "String", Required: true},
+		&tfAttr{Name: "owner", Property: "owner", Kind: "String", Optional: true, IaC: &model.IaCHints{Requires: []model.IaCRequires{{Field: "team"}}}},
+		&tfAttr{Name: "team", Property: "team", Kind: "String", Optional: true},
+		&tfAttr{Name: "group", Property: "group", Kind: "String", Optional: true, IaC: &model.IaCHints{ConflictsWith: []string{"team"}, Requires: []model.IaCRequires{{Field: "extra"}}}},
+		&tfAttr{Name: "extra", Property: "extra", Kind: "String", Optional: true},
+	)
+	data := exampleAcceptance(t, res)
+	mustContain(t, "full", data.Full.Config, `owner = `, `team = `)
+	mustNotContain(t, "full", data.Full.Config, `group = `)
+}
+
+// A requires knob that names an arm of a oneOf group that the config does not take forces nothing.
+func TestIaCRequiresIgnoresArmThatIsNotTaken(t *testing.T) {
+	res := exampleResource(
+		&tfAttr{Name: "name", Kind: "String", Required: true},
+		&tfAttr{Name: "plain", Property: "plain", Kind: "String", Optional: true, IaC: &model.IaCHints{Requires: []model.IaCRequires{{Field: "second"}}}},
+		&tfAttr{Name: "first", Property: "first", Kind: "String", Optional: true, OneOfGroup: "g"},
+		&tfAttr{Name: "second", Property: "second", Kind: "String", Optional: true, OneOfGroup: "g"},
+	)
+	data := exampleAcceptance(t, res)
+	mustContain(t, "full", data.Full.Config, `plain = `, `first = `)
+	mustNotContain(t, "full", data.Full.Config, `second = `)
+}

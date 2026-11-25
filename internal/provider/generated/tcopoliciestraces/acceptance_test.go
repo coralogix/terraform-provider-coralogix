@@ -22,6 +22,10 @@ import (
 
 const resourceAddress = "coralogix_tco_policies_traces.test"
 
+// sensitiveFields are the API names of the fields that the schema marks sensitive or write-only. The recorder
+// redacts them in every request and response that a failure line shows.
+var sensitiveFields = []string{}
+
 // apiFields name the API field of each attribute, by its Terraform path without list positions.
 // ErrorCheck shows the field in the line of a failure.
 var apiFields = map[string]string{
@@ -287,7 +291,7 @@ var importPlanStep = resource.TestStep{
 // so that a failure in one does not hide the others. After every apply, the framework plans again and
 // fails when the plan is not empty.
 func TestAccCoralogixResourceTcoPoliciesTracesGenerated(t *testing.T) {
-	failreport.Install() // records the HTTP calls that ErrorCheck shows in the line of a failure
+	failreport.Install(sensitiveFields...) // records the HTTP calls that ErrorCheck shows in the line of a failure
 	// full-lifecycle sets every attribute, imports, reads the data source, changes the attributes, and imports again.
 	t.Run("full-lifecycle", func(t *testing.T) {
 		run := newRun()

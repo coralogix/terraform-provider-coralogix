@@ -20,6 +20,10 @@ import (
 
 const resourceAddress = "coralogix_iac_thing.test"
 
+// sensitiveFields are the API names of the fields that the schema marks sensitive or write-only. The recorder
+// redacts them in every request and response that a failure line shows.
+var sensitiveFields = []string{}
+
 // apiFields name the API field of each attribute, by its Terraform path without list positions.
 // ErrorCheck shows the field in the line of a failure.
 var apiFields = map[string]string{
@@ -211,7 +215,7 @@ var importPlanStep = resource.TestStep{
 // so that a failure in one does not hide the others. After every apply, the framework plans again and
 // fails when the plan is not empty.
 func TestAccCoralogixResourceIacThingGenerated(t *testing.T) {
-	failreport.Install() // records the HTTP calls that ErrorCheck shows in the line of a failure
+	failreport.Install(sensitiveFields...) // records the HTTP calls that ErrorCheck shows in the line of a failure
 	// full-lifecycle sets every attribute, imports, changes the attributes, and imports again.
 	t.Run("full-lifecycle", func(t *testing.T) {
 		run := newRun()
@@ -308,7 +312,7 @@ func TestConfigsValidateIacThingGenerated(t *testing.T) {
 
 const variant1Config = `resource "coralogix_iac_thing" "test_11" {
   name = "alpha"
-  mode = "IAC_MODE_FAST"
+  mode = "IAC_MODE_SAFE"
   note = "first note"
   colors = { cpu = {
     color = "@{run}-color"
@@ -328,36 +332,13 @@ const variant1Config = `resource "coralogix_iac_thing" "test_11" {
       query = "@{run}-query"
     }
   }
-}
-
-resource "coralogix_iac_thing" "test_12" {
-  name = "alpha"
-  mode = "IAC_MODE_SAFE"
-  colors = { cpu = {
-    color = "@{run}-color-2"
-  } }
-  search = {
-    text = "source logs | limit 1"
-    limit = 10
-    count = 5
-    serial = "7"
-    ratio = 0.5
-    day = "2026-01-02"
-    blob = "aGVsbG8="
-    tags = ["a", "b"]
-  }
-  source = {
-    logs = {
-      query = "@{run}-query-2"
-    }
-  }
 }`
 
 // variant1Checks assert what the step sets: each attribute that the config states has its value.
 func variant1Checks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttr(resourceAddress+"_11", "name", "alpha"),
-		resource.TestCheckResourceAttr(resourceAddress+"_11", "mode", "IAC_MODE_FAST"),
+		resource.TestCheckResourceAttr(resourceAddress+"_11", "mode", "IAC_MODE_SAFE"),
 		resource.TestCheckResourceAttr(resourceAddress+"_11", "note", "first note"),
 		resource.TestCheckResourceAttr(resourceAddress+"_11", "colors.cpu.color", render(run, "@{run}-color")),
 		resource.TestCheckResourceAttr(resourceAddress+"_11", "search.text", "source logs | limit 1"),
@@ -369,17 +350,5 @@ func variant1Checks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress+"_11", "search.blob", "aGVsbG8="),
 		resource.TestCheckResourceAttr(resourceAddress+"_11", "search.tags.#", "2"),
 		resource.TestCheckResourceAttr(resourceAddress+"_11", "source.metrics.query", render(run, "@{run}-query")),
-		resource.TestCheckResourceAttr(resourceAddress+"_12", "name", "alpha"),
-		resource.TestCheckResourceAttr(resourceAddress+"_12", "mode", "IAC_MODE_SAFE"),
-		resource.TestCheckResourceAttr(resourceAddress+"_12", "colors.cpu.color", render(run, "@{run}-color-2")),
-		resource.TestCheckResourceAttr(resourceAddress+"_12", "search.text", "source logs | limit 1"),
-		resource.TestCheckResourceAttr(resourceAddress+"_12", "search.limit", "10"),
-		resource.TestCheckResourceAttr(resourceAddress+"_12", "search.count", "5"),
-		resource.TestCheckResourceAttr(resourceAddress+"_12", "search.serial", "7"),
-		resource.TestCheckResourceAttr(resourceAddress+"_12", "search.ratio", "0.5"),
-		resource.TestCheckResourceAttr(resourceAddress+"_12", "search.day", "2026-01-02"),
-		resource.TestCheckResourceAttr(resourceAddress+"_12", "search.blob", "aGVsbG8="),
-		resource.TestCheckResourceAttr(resourceAddress+"_12", "search.tags.#", "2"),
-		resource.TestCheckResourceAttr(resourceAddress+"_12", "source.logs.query", render(run, "@{run}-query-2")),
 	)
 }
