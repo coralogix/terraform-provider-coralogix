@@ -14,7 +14,7 @@ connector: v0.1.0-beta.101
 customrole: v0.1.0-beta.101
 dashboard: v0.1.0-beta.101
 dashboardsfolder: v0.1.0-beta.101
-events2metric: v0.1.0-beta.100
+events2metric: v0.1.0-beta.101
 globalrouter: v0.1.0-beta.101
 integration: v0.1.0-beta.101
 ipaccess: v0.1.0-beta.101
@@ -27,7 +27,7 @@ productanalyticssettings: v0.1.0-beta.101
 quotaallocationruleset: v0.1.0-beta.101
 recordingrulesgroupsset: v0.1.0-beta.101
 scope: v0.1.0-beta.101
-slov2: v0.1.0-beta.100
+slov2: v0.1.0-beta.101
 tcopolicieslogs: v0.1.0-beta.101
 tcopoliciesrum: v0.1.0-beta.101
 tcopoliciestraces: v0.1.0-beta.101
