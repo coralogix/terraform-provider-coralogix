@@ -759,7 +759,8 @@ func (r *Resource) create(ctx context.Context, body *{{$sdk}}.{{$.Conv.CreateBod
 	// to the one item this request sent counts, as the released resource insisted.
 	at := -1
 	for i := range out.{{.Create.Result.Items}} {
-		if strings.EqualFold(out.{{.Create.Result.Items}}[i].{{.Create.Result.Echo}}, *({{.Create.Result.EchoFrom}})) {
+		echo := {{if .Create.Result.EchoPtr}}*out.{{.Create.Result.Items}}[i].{{.Create.Result.Echo}}{{else}}out.{{.Create.Result.Items}}[i].{{.Create.Result.Echo}}{{end}}
+		if strings.EqualFold(echo, *({{.Create.Result.EchoFrom}})) {
 			at = i
 			break
 		}
