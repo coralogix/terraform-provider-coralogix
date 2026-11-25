@@ -32,13 +32,7 @@ const caseSettingsSystemPresetId = "preset_system_generic_https_cases_empty"
 
 func TestAccCoralogixResourceAlert_caseSettings(t *testing.T) {
 	connectorPrefix := "tf-acc " + uuid.NewString()[:8]
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccCheckAlertDestroy(t),
-		Steps: []resource.TestStep{
-			{
-				Config: testAccCoralogixResourceAlertCaseSettings(connectorPrefix, "case settings alert", `{
+	fullConfig := testAccCoralogixResourceAlertCaseSettings(connectorPrefix, "case settings alert", `{
     auto_resolve_mode  = "disabled"
     enrichment_queries = [{ query = "source logs | limit 1" }]
     destinations = [
@@ -52,7 +46,17 @@ func TestAccCoralogixResourceAlert_caseSettings(t *testing.T) {
         preset_id    = "`+caseSettingsSystemPresetId+`"
       },
     ]
-  }`),
+  }`)
+	minimalConfig := testAccCoralogixResourceAlertCaseSettings(connectorPrefix, "case settings alert renamed", `{
+    auto_resolve_mode = "disabled"
+  }`)
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckAlertDestroy(t),
+		Steps: []resource.TestStep{
+			{
+				Config: fullConfig,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(alertResourceName, "case_settings.auto_resolve_mode", "disabled"),
 					resource.TestCheckResourceAttr(alertResourceName, "case_settings.enrichment_queries.#", "1"),
@@ -71,6 +75,14 @@ func TestAccCoralogixResourceAlert_caseSettings(t *testing.T) {
 				ResourceName:      alertResourceName,
 				ImportState:       true,
 				ImportStateVerify: true,
+			},
+			{
+				Config: fullConfig,
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectResourceAction(alertResourceName, plancheck.ResourceActionNoop),
+					},
+				},
 			},
 			// Updating an unrelated field must keep the case settings: a
 			// replace that drops them resets auto-resolve to enabled.
@@ -144,14 +156,25 @@ func TestAccCoralogixResourceAlert_caseSettings(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccCoralogixResourceAlertCaseSettings(connectorPrefix, "case settings alert renamed", `{
-    auto_resolve_mode = "disabled"
-  }`),
+				Config: minimalConfig,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(alertResourceName, "case_settings.auto_resolve_mode", "disabled"),
 					resource.TestCheckResourceAttr(alertResourceName, "case_settings.destinations.#", "0"),
 					testAccCheckAlertCaseAutoResolveMode(alertResourceName, alerts.ALERTDEFCASEAUTORESOLVEMODE_ALERT_DEF_CASE_AUTO_RESOLVE_MODE_DISABLED),
 				),
+			},
+			{
+				ResourceName:      alertResourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			{
+				Config: minimalConfig,
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectResourceAction(alertResourceName, plancheck.ResourceActionNoop),
+					},
+				},
 			},
 		},
 	})

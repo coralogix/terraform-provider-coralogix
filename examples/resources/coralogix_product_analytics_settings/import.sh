@@ -1,0 +1,1 @@
+terraform import coralogix_product_analytics_settings.example product_analytics_settings

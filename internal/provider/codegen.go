@@ -38,3 +38,8 @@ package provider
 //go:generate make -C ../.. codegen RESOURCE=v1.Scope OUT=scope
 
 //go:generate make -C ../.. codegen RESOURCE=rbac.v2.User OUT=user
+
+//go:generate make -C ../.. codegen RESOURCE=SavedFunnel OUT=productanalyticsfunnels
+//go:generate make -C ../.. codegen RESOURCE=SavedPathway OUT=productanalyticspathways
+//go:generate make -C ../.. codegen RESOURCE=SavedHeatmap OUT=productanalyticsheatmaps
+//go:generate make -C ../.. codegen RESOURCE=ProductAnalyticsSettings OUT=productanalyticssettings

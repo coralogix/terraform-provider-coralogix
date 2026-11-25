@@ -604,6 +604,12 @@ var serverAttrs = map[string]bool{
 	"type_definition.tracing_threshold.rules.condition.condition_type": true,
 }
 
+// defaultAttrs are the nested attributes with a server default, by path. A
+// request does not send an unknown value of one, so the server stores the default.
+var defaultAttrs = map[string]attr.Value{
+	"case_settings.overrides.kpi.thresholds.enabled": types.BoolValue(false),
+}
+
 // requestValue returns v with a null value for each attribute that the server
 // sets. When the resource changes, Terraform plans these attributes as
 // unknown. A request does not send them, so a change check and an
@@ -617,7 +623,7 @@ func requestValue(ctx context.Context, at string, v attr.Value, diags *diag.Diag
 		attrTypes := v.AttributeTypes(ctx)
 		out := make(map[string]attr.Value, len(attrTypes))
 		for name, child := range v.Attributes() {
-			if serverAttrs[at+"."+name] {
+			if serverAttrs[at+"."+name] || defaultAttrs[at+"."+name] != nil && child.IsUnknown() {
 				out[name] = nullValue(ctx, attrTypes[name], diags)
 			} else {
 				out[name] = requestValue(ctx, at+"."+name, child, diags)
@@ -832,20 +838,21 @@ var computedAttrs = map[string]bool{
 	"case_settings.destinations":                                                                                      true,
 	"case_settings.enrichment_queries":                                                                                true,
 	"case_settings.enrichment_queries.type":                                                                           true,
-	"deleted":                                                                                                         true,
-	"enabled":                                                                                                         true,
-	"group_by":                                                                                                        true,
-	"incidents_settings":                                                                                              true,
-	"notification_group":                                                                                              true,
-	"notification_group.destinations.notify_on":                                                                       true,
-	"notification_group.destinations.resolved_routing_overrides.connector_overrides":                                  true,
-	"notification_group.destinations.resolved_routing_overrides.preset_overrides":                                     true,
-	"notification_group.destinations.triggered_routing_overrides.connector_overrides":                                 true,
-	"notification_group.destinations.triggered_routing_overrides.preset_overrides":                                    true,
-	"notification_group.router.id":                                                                                    true,
-	"notification_group.router.notify_on":                                                                             true,
-	"notification_group.webhooks_settings.retriggering_period":                                                        true,
-	"notification_group.webhooks_settings.notify_on":                                                                  true,
+	"case_settings.overrides.kpi.thresholds.enabled":                                                                  true,
+	"deleted":            true,
+	"enabled":            true,
+	"group_by":           true,
+	"incidents_settings": true,
+	"notification_group": true,
+	"notification_group.destinations.notify_on":                                       true,
+	"notification_group.destinations.resolved_routing_overrides.connector_overrides":  true,
+	"notification_group.destinations.resolved_routing_overrides.preset_overrides":     true,
+	"notification_group.destinations.triggered_routing_overrides.connector_overrides": true,
+	"notification_group.destinations.triggered_routing_overrides.preset_overrides":    true,
+	"notification_group.router.id":                                                    true,
+	"notification_group.router.notify_on":                                             true,
+	"notification_group.webhooks_settings.retriggering_period":                        true,
+	"notification_group.webhooks_settings.notify_on":                                  true,
 	"phantom_mode":                  true,
 	"priority":                      true,
 	"id":                            true,
@@ -988,25 +995,32 @@ var requiredAttrs = map[string]bool{
 	"case_settings.destinations.connector_config_overrides.template":                                              true,
 	"case_settings.destinations.connector_id":                                                                     true,
 	"case_settings.enrichment_queries.query":                                                                      true,
-	"data_sources.data_set":                                                                                       true,
-	"data_sources.data_space":                                                                                     true,
-	"incidents_settings.retriggering_period":                                                                      true,
-	"incidents_settings.retriggering_period.minutes":                                                              true,
-	"incidents_settings.notify_on":                                                                                true,
-	"name":                                                                                                        true,
-	"notification_group.destinations.connector_id":                                                                true,
-	"notification_group.destinations.preset_id":                                                                   true,
-	"notification_group.destinations.resolved_routing_overrides.connector_overrides.field_name":                   true,
-	"notification_group.destinations.resolved_routing_overrides.connector_overrides.template":                     true,
-	"notification_group.destinations.resolved_routing_overrides.preset_overrides.field_name":                      true,
-	"notification_group.destinations.resolved_routing_overrides.preset_overrides.template":                        true,
-	"notification_group.destinations.resolved_routing_overrides.payload_type":                                     true,
-	"notification_group.destinations.triggered_routing_overrides.connector_overrides.field_name":                  true,
-	"notification_group.destinations.triggered_routing_overrides.connector_overrides.template":                    true,
-	"notification_group.destinations.triggered_routing_overrides.preset_overrides.field_name":                     true,
-	"notification_group.destinations.triggered_routing_overrides.preset_overrides.template":                       true,
-	"notification_group.destinations.triggered_routing_overrides.payload_type":                                    true,
-	"notification_group.webhooks_settings.retriggering_period.minutes":                                            true,
+	"case_settings.overrides.kpi.thresholds.priority":                                                             true,
+	"case_settings.overrides.kpi.thresholds.threshold":                                                            true,
+	"case_settings.overrides.kpi.thresholds.type":                                                                 true,
+	"case_settings.overrides.priority_escalation.enabled":                                                         true,
+	"case_settings.overrides.priority_escalation.rules.from_priority":                                             true,
+	"case_settings.overrides.priority_escalation.rules.period":                                                    true,
+	"case_settings.overrides.priority_escalation.rules.to_priority":                                               true,
+	"data_sources.data_set":                          true,
+	"data_sources.data_space":                        true,
+	"incidents_settings.retriggering_period":         true,
+	"incidents_settings.retriggering_period.minutes": true,
+	"incidents_settings.notify_on":                   true,
+	"name":                                           true,
+	"notification_group.destinations.connector_id":   true,
+	"notification_group.destinations.preset_id":      true,
+	"notification_group.destinations.resolved_routing_overrides.connector_overrides.field_name":  true,
+	"notification_group.destinations.resolved_routing_overrides.connector_overrides.template":    true,
+	"notification_group.destinations.resolved_routing_overrides.preset_overrides.field_name":     true,
+	"notification_group.destinations.resolved_routing_overrides.preset_overrides.template":       true,
+	"notification_group.destinations.resolved_routing_overrides.payload_type":                    true,
+	"notification_group.destinations.triggered_routing_overrides.connector_overrides.field_name": true,
+	"notification_group.destinations.triggered_routing_overrides.connector_overrides.template":   true,
+	"notification_group.destinations.triggered_routing_overrides.preset_overrides.field_name":    true,
+	"notification_group.destinations.triggered_routing_overrides.preset_overrides.template":      true,
+	"notification_group.destinations.triggered_routing_overrides.payload_type":                   true,
+	"notification_group.webhooks_settings.retriggering_period.minutes":                           true,
 	"schedule.active_on":              true,
 	"schedule.active_on.days_of_week": true,
 	"schedule.active_on.end_time":     true,
@@ -1044,6 +1058,10 @@ func keepPriorEmpty(ctx context.Context, prior tfData, state *tfsdk.State) diag.
 // returns v, with the same rule applied to the attributes of an object and to
 // the elements of a list or map.
 func priorEmpty(ctx context.Context, at string, v, p attr.Value, diags *diag.Diagnostics) attr.Value {
+	// A read can leave out a nested value that equals its declared server default.
+	if d := defaultAttrs[at]; d != nil && v.IsNull() && p != nil && p.Equal(d) {
+		return p
+	}
 	if keepAPIValue(at, v, p) {
 		return v
 	}
@@ -1163,9 +1181,9 @@ func emptyNormal(at string, v attr.Value) attr.Value {
 		if emptyValue(at, v) {
 			return types.ObjectNull(v.AttributeTypes(ctx))
 		}
-		if oneOfArms[at] {
-			return v
-		}
+		// A oneOf arm is never empty (emptyValue keeps it), so it stays present. Its descendants
+		// still take the normal form, or an empty set inside a chosen arm would not match the null
+		// that the API returns.
 		attrs := v.Attributes()
 		out := make(map[string]attr.Value, len(attrs))
 		for name, child := range attrs {
@@ -1642,6 +1660,7 @@ func expandAlertDefCaseSettings(ctx context.Context, p path.Path, m *AlertDefCas
 			out.EnrichmentQueries = append(out.EnrichmentQueries, *expandAlertDefCaseEnrichmentQuery(ctx, p.AtName("enrichment_queries").AtListIndex(i), &items[i], diags))
 		}
 	}
+	out.Overrides = expandAlertDefCaseSettingsOverrides(ctx, p.AtName("overrides"), m.Overrides, diags)
 	return out
 }
 
@@ -1652,7 +1671,10 @@ func flattenAlertDefCaseSettings(ctx context.Context, p path.Path, v *alert_defi
 	out := &AlertDefCaseSettingsModel{}
 	out.AutoResolveMode = flattenEnumMapped(p.AtName("auto_resolve_mode"), v.AutoResolveMode, alertDefCaseAutoResolveModeFromAPI, diags)
 	out.Destinations = types.ListNull(types.ObjectType{AttrTypes: alertDefCaseDestinationAttrTypes()})
-	if len(v.Destinations) != 0 {
+	if v.Destinations == nil {
+		out.Destinations = types.ListValueMust(types.ObjectType{AttrTypes: alertDefCaseDestinationAttrTypes()}, []attr.Value{})
+	}
+	if v.Destinations != nil {
 		items := make([]AlertDefCaseDestinationModel, 0, len(v.Destinations))
 		for i := range v.Destinations {
 			items = append(items, *flattenAlertDefCaseDestination(ctx, p.AtName("destinations").AtListIndex(i), &v.Destinations[i], diags))
@@ -1660,13 +1682,17 @@ func flattenAlertDefCaseSettings(ctx context.Context, p path.Path, v *alert_defi
 		out.Destinations = flattenList(ctx, types.ObjectType{AttrTypes: alertDefCaseDestinationAttrTypes()}, items, diags)
 	}
 	out.EnrichmentQueries = types.ListNull(types.ObjectType{AttrTypes: alertDefCaseEnrichmentQueryAttrTypes()})
-	if len(v.EnrichmentQueries) != 0 {
+	if v.EnrichmentQueries == nil {
+		out.EnrichmentQueries = types.ListValueMust(types.ObjectType{AttrTypes: alertDefCaseEnrichmentQueryAttrTypes()}, []attr.Value{})
+	}
+	if v.EnrichmentQueries != nil {
 		items := make([]AlertDefCaseEnrichmentQueryModel, 0, len(v.EnrichmentQueries))
 		for i := range v.EnrichmentQueries {
 			items = append(items, *flattenAlertDefCaseEnrichmentQuery(ctx, p.AtName("enrichment_queries").AtListIndex(i), &v.EnrichmentQueries[i], diags))
 		}
 		out.EnrichmentQueries = flattenList(ctx, types.ObjectType{AttrTypes: alertDefCaseEnrichmentQueryAttrTypes()}, items, diags)
 	}
+	out.Overrides = flattenAlertDefCaseSettingsOverrides(ctx, p.AtName("overrides"), v.Overrides, diags)
 	return out
 }
 
@@ -1766,6 +1792,151 @@ func alertDefCaseEnrichmentQueryAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
 		"query": types.StringType,
 		"type":  types.StringType,
+	}
+}
+
+func expandAlertDefCaseSettingsOverrides(ctx context.Context, p path.Path, m *AlertDefCaseSettingsOverridesModel, diags *diag.Diagnostics) *alert_definitions_service.AlertDefCaseSettingsOverrides {
+	if m == nil {
+		return nil
+	}
+	out := &alert_definitions_service.AlertDefCaseSettingsOverrides{}
+	out.Kpi = expandAlertDefCaseKpis(ctx, p.AtName("kpi"), m.Kpi, diags)
+	out.PriorityEscalation = expandAlertDefCasePriorityEscalation(ctx, p.AtName("priority_escalation"), m.PriorityEscalation, diags)
+	return out
+}
+
+func flattenAlertDefCaseSettingsOverrides(ctx context.Context, p path.Path, v *alert_definitions_service.AlertDefCaseSettingsOverrides, diags *diag.Diagnostics) *AlertDefCaseSettingsOverridesModel {
+	if v == nil {
+		return nil
+	}
+	out := &AlertDefCaseSettingsOverridesModel{}
+	out.Kpi = flattenAlertDefCaseKpis(ctx, p.AtName("kpi"), v.Kpi, diags)
+	out.PriorityEscalation = flattenAlertDefCasePriorityEscalation(ctx, p.AtName("priority_escalation"), v.PriorityEscalation, diags)
+	return out
+}
+
+func expandAlertDefCaseKpis(ctx context.Context, p path.Path, m *AlertDefCaseKpisModel, diags *diag.Diagnostics) *alert_definitions_service.AlertDefCaseKpis {
+	if m == nil {
+		return nil
+	}
+	out := &alert_definitions_service.AlertDefCaseKpis{}
+	if items := expandElements[AlertDefCaseKpiThresholdModel](ctx, p.AtName("thresholds"), m.Thresholds, diags); items != nil {
+		out.Thresholds = make([]alert_definitions_service.AlertDefCaseKpiThreshold, 0, len(items))
+		for i := range items {
+			out.Thresholds = append(out.Thresholds, *expandAlertDefCaseKpiThreshold(ctx, p.AtName("thresholds").AtListIndex(i), &items[i], diags))
+		}
+	}
+	return out
+}
+
+func flattenAlertDefCaseKpis(ctx context.Context, p path.Path, v *alert_definitions_service.AlertDefCaseKpis, diags *diag.Diagnostics) *AlertDefCaseKpisModel {
+	if v == nil {
+		return nil
+	}
+	out := &AlertDefCaseKpisModel{}
+	out.Thresholds = types.ListNull(types.ObjectType{AttrTypes: alertDefCaseKpiThresholdAttrTypes()})
+	if len(v.Thresholds) != 0 {
+		items := make([]AlertDefCaseKpiThresholdModel, 0, len(v.Thresholds))
+		for i := range v.Thresholds {
+			items = append(items, *flattenAlertDefCaseKpiThreshold(ctx, p.AtName("thresholds").AtListIndex(i), &v.Thresholds[i], diags))
+		}
+		out.Thresholds = flattenList(ctx, types.ObjectType{AttrTypes: alertDefCaseKpiThresholdAttrTypes()}, items, diags)
+	}
+	return out
+}
+
+func expandAlertDefCaseKpiThreshold(ctx context.Context, p path.Path, m *AlertDefCaseKpiThresholdModel, diags *diag.Diagnostics) *alert_definitions_service.AlertDefCaseKpiThreshold {
+	if m == nil {
+		return nil
+	}
+	out := &alert_definitions_service.AlertDefCaseKpiThreshold{}
+	out.Enabled = expandBool(m.Enabled)
+	out.Priority = valueOf(expandEnum[alert_definitions_service.AlertDefCasePriority](m.Priority))
+	out.Threshold = valueOf(expandString(m.Threshold))
+	out.Type = valueOf(expandEnum[alert_definitions_service.AlertDefCaseKpiType](m.Type))
+	return out
+}
+
+func flattenAlertDefCaseKpiThreshold(ctx context.Context, p path.Path, v *alert_definitions_service.AlertDefCaseKpiThreshold, diags *diag.Diagnostics) *AlertDefCaseKpiThresholdModel {
+	if v == nil {
+		return nil
+	}
+	out := &AlertDefCaseKpiThresholdModel{}
+	out.Enabled = types.BoolPointerValue(v.Enabled)
+	out.Priority = flattenEnum(&v.Priority, "ALERT_DEF_CASE_PRIORITY_UNSPECIFIED")
+	out.Threshold = types.StringPointerValue(&v.Threshold)
+	out.Type = flattenEnum(&v.Type, "ALERT_DEF_CASE_KPI_TYPE_UNSPECIFIED")
+	return out
+}
+
+func alertDefCaseKpiThresholdAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"enabled":   types.BoolType,
+		"priority":  types.StringType,
+		"threshold": types.StringType,
+		"type":      types.StringType,
+	}
+}
+
+func expandAlertDefCasePriorityEscalation(ctx context.Context, p path.Path, m *AlertDefCasePriorityEscalationModel, diags *diag.Diagnostics) *alert_definitions_service.AlertDefCasePriorityEscalation {
+	if m == nil {
+		return nil
+	}
+	out := &alert_definitions_service.AlertDefCasePriorityEscalation{}
+	out.Enabled = valueOf(expandBool(m.Enabled))
+	if items := expandElements[AlertDefCasePriorityEscalationRuleModel](ctx, p.AtName("rules"), m.Rules, diags); items != nil {
+		out.Rules = make([]alert_definitions_service.AlertDefCasePriorityEscalationRule, 0, len(items))
+		for i := range items {
+			out.Rules = append(out.Rules, *expandAlertDefCasePriorityEscalationRule(ctx, p.AtName("rules").AtListIndex(i), &items[i], diags))
+		}
+	}
+	return out
+}
+
+func flattenAlertDefCasePriorityEscalation(ctx context.Context, p path.Path, v *alert_definitions_service.AlertDefCasePriorityEscalation, diags *diag.Diagnostics) *AlertDefCasePriorityEscalationModel {
+	if v == nil {
+		return nil
+	}
+	out := &AlertDefCasePriorityEscalationModel{}
+	out.Enabled = types.BoolPointerValue(&v.Enabled)
+	out.Rules = types.ListNull(types.ObjectType{AttrTypes: alertDefCasePriorityEscalationRuleAttrTypes()})
+	if len(v.Rules) != 0 {
+		items := make([]AlertDefCasePriorityEscalationRuleModel, 0, len(v.Rules))
+		for i := range v.Rules {
+			items = append(items, *flattenAlertDefCasePriorityEscalationRule(ctx, p.AtName("rules").AtListIndex(i), &v.Rules[i], diags))
+		}
+		out.Rules = flattenList(ctx, types.ObjectType{AttrTypes: alertDefCasePriorityEscalationRuleAttrTypes()}, items, diags)
+	}
+	return out
+}
+
+func expandAlertDefCasePriorityEscalationRule(ctx context.Context, p path.Path, m *AlertDefCasePriorityEscalationRuleModel, diags *diag.Diagnostics) *alert_definitions_service.AlertDefCasePriorityEscalationRule {
+	if m == nil {
+		return nil
+	}
+	out := &alert_definitions_service.AlertDefCasePriorityEscalationRule{}
+	out.FromPriority = valueOf(expandEnum[alert_definitions_service.AlertDefCasePriority](m.FromPriority))
+	out.Period = valueOf(expandString(m.Period))
+	out.ToPriority = valueOf(expandEnum[alert_definitions_service.AlertDefCasePriority](m.ToPriority))
+	return out
+}
+
+func flattenAlertDefCasePriorityEscalationRule(ctx context.Context, p path.Path, v *alert_definitions_service.AlertDefCasePriorityEscalationRule, diags *diag.Diagnostics) *AlertDefCasePriorityEscalationRuleModel {
+	if v == nil {
+		return nil
+	}
+	out := &AlertDefCasePriorityEscalationRuleModel{}
+	out.FromPriority = flattenEnum(&v.FromPriority, "ALERT_DEF_CASE_PRIORITY_UNSPECIFIED")
+	out.Period = types.StringPointerValue(&v.Period)
+	out.ToPriority = flattenEnum(&v.ToPriority, "ALERT_DEF_CASE_PRIORITY_UNSPECIFIED")
+	return out
+}
+
+func alertDefCasePriorityEscalationRuleAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"from_priority": types.StringType,
+		"period":        types.StringType,
+		"to_priority":   types.StringType,
 	}
 }
 

@@ -11,6 +11,8 @@ import (
 
 	"github.com/coralogix/coralogix-management-sdk/iac/issue"
 	"github.com/coralogix/coralogix-management-sdk/iac/model"
+	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/acceptance"
+	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/overrides"
 	"go.yaml.in/yaml/v4"
 )
 
@@ -338,6 +340,27 @@ func markExamples(attrs []*tfAttr, examples map[string]*contractExample) {
 			a.Example = e
 		}
 		markExamples(a.Attributes, examples)
+	}
+}
+
+// markNewExamples is markExamples for a released resource. The release keeps its tests, so only an
+// attribute that the upgrade attributes file (prior) does not list takes its example: that is an
+// attribute that is new since the release, and its made-up value has no test that depends on it. A
+// value in the acceptance file still wins over an example (fileValue). The list is the one of the
+// upgrade test, so a resource without an upgrade test has no new attributes, and takes no example.
+func markNewExamples(attrs []*tfAttr, examples map[string]*contractExample, prior *acceptance.UpgradeAttributes, file *overrides.File) {
+	if len(examples) == 0 {
+		return
+	}
+	schema := map[string]*tfAttr{}
+	schemaAttrs(schema, "", attrs)
+	for path, a := range schema {
+		if _, released := prior.Attributes[path]; released || a.Extra {
+			continue
+		}
+		if e, ok := examples[contractField(a, file)]; ok {
+			a.Example = e
+		}
 	}
 }
 

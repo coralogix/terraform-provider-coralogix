@@ -2275,6 +2275,76 @@ func Schema() schema.Schema {
 						},
 						MarkdownDescription: "Queries that enrich the cases opened by this alert. The API accepts at most one query.",
 					},
+					"overrides": schema.SingleNestedAttribute{
+						Optional: true,
+						Attributes: map[string]schema.Attribute{
+							"kpi": schema.SingleNestedAttribute{
+								Optional: true,
+								Attributes: map[string]schema.Attribute{
+									"thresholds": schema.ListNestedAttribute{
+										Optional: true,
+										NestedObject: schema.NestedAttributeObject{
+											Attributes: map[string]schema.Attribute{
+												"enabled": schema.BoolAttribute{
+													Optional: true,
+													Computed: true,
+													PlanModifiers: []planmodifier.Bool{
+														serverDefaultModifier{value: types.BoolValue(false)},
+													},
+													MarkdownDescription: "When false, this KPI timer does not run for cases of this priority. Defaults to false when omitted.",
+												},
+												"priority": schema.StringAttribute{
+													Required:            true,
+													MarkdownDescription: "Case priority to which this threshold applies. ALERT_DEF_CASE_PRIORITY_UNSPECIFIED is not accepted.",
+												},
+												"threshold": schema.StringAttribute{
+													Required:            true,
+													MarkdownDescription: "Time after which the KPI is breached. Whole number of seconds greater than zero, for example 300s is 5 minutes.",
+												},
+												"type": schema.StringAttribute{
+													Required:            true,
+													MarkdownDescription: "KPI type to which this threshold applies. ALERT_DEF_CASE_KPI_TYPE_UNSPECIFIED is not accepted.",
+												},
+											},
+										},
+										MarkdownDescription: "KPI thresholds. At most one entry for each type and priority. For each priority, the time to acknowledge must be less than or equal to the time to resolve. An empty or omitted list turns off all KPI timers of these cases.",
+									},
+								},
+								MarkdownDescription: "KPI thresholds for the cases that this alert creates. When omitted, the company KPI settings apply. When present, the value replaces the company KPI settings as a whole for these cases. An empty thresholds list turns off all KPI timers of these cases.",
+							},
+							"priority_escalation": schema.SingleNestedAttribute{
+								Optional: true,
+								Attributes: map[string]schema.Attribute{
+									"enabled": schema.BoolAttribute{
+										Required:            true,
+										MarkdownDescription: "Enable or disable priority escalation for these cases. When false, no rule is applied.",
+									},
+									"rules": schema.ListNestedAttribute{
+										Optional: true,
+										NestedObject: schema.NestedAttributeObject{
+											Attributes: map[string]schema.Attribute{
+												"from_priority": schema.StringAttribute{
+													Required:            true,
+													MarkdownDescription: "Priority that the case must have for this rule to apply. ALERT_DEF_CASE_PRIORITY_P1 is not accepted, because no priority is more severe. ALERT_DEF_CASE_PRIORITY_UNSPECIFIED is not accepted.",
+												},
+												"period": schema.StringAttribute{
+													Required:            true,
+													MarkdownDescription: "Time that a case can stay unacknowledged at fromPriority before it is escalated. Whole number of seconds greater than zero, for example 36000s is 10 hours.",
+												},
+												"to_priority": schema.StringAttribute{
+													Required:            true,
+													MarkdownDescription: "Priority to which the case is raised. Must be more severe than fromPriority, for example ALERT_DEF_CASE_PRIORITY_P2 when fromPriority is ALERT_DEF_CASE_PRIORITY_P3. ALERT_DEF_CASE_PRIORITY_UNSPECIFIED is not accepted.",
+												},
+											},
+										},
+										MarkdownDescription: "Escalation rules. Each rule applies to cases at its fromPriority. At most one rule for each fromPriority. P1 cannot be a fromPriority, so the list has at most 4 rules. An empty or omitted list means that no rule applies, also when enabled is true.",
+									},
+								},
+								MarkdownDescription: "Priority escalation settings for the cases that this alert creates. When omitted, the company priority escalation settings apply. When present, the value replaces the company settings as a whole for these cases. enabled set to false turns off escalation for these cases.",
+							},
+						},
+						MarkdownDescription: "Case settings that this alert sets for the cases that it creates. When omitted, the company case settings apply. Replace is a full overwrite: omitting overrides removes the overrides.",
+					},
 				},
 				MarkdownDescription: "Case settings for the alert (preview): whether cases auto-resolve, a query that enriches the case, and where case notifications are sent. Case destinations are independent of `notification_group.destinations`; both are delivered. Removing this block clears the case settings.",
 			},
@@ -2658,6 +2728,42 @@ func Schema() schema.Schema {
 // ConfigValidators are the resource validators.
 func ConfigValidators() []resource.ConfigValidator {
 	return []resource.ConfigValidator{}
+}
+
+// serverDefaultModifier distinguishes removal from a steady server default.
+// It never inserts the default into configuration or an API request. When a
+// user removes a different value, it makes the plan unknown. Update then sends
+// the field in the update mask without a body value, and the API resets it.
+type serverDefaultModifier struct{ value attr.Value }
+
+func (m serverDefaultModifier) Description(context.Context) string {
+	return "Resets a removed value to the server default."
+}
+
+func (m serverDefaultModifier) MarkdownDescription(ctx context.Context) string {
+	return m.Description(ctx)
+}
+
+func serverDefaultPlan(config, state, declared attr.Value) (unknown, preserve bool) {
+	if config.IsUnknown() || !config.IsNull() || state.IsNull() || state.IsUnknown() {
+		return false, false
+	}
+	if state.Equal(declared) {
+		return false, true
+	}
+	return true, false
+}
+
+func (m serverDefaultModifier) PlanModifyBool(_ context.Context, req planmodifier.BoolRequest, resp *planmodifier.BoolResponse) {
+	if req.Plan.Raw.IsNull() {
+		return
+	}
+	unknown, preserve := serverDefaultPlan(req.ConfigValue, req.StateValue, m.value)
+	if unknown {
+		resp.PlanValue = types.BoolUnknown()
+	} else if preserve {
+		resp.PlanValue = req.StateValue
+	}
 }
 
 // setItemConfig returns the configuration value of the attribute on the path p, which is inside a

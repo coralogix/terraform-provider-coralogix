@@ -55,6 +55,9 @@ func renderAll(r *model.Resource, refs []sdkcheck.Ref, pkg string, file *overrid
 	markDeprecations(data.Attributes, deprecated, file)
 	if file == nil {
 		markExamples(data.Attributes, examples)
+	} else if prior != nil && acc != nil && prior.From == acc.UpgradeFrom {
+		// A released resource keeps its tests. Only an attribute that the release lacks takes its example.
+		markNewExamples(data.Attributes, examples, prior, file)
 	}
 	if data.Conv, err = buildConvWith(r, refs, file); err != nil {
 		return nil, err

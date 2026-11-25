@@ -2266,6 +2266,7 @@ Optional:
 - `auto_resolve_mode` (String) Controls whether the associated case is automatically resolved when the alert resolves. Defaults to enabled when unspecified. Valid values: ["disabled" "enabled"].
 - `destinations` (Attributes List) Notification Center destinations notified about the cases opened by this alert. The API accepts at most 100 destinations and rejects two destinations with the same `connector_id`, `preset_id` and `condition`. (see [below for nested schema](#nestedatt--case_settings--destinations))
 - `enrichment_queries` (Attributes List) Queries that enrich the cases opened by this alert. The API accepts at most one query. (see [below for nested schema](#nestedatt--case_settings--enrichment_queries))
+- `overrides` (Attributes) Case settings that this alert sets for the cases that it creates. When omitted, the company case settings apply. Replace is a full overwrite: omitting overrides removes the overrides. (see [below for nested schema](#nestedatt--case_settings--overrides))
 
 <a id="nestedatt--case_settings--destinations"></a>
 ### Nested Schema for `case_settings.destinations`
@@ -2300,6 +2301,59 @@ Required:
 Optional:
 
 - `type` (String) The query language of the enrichment query. Defaults to DataPrime when omitted. Valid values: ["dataprime"].
+
+
+<a id="nestedatt--case_settings--overrides"></a>
+### Nested Schema for `case_settings.overrides`
+
+Optional:
+
+- `kpi` (Attributes) KPI thresholds for the cases that this alert creates. When omitted, the company KPI settings apply. When present, the value replaces the company KPI settings as a whole for these cases. An empty thresholds list turns off all KPI timers of these cases. (see [below for nested schema](#nestedatt--case_settings--overrides--kpi))
+- `priority_escalation` (Attributes) Priority escalation settings for the cases that this alert creates. When omitted, the company priority escalation settings apply. When present, the value replaces the company settings as a whole for these cases. enabled set to false turns off escalation for these cases. (see [below for nested schema](#nestedatt--case_settings--overrides--priority_escalation))
+
+<a id="nestedatt--case_settings--overrides--kpi"></a>
+### Nested Schema for `case_settings.overrides.kpi`
+
+Optional:
+
+- `thresholds` (Attributes List) KPI thresholds. At most one entry for each type and priority. For each priority, the time to acknowledge must be less than or equal to the time to resolve. An empty or omitted list turns off all KPI timers of these cases. (see [below for nested schema](#nestedatt--case_settings--overrides--kpi--thresholds))
+
+<a id="nestedatt--case_settings--overrides--kpi--thresholds"></a>
+### Nested Schema for `case_settings.overrides.kpi.thresholds`
+
+Required:
+
+- `priority` (String) Case priority to which this threshold applies. ALERT_DEF_CASE_PRIORITY_UNSPECIFIED is not accepted.
+- `threshold` (String) Time after which the KPI is breached. Whole number of seconds greater than zero, for example 300s is 5 minutes.
+- `type` (String) KPI type to which this threshold applies. ALERT_DEF_CASE_KPI_TYPE_UNSPECIFIED is not accepted.
+
+Optional:
+
+- `enabled` (Boolean) When false, this KPI timer does not run for cases of this priority. Defaults to false when omitted.
+
+
+
+<a id="nestedatt--case_settings--overrides--priority_escalation"></a>
+### Nested Schema for `case_settings.overrides.priority_escalation`
+
+Required:
+
+- `enabled` (Boolean) Enable or disable priority escalation for these cases. When false, no rule is applied.
+
+Optional:
+
+- `rules` (Attributes List) Escalation rules. Each rule applies to cases at its fromPriority. At most one rule for each fromPriority. P1 cannot be a fromPriority, so the list has at most 4 rules. An empty or omitted list means that no rule applies, also when enabled is true. (see [below for nested schema](#nestedatt--case_settings--overrides--priority_escalation--rules))
+
+<a id="nestedatt--case_settings--overrides--priority_escalation--rules"></a>
+### Nested Schema for `case_settings.overrides.priority_escalation.rules`
+
+Required:
+
+- `from_priority` (String) Priority that the case must have for this rule to apply. ALERT_DEF_CASE_PRIORITY_P1 is not accepted, because no priority is more severe. ALERT_DEF_CASE_PRIORITY_UNSPECIFIED is not accepted.
+- `period` (String) Time that a case can stay unacknowledged at fromPriority before it is escalated. Whole number of seconds greater than zero, for example 36000s is 10 hours.
+- `to_priority` (String) Priority to which the case is raised. Must be more severe than fromPriority, for example ALERT_DEF_CASE_PRIORITY_P2 when fromPriority is ALERT_DEF_CASE_PRIORITY_P3. ALERT_DEF_CASE_PRIORITY_UNSPECIFIED is not accepted.
+
+
 
 
 
