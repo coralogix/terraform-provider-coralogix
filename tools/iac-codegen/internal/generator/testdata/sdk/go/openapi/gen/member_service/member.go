@@ -41,6 +41,7 @@ const (
 type Member struct {
 	MemberId    *string
 	Login       *string
+	Username    *string
 	DisplayName *string
 	GroupIds    []int64
 	Status      *MemberStatus
@@ -49,6 +50,7 @@ type Member struct {
 
 type MemberTemplate struct {
 	Login       *string
+	Username    *string
 	DisplayName *string
 	Status      *MemberStatus
 	LoginModes  []LoginMode

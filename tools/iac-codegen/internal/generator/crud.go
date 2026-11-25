@@ -159,7 +159,9 @@ type crudResult struct {
 	// Echo is the result field that echoes the value the request sent, and EchoFrom the Go
 	// expression of that value on the request item: the create joins the results to the one
 	// request item on them, so a result of another item cannot pass for this one. "" for none.
+	// EchoPtr says the field is a *string, which the template derefs.
 	Echo, EchoFrom string
+	EchoPtr        bool
 }
 
 // upgradeData is a state upgrader. It reads the resource from the API, so the prior schema is
@@ -613,7 +615,11 @@ func buildCRUDOp(ix *refIndex, o crudSpec, client, resource string, r *model.Res
 			if err != nil {
 				return out, fmt.Errorf("%s.body: the echo %q names no field of the request item", o.name, line.MatchUsername)
 			}
+			if itemRef.Want != "*string" {
+				return out, fmt.Errorf("%s.body: the echoed request field is a %s, want a *string the join can read", o.name, itemRef.Want)
+			}
 			result.Echo = echo.Name
+			result.EchoPtr = echo.Want == "*string"
 			result.EchoFrom = "body." + wrapperRef.Name + "." + itemRef.Name
 		}
 		out.Result = result
