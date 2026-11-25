@@ -41,9 +41,8 @@ import (
 
 const alertBasePath = "/alerts/alerts/v3"
 
-// alertFake is a small in-memory backend for alert definitions. It is checked against recorded
-// answers of the real API (alert_fidelity_test.go), so it follows what was recorded on a real
-// tenant and nothing else:
+// alertFake is a small in-memory backend for alert definitions. It follows what was recorded on a
+// real tenant and nothing else:
 //   - Create, Get, and Replace answer {"alertDef": {...}} with the server fields id,
 //     alertVersionId, createdTime, updatedTime, and status. Delete answers {}.
 //   - The REST gateway writes every field without presence, so an omitted list reads back as
@@ -639,10 +638,7 @@ func alertZero(field map[string]any) (any, bool) {
 	return nil, false
 }
 
-const (
-	alertTypeName  = "coralogix_alert"
-	alertGoldenDir = "testdata/alert_baseline"
-)
+const alertTypeName = "coralogix_alert"
 
 func newAlertHarness(t *testing.T) *grHarness {
 	return newProtocolHarness(t, alertTypeName, newAlertFake(t))
@@ -693,7 +689,7 @@ func with(base j, overrides j) j {
 
 const sloBasePath = "/slo/slos/v1"
 
-// sloFake follows the SLO service as recorded in fidelity/recorded.json, not the Go client.
+// sloFake follows the SLO service as recorded on a real tenant, not the Go client.
 // Create and replace take the SLO itself as the body. Create returns it as "slo" next to
 // exclusionWindowIds, replace next to exclusionWindowIds and effectedSloAlertIds, and delete
 // returns effectedSloAlertIds. The server sets id, grouping (the by clause of the query, or

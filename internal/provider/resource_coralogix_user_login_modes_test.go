@@ -19,9 +19,6 @@ import (
 //   - the explicit empty list that clears the modes. The attribute is
 //     Optional+Computed, so removing it from the configuration keeps the backend
 //     values; only the empty list clears them.
-//
-// The fake baseline records the same two cases offline
-// (scenario_login-modes-canonical-order, scenario_login-modes-cleared).
 func TestAccCoralogixResourceUserLoginModesReversedAndCleared(t *testing.T) {
 	userName := randUserName()
 	sso := usersservice.ALLOWEDLOGINMODE_ALLOWED_LOGIN_MODE_SSO

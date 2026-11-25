@@ -26,7 +26,7 @@ import (
 // resolves a configured user_name to the one user whose username equals it
 // case-insensitively, and hands the id to the generated read. The lookup cannot be generated yet: the generator refuses a
 // name lookup for a resource that reads from its List, which is a V6 generator
-// follow-up; the recorded baseline scenarios are the semantics contract.
+// follow-up; the released lookup behavior is the semantics contract.
 type UserDataSource struct {
 	user.DataSource
 

@@ -211,7 +211,7 @@ data "coralogix_ip_access" "without_id" {
 
 func checkIpAccessGeneratedLiveDestroy(base, apiKey string) func(*terraform.State) error {
 	return func(*terraform.State) error {
-		status, body := sendIpAccessFidelityRequestNoTest(base, apiKey, http.MethodGet, "", nil)
+		status, body := sendIpAccessRequest(base, apiKey, http.MethodGet, "", nil)
 		if status != http.StatusOK {
 			return fmt.Errorf("post-destroy Get answered %d: %s", status, compact(body))
 		}
