@@ -1,5 +1,8 @@
 # Unreleased
 
+#### provider
+- DOCS: A new guide, "Keeping Secrets Out of Terraform State", explains the difference between a `sensitive` and an `ephemeral` variable. It shows how to pass a secret to a write-only attribute of `coralogix_connector` and `coralogix_webhook`. The examples of both resources use an ephemeral variable for the secret.
+
 # Release 3.28.0
 
 #### data-source/coralogix_product_analytics_settings
