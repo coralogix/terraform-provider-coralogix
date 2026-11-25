@@ -82,7 +82,11 @@ for tf_file in $TERRAFORM_FILES; do
     
     if [ $? -eq 0 ]; then
         log "Running terraform plan"
-        terraform plan -no-color > /dev/null 2>&1
+        # A variable without a default needs a value. Give each one a dummy value.
+        for var_name in $(grep -oE '^variable "[^"]+"' main.tf resource.tf 2>/dev/null | cut -d'"' -f2); do
+            export "TF_VAR_${var_name}=dummy"
+        done
+        terraform plan -input=false -no-color > /dev/null 2>&1
         
         if [ $? -eq 0 ]; then
             SUCCESSFUL_EXAMPLES+=("$tf_file")
@@ -97,6 +101,7 @@ for tf_file in $TERRAFORM_FILES; do
     fi
     
     # Cleanup
+    for var_name in $(compgen -e | grep '^TF_VAR_'); do unset "$var_name"; done
     cd - > /dev/null
     rm -rf "$working_dir"
 done
