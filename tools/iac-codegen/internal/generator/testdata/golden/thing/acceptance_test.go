@@ -14,10 +14,71 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/acctest/failpaths"
+	"github.com/coralogix/terraform-provider-coralogix/internal/acctest/failreport"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider"
 )
 
 const resourceAddress = "coralogix_thing.test"
+
+// sensitiveFields are the API names of the fields that the schema marks sensitive or write-only. The recorder
+// redacts them in every request and response that a failure line shows.
+var sensitiveFields = []string{}
+
+// apiFields name the API field of each attribute, by its Terraform path without list positions.
+// ErrorCheck shows the field in the line of a failure.
+var apiFields = map[string]string{
+	"config":                   "Thing.config",
+	"config.http":              "ThingConfig.http",
+	"config.http.endpoint":     "HttpThingConfig.endpoint",
+	"config.queue":             "ThingConfig.queue",
+	"config.queue.topic":       "QueueThingConfig.topic",
+	"create_time":              "Thing.createTime",
+	"description":              "Thing.description",
+	"destinations":             "Thing.destinations",
+	"details":                  "Thing.details",
+	"details.name":             "ThingDetail.name",
+	"details.options":          "ThingDetail.options",
+	"details.scores":           "ThingDetail.scores",
+	"details.starts":           "ThingDetail.starts",
+	"enabled":                  "Thing.enabled",
+	"expire_time":              "Thing.expireTime",
+	"id":                       "Thing.id",
+	"kind":                     "Thing.kind",
+	"label":                    "Thing.label",
+	"labels":                   "Thing.labels",
+	"limit":                    "Thing.limit",
+	"name":                     "Thing.name",
+	"paused":                   "Thing.paused",
+	"priority":                 "Thing.priority",
+	"retries":                  "Thing.retries",
+	"spec":                     "Thing.spec",
+	"spec.items":               "ThingSpec.items",
+	"spec.items.create_time":   "ThingItem.createTime",
+	"spec.items.id":            "ThingItem.id",
+	"spec.items.key":           "ThingItem.key",
+	"spec.items.name":          "ThingItem.name",
+	"spec.items.start_time":    "ThingItem.startTime",
+	"spec.mode":                "ThingSpec.mode",
+	"spec.region":              "ThingSpec.region",
+	"spec.revision":            "ThingSpec.revision",
+	"spec.source":              "ThingSpec.source",
+	"spec.source.origin":       "ThingSource.origin",
+	"spec.targets":             "ThingSpec.targets",
+	"spec.targets.id":          "ThingTarget.id",
+	"spec.targets.name":        "ThingTarget.name",
+	"spec.weight":              "ThingSpec.weight",
+	"status":                   "Thing.status",
+	"status.health":            "ThingStatus.health",
+	"status.items":             "ThingStatus.items",
+	"status.items.create_time": "ThingItem.createTime",
+	"status.items.id":          "ThingItem.id",
+	"status.items.key":         "ThingItem.key",
+	"status.items.name":        "ThingItem.name",
+	"status.items.start_time":  "ThingItem.startTime",
+	"tags":                     "Thing.tags",
+	"update_time":              "Thing.updateTime",
+	"windows":                  "Thing.windows",
+}
 
 // requiredEnv are the variables that the test config reads, besides the API key.
 var requiredEnv = []string{}
@@ -372,19 +433,21 @@ var importPlanStep = resource.TestStep{
 // so that a failure in one does not hide the others. After every apply, the framework plans again and
 // fails when the plan is not empty.
 func TestAccCoralogixResourceThingGenerated(t *testing.T) {
+	failreport.Install(sensitiveFields...) // records the HTTP calls that ErrorCheck shows in the line of a failure
 	// full-lifecycle sets every attribute, imports, reads the data source, changes the attributes, and imports again.
 	t.Run("full-lifecycle", func(t *testing.T) {
 		run := newRun()
 		resource.Test(t, resource.TestCase{
 			PreCheck:                 func() { preCheck(t) },
 			ProtoV6ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
+			ErrorCheck:               failreport.ErrorCheck(apiFields),
+			Steps: failreport.Steps(t, []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 				importStep,
 				{Config: config(run, fullConfig+"\n\n"+dataSourceConfig), Check: dataSourceChecks()},
 				{Config: config(run, updatedConfig), Check: updatedChecks(run)},
 				importStep,
-			},
+			}),
 		})
 	})
 
@@ -395,14 +458,15 @@ func TestAccCoralogixResourceThingGenerated(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			PreCheck:                 func() { preCheck(t) },
 			ProtoV6ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
+			ErrorCheck:               failreport.ErrorCheck(apiFields),
+			Steps: failreport.Steps(t, []resource.TestStep{
 				{Config: config(run, minimalConfig), Check: minimalChecks(run)},
 				importStep,
 				importPlanStep,
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 				{Config: config(run, minimalConfig), Check: minimalChecks(run)},
 				importStep,
-			},
+			}),
 		})
 	})
 
@@ -416,10 +480,11 @@ func TestAccCoralogixResourceThingGenerated(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			PreCheck:                 func() { preCheck(t) },
 			ProtoV6ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
+			ErrorCheck:               failreport.ErrorCheck(apiFields),
+			Steps: failreport.Steps(t, []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 				{Config: config(run, variant1Config), Check: variant1Checks(run)},
-			},
+			}),
 		})
 	})
 }

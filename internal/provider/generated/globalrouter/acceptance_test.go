@@ -17,10 +17,50 @@ import (
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/acctest"
 	"github.com/coralogix/terraform-provider-coralogix/internal/acctest/failpaths"
+	"github.com/coralogix/terraform-provider-coralogix/internal/acctest/failreport"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider"
 )
 
 const resourceAddress = "coralogix_global_router.test"
+
+// sensitiveFields are the API names of the fields that the schema marks sensitive or write-only. The recorder
+// redacts them in every request and response that a failure line shows.
+var sensitiveFields = []string{}
+
+// apiFields name the API field of each attribute, by its Terraform path without list positions.
+// ErrorCheck shows the field in the line of a failure.
+var apiFields = map[string]string{
+	"create_time":                            "GlobalRouter.createTime",
+	"description":                            "GlobalRouter.description",
+	"disabled":                               "GlobalRouter.disabled",
+	"entity_labels":                          "GlobalRouter.entityLabels",
+	"fallback":                               "GlobalRouter.fallback",
+	"fallback.connector_id":                  "RoutingTarget.connectorId",
+	"fallback.custom_details":                "RoutingTarget.customDetails",
+	"fallback.preset_id":                     "RoutingTarget.presetId",
+	"fallback_targets":                       "GlobalRouter.fallbackTargets",
+	"fallback_targets.entity_type":           "FallbackTarget.entityType",
+	"fallback_targets.target":                "FallbackTarget.target",
+	"fallback_targets.target.connector_id":   "RoutingTarget.connectorId",
+	"fallback_targets.target.custom_details": "RoutingTarget.customDetails",
+	"fallback_targets.target.preset_id":      "RoutingTarget.presetId",
+	"id":                                     "GlobalRouter.id",
+	"name":                                   "GlobalRouter.name",
+	"routing_labels":                         "GlobalRouter.routingLabels",
+	"routing_labels.environment":             "RoutingLabels.environment",
+	"routing_labels.service":                 "RoutingLabels.service",
+	"routing_labels.team":                    "RoutingLabels.team",
+	"rules":                                  "GlobalRouter.rules",
+	"rules.condition":                        "RoutingRule.condition",
+	"rules.custom_details":                   "RoutingRule.customDetails",
+	"rules.entity_type":                      "RoutingRule.entityType",
+	"rules.name":                             "RoutingRule.name",
+	"rules.targets":                          "RoutingRule.targets",
+	"rules.targets.connector_id":             "RoutingTarget.connectorId",
+	"rules.targets.custom_details":           "RoutingTarget.customDetails",
+	"rules.targets.preset_id":                "RoutingTarget.presetId",
+	"update_time":                            "GlobalRouter.updateTime",
+}
 
 // requiredEnv are the variables that the test config reads, besides the API key.
 var requiredEnv = []string{}
@@ -373,6 +413,7 @@ var importPlanStep = resource.TestStep{
 // so that a failure in one does not hide the others. After every apply, the framework plans again and
 // fails when the plan is not empty.
 func TestAccCoralogixResourceGlobalRouterGenerated(t *testing.T) {
+	failreport.Install(sensitiveFields...) // records the HTTP calls that ErrorCheck shows in the line of a failure
 	// full-lifecycle sets every attribute, imports, reads the data source, changes the attributes, and imports again.
 	t.Run("full-lifecycle", func(t *testing.T) {
 		run := newRun()
@@ -382,13 +423,14 @@ func TestAccCoralogixResourceGlobalRouterGenerated(t *testing.T) {
 				acctest.RemoveLeftoverGlobalRouters(t, config(run, fullConfig), config(run, updatedConfig))
 			},
 			ProtoV6ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
+			ErrorCheck:               failreport.ErrorCheck(apiFields),
+			Steps: failreport.Steps(t, []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 				importStep,
 				{Config: config(run, fullConfig+"\n\n"+dataSourceConfig), Check: dataSourceChecks()},
 				{Config: config(run, updatedConfig), Check: updatedChecks(run)},
 				importStep,
-			},
+			}),
 		})
 	})
 
@@ -402,14 +444,15 @@ func TestAccCoralogixResourceGlobalRouterGenerated(t *testing.T) {
 				acctest.RemoveLeftoverGlobalRouters(t, config(run, minimalConfig), config(run, fullConfig))
 			},
 			ProtoV6ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
+			ErrorCheck:               failreport.ErrorCheck(apiFields),
+			Steps: failreport.Steps(t, []resource.TestStep{
 				{Config: config(run, minimalConfig), Check: minimalChecks(run)},
 				importStep,
 				importPlanStep,
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 				{Config: config(run, minimalConfig), Check: minimalChecks(run)},
 				importStep,
-			},
+			}),
 		})
 	})
 
@@ -423,10 +466,11 @@ func TestAccCoralogixResourceGlobalRouterGenerated(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			PreCheck:                 func() { preCheck(t); acctest.RemoveLeftoverGlobalRouters(t, config(run, fullConfig)) },
 			ProtoV6ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
+			ErrorCheck:               failreport.ErrorCheck(apiFields),
+			Steps: failreport.Steps(t, []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 				{Config: config(run, variant1Config), Check: variant1Checks(run)},
-			},
+			}),
 		})
 	})
 }

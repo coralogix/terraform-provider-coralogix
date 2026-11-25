@@ -278,9 +278,13 @@ func (s *accSynth) sweepCopies(res *tfResource) (string, []accCheck, error) {
 	}
 	var blocks []string
 	var checks []accCheck
+	s.stepNo++
+	fixedNow := map[int]bool{}
+	defer func() { s.prevFixed = fixedNow }()
 	for n := 0; n < limit; n++ {
 		before := len(s.cov)
 		s.extra, s.element = 0, n
+		s.usedFixedArm = false
 		body, copyChecks, err := s.attrs(res.Attributes, "", "", accFull, true)
 		s.element = 0
 		if err != nil {
@@ -289,13 +293,15 @@ func (s *accSynth) sweepCopies(res *tfResource) (string, []accCheck, error) {
 		if len(s.cov) == before {
 			break // this copy sets nothing new
 		}
+		fixedNow[n] = s.usedFixedArm
+		number := s.copyNumber(n, s.usedFixedArm)
 		name := "test"
-		if n > 0 {
-			name = "test_" + strconv.Itoa(n+1)
+		if number > 1 {
+			name = "test_" + strconv.Itoa(number)
 		}
 		blocks = append(blocks, namedResourceBlock("coralogix_"+res.CRUD.TypeName, name, body))
 		for _, c := range copyChecks {
-			c.Copy = n + 1
+			c.Copy = number
 			checks = append(checks, c)
 		}
 	}
