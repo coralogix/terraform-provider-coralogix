@@ -217,7 +217,7 @@ func TestPlanAnalyticsMinimalConfigIsStable(t *testing.T) {
 				"phantom_mode": false,
 				"type_definition": {
 					"analytics_threshold": {
-						"dataprime_query": {"query": "source logs | count as c"},
+						"dataprime_query": {"query": "source logs | count into c"},
 						"rules": [
 							{"condition": {"threshold": 10}, "override": {"priority": "P4"}},
 							{"condition": {"threshold": 20}, "override": {"priority": "P3"}}
