@@ -247,6 +247,10 @@ func (r *Resource) create(ctx context.Context, body *member_service.CreateMember
 	// to the one item this request sent counts, as the released resource insisted.
 	at := -1
 	for i := range out.Results {
+		// A result without the echo is not the one the request sent.
+		if out.Results[i].Username == nil {
+			continue
+		}
 		echo := *out.Results[i].Username
 		if strings.EqualFold(echo, *(body.Template.Username)) {
 			at = i
