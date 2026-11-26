@@ -27,6 +27,29 @@ provider "coralogix" {
   #env = "<add the environment you want to work at or add env variable CORALOGIX_ENV>"
 }
 
+# A secret comes in through a variable that is both sensitive and ephemeral.
+# sensitive hides the value in the plan and apply output.
+# ephemeral keeps it out of the state and out of the saved plan file.
+# Terraform lets an ephemeral value feed a write-only attribute only, such as headers_wo.
+# Set the value with the environment variable TF_VAR_<name>.
+variable "custom_webhook_token" {
+  type      = string
+  sensitive = true
+  ephemeral = true
+}
+
+variable "pagerduty_service_key" {
+  type      = string
+  sensitive = true
+  ephemeral = true
+}
+
+variable "jira_api_token" {
+  type      = string
+  sensitive = true
+  ephemeral = true
+}
+
 resource "coralogix_webhook" "slack_webhook" {
   name = "slack-webhook"
   slack = {
@@ -48,7 +71,7 @@ resource "coralogix_webhook" "custom_webhook" {
     # A header carrying a secret goes here rather than in headers: Terraform
     # sends these values to Coralogix and never writes them to state.
     # Increment the matching version to send a rotated secret.
-    headers_wo          = { "Authorization" : "Bearer example-token" }
+    headers_wo          = { "Authorization" : "Bearer ${var.custom_webhook_token}" }
     headers_wo_versions = { "Authorization" : 1 }
   }
 }
@@ -56,7 +79,7 @@ resource "coralogix_webhook" "custom_webhook" {
 resource "coralogix_webhook" "pager_duty_webhook" {
   name = "pagerduty-webhook"
   pager_duty = {
-    service_key_wo         = "service-key"
+    service_key_wo         = var.pagerduty_service_key
     service_key_wo_version = 1
   }
 }
@@ -78,7 +101,7 @@ resource "coralogix_webhook" "microsoft_teams_webhook" {
 resource "coralogix_webhook" "jira_webhook" {
   name = "jira-webhook"
   jira = {
-    api_token_wo         = "api-token"
+    api_token_wo         = var.jira_api_token
     api_token_wo_version = 1
     email                = "example@coralogix.com"
     project_key          = "project-key"

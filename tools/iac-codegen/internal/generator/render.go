@@ -59,6 +59,7 @@ func renderAll(r *model.Resource, refs []sdkcheck.Ref, pkg string, file *overrid
 		// A released resource keeps its tests. Only an attribute that the release lacks takes its example.
 		markNewExamples(data.Attributes, examples, prior, file)
 	}
+	markIaC(data.Attributes, findIaCHints(r), file)
 	if data.Conv, err = buildConvWith(r, refs, file); err != nil {
 		return nil, err
 	}

@@ -16,10 +16,65 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/acctest/failpaths"
+	"github.com/coralogix/terraform-provider-coralogix/internal/acctest/failreport"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider"
 )
 
 const resourceAddress = "coralogix_events2metric.test"
+
+// sensitiveFields are the API names of the fields that the schema marks sensitive or write-only. The recorder
+// redacts them in every request and response that a failure line shows.
+var sensitiveFields = []string{}
+
+// apiFields name the API field of each attribute, by its Terraform path without list positions.
+// ErrorCheck shows the field in the line of a failure.
+var apiFields = map[string]string{
+	"data_source":                           "E2M.dataSource",
+	"description":                           "E2M.description",
+	"id":                                    "E2M.id",
+	"logs_query":                            "E2M.logsQuery",
+	"logs_query.applications":               "v2.LogsQuery.applicationnameFilters",
+	"logs_query.lucene":                     "v2.LogsQuery.lucene",
+	"logs_query.severities":                 "v2.LogsQuery.severityFilters",
+	"logs_query.subsystems":                 "v2.LogsQuery.subsystemnameFilters",
+	"metric_fields":                         "E2M.metricFields",
+	"metric_fields.aggregations":            "v2.MetricField.aggregations",
+	"metric_fields.aggregations.avg":        "v2.Aggregation.keyed.avg",
+	"metric_fields.aggregations.avg.enable": "v2.Aggregation.enabled",
+	"metric_fields.aggregations.avg.target_metric_name":       "v2.Aggregation.targetMetricName",
+	"metric_fields.aggregations.count":                        "v2.Aggregation.keyed.count",
+	"metric_fields.aggregations.count.enable":                 "v2.Aggregation.enabled",
+	"metric_fields.aggregations.count.target_metric_name":     "v2.Aggregation.targetMetricName",
+	"metric_fields.aggregations.histogram":                    "v2.Aggregation.keyed.histogram",
+	"metric_fields.aggregations.histogram.buckets":            "v2.Aggregation.histogram",
+	"metric_fields.aggregations.histogram.enable":             "v2.Aggregation.enabled",
+	"metric_fields.aggregations.histogram.target_metric_name": "v2.Aggregation.targetMetricName",
+	"metric_fields.aggregations.max":                          "v2.Aggregation.keyed.max",
+	"metric_fields.aggregations.max.enable":                   "v2.Aggregation.enabled",
+	"metric_fields.aggregations.max.target_metric_name":       "v2.Aggregation.targetMetricName",
+	"metric_fields.aggregations.min":                          "v2.Aggregation.keyed.min",
+	"metric_fields.aggregations.min.enable":                   "v2.Aggregation.enabled",
+	"metric_fields.aggregations.min.target_metric_name":       "v2.Aggregation.targetMetricName",
+	"metric_fields.aggregations.samples":                      "v2.Aggregation.keyed.samples",
+	"metric_fields.aggregations.samples.enable":               "v2.Aggregation.enabled",
+	"metric_fields.aggregations.samples.target_metric_name":   "v2.Aggregation.targetMetricName",
+	"metric_fields.aggregations.samples.type":                 "v2.Aggregation.samples",
+	"metric_fields.aggregations.sum":                          "v2.Aggregation.keyed.sum",
+	"metric_fields.aggregations.sum.enable":                   "v2.Aggregation.enabled",
+	"metric_fields.aggregations.sum.target_metric_name":       "v2.Aggregation.targetMetricName",
+	"metric_fields.source_field":                              "v2.MetricField.sourceField",
+	"metric_labels":                                           "E2M.metricLabels",
+	"name":                                                    "E2M.name",
+	"permutations":                                            "E2M.permutations",
+	"permutations.has_exceed_limit":                           "E2MPermutations.hasExceededLimit",
+	"permutations.limit":                                      "E2MPermutations.limit",
+	"spans_query":                                             "E2M.spansQuery",
+	"spans_query.actions":                                     "v2.SpansQuery.actionFilters",
+	"spans_query.applications":                                "v2.SpansQuery.applicationnameFilters",
+	"spans_query.lucene":                                      "v2.SpansQuery.lucene",
+	"spans_query.services":                                    "v2.SpansQuery.serviceFilters",
+	"spans_query.subsystems":                                  "v2.SpansQuery.subsystemnameFilters",
+}
 
 // requiredEnv are the variables that the test config reads, besides the API key.
 var requiredEnv = []string{}
@@ -191,19 +246,21 @@ var importPlanStep = resource.TestStep{
 // so that a failure in one does not hide the others. After every apply, the framework plans again and
 // fails when the plan is not empty.
 func TestAccCoralogixResourceEvents2metricGenerated(t *testing.T) {
+	failreport.Install(sensitiveFields...) // records the HTTP calls that ErrorCheck shows in the line of a failure
 	// full-lifecycle sets every attribute, imports, reads the data source, changes the attributes, and imports again.
 	t.Run("full-lifecycle", func(t *testing.T) {
 		run := newRun()
 		resource.Test(t, resource.TestCase{
 			PreCheck:                 func() { preCheck(t) },
 			ProtoV6ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
+			ErrorCheck:               failreport.ErrorCheck(apiFields),
+			Steps: failreport.Steps(t, []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 				importStep,
 				{Config: config(run, fullConfig+"\n\n"+dataSourceConfig), Check: dataSourceChecks()},
 				{Config: config(run, updatedConfig), Check: updatedChecks(run)},
 				importStep,
-			},
+			}),
 		})
 	})
 
@@ -214,14 +271,15 @@ func TestAccCoralogixResourceEvents2metricGenerated(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			PreCheck:                 func() { preCheck(t) },
 			ProtoV6ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
+			ErrorCheck:               failreport.ErrorCheck(apiFields),
+			Steps: failreport.Steps(t, []resource.TestStep{
 				{Config: config(run, minimalConfig), Check: minimalChecks(run)},
 				importStep,
 				importPlanStep,
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 				{Config: config(run, minimalConfig), Check: minimalChecks(run)},
 				importStep,
-			},
+			}),
 		})
 	})
 }

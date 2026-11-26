@@ -104,6 +104,14 @@ type acceptanceData struct {
 	Address                string // address of the resource in the config
 	TypeName               string // the Terraform type, such as coralogix_alert
 	FailPathsImport        string // import path of the package that checks the failure paths
+	// FailReportImport is the package that turns an error of a step into one line with a failure code.
+	FailReportImport string
+	// APIFields name the API field of each attribute, by its Terraform path without list positions:
+	// "search.text" is "IacSearch.text". The failure line shows the field.
+	APIFields []apiFieldPair
+	// SensitiveFields are the API names of the fields that the schema marks sensitive or write-only. The
+	// recorder redacts them in every request and response.
+	SensitiveFields []string
 	// FailSingleton and FailNoDelete tell the failure path test what the API has: one resource of the
 	// kind (a singleton, or a list that one write replaces), and no delete.
 	FailSingleton, FailNoDelete bool
@@ -249,6 +257,12 @@ type accSynth struct {
 	// armBuilds records, for each oneOf arm that the sweep considered, the error of the trial that
 	// made a value for it, or nil.
 	armBuilds map[string]error
+	// usedFixedArm: the copy of a sweep step that is being made sets an arm with the arm_fixed knob.
+	usedFixedArm bool
+	// prevFixed are the copies of the last sweep step that set such an arm, by copy index. stepNo is
+	// the number of the sweep step being made, from 1.
+	prevFixed map[int]bool
+	stepNo    int
 }
 
 var quoted = regexp.MustCompile(`"([^"]*)"`)
@@ -269,6 +283,9 @@ func buildAcceptance(res *tfResource, providerModule string, file *acceptance.Fi
 		FailNoDelete:     res.CRUD.NoDelete,
 		FailReadFromList: res.CRUD.Get.FromList,
 		FailPathsImport:  providerModule + "/internal/acctest/failpaths",
+		FailReportImport: providerModule + "/internal/acctest/failreport",
+		APIFields:        apiFieldPairs(res.Attributes),
+		SensitiveFields:  sensitiveFieldNames(res.Attributes),
 		IDAttr:           res.CRUD.IDAttr,
 		IDCustom:         res.CRUD.IDAttr != "id",
 		Env:              file.Env,
@@ -348,9 +365,15 @@ func (s *accSynth) makeConfigs(res *tfResource, out *acceptanceData) (map[string
 		if step.mode == accFull {
 			s.cov = map[string]bool{} // the full config sets the first value and the first arm
 		}
+		s.usedFixedArm = false
 		body, checks, err := s.attrs(res.Attributes, "", "", step.mode, true)
 		if err != nil {
 			return nil, fmt.Errorf("acceptance test: %w", err)
+		}
+		if step.mode == accFull {
+			// The sweep applies its first step to the resource of the full config: an arm that an update
+			// cannot leave must not be there.
+			s.prevFixed = map[int]bool{0: s.usedFixedArm}
 		}
 		config := resourceBlock("coralogix_"+typeName, body)
 		if step.mode == accUpdated && config == out.Full.Config && hasExample(res.Attributes) {
@@ -853,8 +876,12 @@ func (s *accSynth) include(a *tfAttr, key string, mode accMode, top bool) bool {
 	case a.Required, a.OneOfRequired:
 		return true // a OneOfRequired group needs one arm; the walk takes the first that is included
 	}
-	return mode != accMinimal || slices.Contains(s.minimal, key) || s.minimalBelow(key)
+	return mode != accMinimal || slices.Contains(s.minimal, key) || s.minimalBelow(key) || requiredByAPI(a)
 }
+
+// requiredByAPI says that the contract knob required_by_api is set: the API refuses a create without the field, so the
+// minimal config sets it too.
+func requiredByAPI(a *tfAttr) bool { return a.IaC != nil && a.IaC.RequiredByAPI }
 
 // includeExtra says whether the config of the mode sets an extra attribute. extraAttributes are not
 // API fields; a made-up map key is not valid. An optional one is in the minimal config only when
@@ -884,18 +911,33 @@ func (s *accSynth) attrs(attrs []*tfAttr, tfPath, key string, mode accMode, top 
 	var checks []accCheck
 	armTaken := s.requiredArms(attrs, key, mode, top) // the oneOf groups that already have an arm
 	picks := s.armPicks(attrs, key, mode, top)
-	var arm *typedArmSet // the arm of a typedArms object that the type names
+	var arm *typedArmSet                                          // the arm of a typedArms object that the type names
+	selected := s.emittedAttrs(attrs, key, mode, top, nil, picks) // what the config sets, before conflicts and requires
+	losers := s.conflictLosers(attrs, key, mode, top, selected)
+	if losers == nil {
+		losers = map[*tfAttr]bool{}
+	}
+	forced := s.forcedByRequires(attrs, key, mode, top, losers, picks)
+	if added := forcedConflicts(attrs, forced, losers); len(added) > 0 {
+		for _, a := range added {
+			s.excuse(joinPath(key, a.Name)) // a field that always loses to the field that another requires
+		}
+		forced = s.forcedByRequires(attrs, key, mode, top, losers, picks)
+	}
 	for _, a := range typedFirst(attrs) {
 		attrKey := joinPath(key, a.Name)
 		s.noteAttr(a, attrKey, top)
+		need, isForced := forced[a]
 		a, ok := s.included(a, attrKey, arm, mode, top)
-		if !ok {
+		forcedIn := isForced && !slices.Contains(s.file.Skip, attrKey) && s.inRelease(attrKey) && !a.Extra // an included field requires it
+		if !forcedIn && (!ok || losers[a]) {
 			continue
 		}
 		if a.OneOfGroup != "" && !a.Required && !s.takeArm(a, attrKey, armTaken, picks) {
 			continue
 		}
-		value, c, err := s.value(a, joinPath(tfPath, a.Name), attrKey, mode)
+		s.noteFixedArm(a)
+		value, c, err := s.valueOrRequired(a, joinPath(tfPath, a.Name), attrKey, mode, need, isForced)
 		if err != nil {
 			return "", nil, fmt.Errorf("%s: %w", attrKey, err)
 		}
@@ -909,6 +951,20 @@ func (s *accSynth) attrs(attrs []*tfAttr, tfPath, key string, mode accMode, top 
 		}
 	}
 	return strings.Join(lines, "\n"), checks, nil
+}
+
+// valueOrRequired makes the value of the attribute. An attribute that a requires knob forces, with an
+// equals value, takes that value, unless the acceptance file states one.
+func (s *accSynth) valueOrRequired(a *tfAttr, tfPath, key string, mode accMode, need requiredValue, forced bool) (string, []accCheck, error) {
+	if forced {
+		if _, _, fixed := s.fileValue(key); !fixed {
+			if hcl, state, ok := forcedLiteral(a, need); ok {
+				s.noteValue(a, key, state) // a forced enum value counts as set by this config
+				return hcl, []accCheck{{Path: tfPath, Value: state}}, nil
+			}
+		}
+	}
+	return s.value(a, tfPath, key, mode)
 }
 
 // noteAttr records what the schema says about the attribute: that it exists, whether a config can
@@ -1145,7 +1201,7 @@ func literalState(a *tfAttr, expr string) (string, bool) {
 }
 
 func (s *accSynth) makeValue(a *tfAttr, tfPath, key string, mode accMode) (string, []accCheck, error) {
-	if mode == accMinimal && slices.Contains(s.minimal, key) {
+	if mode == accMinimal && (slices.Contains(s.minimal, key) || requiredByAPI(a)) {
 		mode = accFull
 	}
 	if immutable(a) && mode == accUpdated {
@@ -1236,11 +1292,12 @@ func (s *accSynth) mapNestedValue(a *tfAttr, tfPath, key string, mode accMode) (
 	if err := checkOneElement(a); err != nil {
 		return "", nil, err
 	}
-	body, checks, err := s.attrs(a.Attributes, tfPath+".key", key, mode, false)
+	mapKey, keyHCL := mapExampleKey(a, mode)
+	body, checks, err := s.attrs(a.Attributes, tfPath+"."+mapKey, key, mode, false)
 	if err != nil {
 		return "", nil, err
 	}
-	return "{ key = " + objectHCL(body) + " }", checks, nil
+	return "{ " + keyHCL + " = " + objectHCL(body) + " }", checks, nil
 }
 
 func (s *accSynth) nestedCollection(a *tfAttr, tfPath, key string, mode accMode) (string, []accCheck, error) {
@@ -1553,7 +1610,8 @@ func (s *accSynth) collectionValue(a *tfAttr, tfPath, key string, mode accMode) 
 	}
 	switch a.Kind {
 	case "Map":
-		return "{ key = " + item + " }", []accCheck{{Path: tfPath + ".key", Value: state}}, nil
+		mapKey, keyHCL := mapExampleKey(a, mode)
+		return "{ " + keyHCL + " = " + item + " }", []accCheck{{Path: tfPath + "." + mapKey, Value: state}}, nil
 	case "List":
 		return "[" + item + "]", []accCheck{{Path: tfPath + ".#", Value: "1"}, {Path: tfPath + ".0", Value: state}}, nil
 	}
@@ -1712,4 +1770,57 @@ func (s *accSynth) fileValue(key string) (value, line string, ok bool) {
 		}
 	}
 	return "", "", false
+}
+
+// apiFieldPair is one line of the apiFields map of the generated test.
+type apiFieldPair struct{ Path, Field string }
+
+// apiFieldPairs lists the API field of every attribute that has one, sorted by path. The path has
+// no list positions, because the error of a step names the position of an item.
+func apiFieldPairs(attrs []*tfAttr) []apiFieldPair {
+	all := map[string]*tfAttr{}
+	schemaAttrs(all, "", attrs)
+	var out []apiFieldPair
+	for _, path := range sortedStringKeys(all) {
+		a := all[path]
+		if a.Extra || a.Component == "" || a.Property == "" {
+			continue
+		}
+		out = append(out, apiFieldPair{Path: strings.ReplaceAll(path, "[]", ""), Field: contractField(a, nil)})
+	}
+	return out
+}
+
+// sensitiveFieldNames lists the API names of the attributes that Terraform hides (sensitive) or never
+// stores (write-only), sorted and without duplicates.
+func sensitiveFieldNames(attrs []*tfAttr) []string {
+	all := map[string]*tfAttr{}
+	schemaAttrs(all, "", attrs)
+	names := map[string]bool{}
+	for _, a := range all {
+		if !a.Sensitive && !a.WriteOnly {
+			continue
+		}
+		// The body holds the API name. An extra attribute has no API name of its own, and the Terraform
+		// name is kept too, in case a hook or an override writes the value under it.
+		if a.Property != "" && !a.Extra {
+			names[a.Property] = true
+		}
+		// A hook sends an extra attribute under a name that the contract does not tell. By convention it is the
+		// Terraform name without "_wo", in camelCase (service_key_wo is serviceKey).
+		base := strings.TrimSuffix(a.Name, "_wo")
+		names[a.Name], names[base], names[lowerCamel(base)] = true, true, true
+	}
+	return sortedStringKeys(names)
+}
+
+// lowerCamel turns a snake_case name into camelCase: service_key is serviceKey.
+func lowerCamel(name string) string {
+	parts := strings.Split(name, "_")
+	for i := 1; i < len(parts); i++ {
+		if parts[i] != "" {
+			parts[i] = strings.ToUpper(parts[i][:1]) + parts[i][1:]
+		}
+	}
+	return strings.Join(parts, "")
 }
