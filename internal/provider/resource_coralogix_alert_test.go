@@ -1884,6 +1884,7 @@ func TestAccCoralogixResourceAlert_analytics_threshold(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_threshold.dataprime_query.query", "source logs | filter severity == 'error' | count into error_count"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_threshold.operator", "LESS_THAN"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_threshold.target_column", "error_count"),
+					// Not configured: the API derives false from the ungrouped query.
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_threshold.use_rows_as_permutations", "false"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_threshold.timeframe_minutes", "30"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_threshold.rules.#", "1"),
@@ -2049,10 +2050,9 @@ func testAccCoralogixResourceAlertAnalyticsThreshold() string {
           priority = "P1"
         }
       }]
-      operator                 = "LESS_THAN"
-      target_column            = "error_count"
-      use_rows_as_permutations = false
-      timeframe_minutes        = 30
+      operator          = "LESS_THAN"
+      target_column     = "error_count"
+      timeframe_minutes = 30
     }
   }
 }

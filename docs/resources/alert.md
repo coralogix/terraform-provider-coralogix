@@ -999,7 +999,7 @@ Optional:
 - `custom_evaluation_delay` (Number) Delay evaluation of the rules by n milliseconds. When omitted, the provider does not send a custom evaluation delay.
 - `evaluation_period_minutes` (Number) How often the alert is evaluated, in minutes. Optional: when omitted on create or replace, the value is min(10, timeframeMinutes). May exceed timeframeMinutes, in which case data between evaluations is not covered by any evaluation.
 - `no_data_policy` (Attributes) How to treat, and what state to give, an alert with no data. Once set, the policy persists; the Coralogix API does not clear it when the block is removed. (see [below for nested schema](#nestedatt--type_definition--analytics_threshold--no_data_policy))
-- `use_rows_as_permutations` (Boolean, Deprecated) Whether each result row is treated as a separate permutation. When omitted, the Coralogix API derives it from the DataPrime query: true when the query has group-by keys, and every update of the alert derives it again. A configured value is kept in state and is not compared with the value that the API returns.
+- `use_rows_as_permutations` (Boolean, Deprecated) Whether each result row is treated as a separate permutation. When omitted, the Coralogix API derives it from the DataPrime query: true when the query has group-by keys, and every update of the alert derives it again. A configured value is not sent to the API: it is kept in state and is not compared with the value that the API returns.
 
 <a id="nestedatt--type_definition--analytics_threshold--dataprime_query"></a>
 ### Nested Schema for `type_definition.analytics_threshold.dataprime_query`

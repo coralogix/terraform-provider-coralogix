@@ -59,6 +59,7 @@ func beforeCreateAlert(ctx context.Context, config tfsdk.Config, plan tfsdk.Plan
 	policy, policyDiags := configuredAccessPolicy(ctx, config)
 	diags.Append(policyDiags...)
 	body.AccessPolicy = accessPolicyForCreate(policy)
+	omitRowsAsPermutations(body.AlertDefProperties)
 	return diags
 }
 
@@ -71,7 +72,17 @@ func beforeUpdateAlert(ctx context.Context, config tfsdk.Config, plan tfsdk.Plan
 	diags.Append(policyDiags...)
 	body.AccessPolicy = accessPolicyActionForUpdate(policy)
 	diags.Append(clearOmittedDescription(ctx, plan, body.AlertDefProperties)...)
+	omitRowsAsPermutations(body.AlertDefProperties)
 	return diags
+}
+
+// omitRowsAsPermutations leaves use_rows_as_permutations out of the request. The API derives it from the
+// DataPrime query (true when the query has group-by keys) and overrides a value that disagrees, so clients
+// should not send it. A configured value stays in state (keepConfiguredRowsAsPermutations).
+func omitRowsAsPermutations(properties *alertapi.AlertDefProperties) {
+	if properties != nil && properties.AnalyticsThreshold != nil {
+		properties.AnalyticsThreshold.UseRowsAsPermutations = nil
+	}
 }
 
 var descriptionPath = path.Root("description")
