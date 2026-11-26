@@ -2,8 +2,8 @@
 
 #### resource/coralogix_alert
 
-- FIX: `analytics_threshold` plans `group_by` as computed when the configuration leaves it out: unknown when the DataPrime query or `use_rows_as_permutations` changes, the state value otherwise. The Coralogix API now infers the keys from the group-by keys of the query. Before, an apply of a grouped query without `group_by` failed with "Provider produced inconsistent result after apply". Upgrade the provider before you apply such an alert, because older versions fail with that error.
-- DEPRECATION: `analytics_threshold.use_rows_as_permutations` is deprecated and now Optional and Computed. The Coralogix API derives it from the query: true when the query has group-by keys. When it is left out, the plan keeps the state value until the query changes. A configured value that disagrees with the query is rejected by the API.
+- FIX: `analytics_threshold` plans `group_by` as computed when the configuration leaves it out. The Coralogix API now infers the keys from the group-by keys of the DataPrime query on every save, so an update plans them as `(known after apply)` and sends none; an alert that does not change keeps them. Before, an apply of a grouped query without `group_by` failed with "Provider produced inconsistent result after apply". Upgrade the provider before you apply such an alert, because older versions fail with that error.
+- DEPRECATION: `analytics_threshold.use_rows_as_permutations` is deprecated and now Optional and Computed. The Coralogix API derives it from the query: true when the query has group-by keys. When it is left out, every update derives it again. A configured value that disagrees with the query is rejected by the API.
 
 #### resource/coralogix_user
 

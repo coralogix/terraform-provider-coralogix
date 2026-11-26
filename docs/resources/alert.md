@@ -889,7 +889,7 @@ resource "coralogix_alert" "test" {
 - `data_sources` (Attributes List) Data sources to associate the alert with. The referenced data space and dataset must already exist. Omit the attribute instead of setting an empty list. (see [below for nested schema](#nestedatt--data_sources))
 - `description` (String) A detailed description of what the alert monitors and when it triggers
 - `enabled` (Boolean) Alert enabled status. True by default.
-- `group_by` (List of String) Keys used to group and aggregate alert data. For `analytics_threshold`, the Coralogix API infers the keys from the group-by keys of the DataPrime query when `use_rows_as_permutations` is true: leave `group_by` out and it plans the keys again when the query changes. A configured `group_by` must match the inferred keys.
+- `group_by` (List of String) Keys used to group and aggregate alert data. For `analytics_threshold`, the Coralogix API infers the keys from the group-by keys of the DataPrime query when `use_rows_as_permutations` is true: leave `group_by` out and every update of the alert plans the keys again. A configured `group_by` must match the inferred keys.
 - `incidents_settings` (Attributes) Incident creation and management settings (see [below for nested schema](#nestedatt--incidents_settings))
 - `labels` (Map of String) Key-value labels on the alert definition. Use them to categorize the alert and to match Notification Center routers and alert-scheduler mute rules. Omit the attribute to clear all labels. An empty map is rejected.
 - `notification_group` (Attributes) Primary notification group for alert events (see [below for nested schema](#nestedatt--notification_group))
@@ -999,7 +999,7 @@ Optional:
 - `custom_evaluation_delay` (Number) Delay evaluation of the rules by n milliseconds. When omitted, the provider does not send a custom evaluation delay.
 - `evaluation_period_minutes` (Number) How often the alert is evaluated, in minutes. Optional: when omitted on create or replace, the value is min(10, timeframeMinutes). May exceed timeframeMinutes, in which case data between evaluations is not covered by any evaluation.
 - `no_data_policy` (Attributes) How to treat, and what state to give, an alert with no data. Once set, the policy persists; the Coralogix API does not clear it when the block is removed. (see [below for nested schema](#nestedatt--type_definition--analytics_threshold--no_data_policy))
-- `use_rows_as_permutations` (Boolean, Deprecated) Whether each result row is treated as a separate permutation. When omitted, the Coralogix API derives it from the DataPrime query: true when the query has group-by keys. A configured value must match the query. Once it is in the state, deleting the line keeps the value until the query changes.
+- `use_rows_as_permutations` (Boolean, Deprecated) Whether each result row is treated as a separate permutation. When omitted, the Coralogix API derives it from the DataPrime query: true when the query has group-by keys. A configured value must match the query. When omitted, every update of the alert derives it again.
 
 <a id="nestedatt--type_definition--analytics_threshold--dataprime_query"></a>
 ### Nested Schema for `type_definition.analytics_threshold.dataprime_query`

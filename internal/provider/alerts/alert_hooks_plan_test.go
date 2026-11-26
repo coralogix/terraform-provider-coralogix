@@ -93,9 +93,9 @@ func TestWithStateAdvancedNotification(t *testing.T) {
 	}
 }
 
-// The API infers the group_by of an analytics_threshold alert from its DataPrime query, and derives
-// use_rows_as_permutations from the keys, so both are planned unknown when the query changes and kept
-// otherwise. A configured value is planned as configured.
+// The API infers the group_by of an analytics_threshold alert from its DataPrime query on every create and
+// update that sends none, and derives use_rows_as_permutations from the keys, so both are planned unknown
+// when the alert changes and kept when it does not. A configured value is planned as configured.
 func TestPlanAnalyticsThresholdGroupBy(t *testing.T) {
 	ctx := context.Background()
 	s := alert.Schema()
@@ -140,9 +140,23 @@ func TestPlanAnalyticsThresholdGroupBy(t *testing.T) {
 			wantRows: unknownBool, wantGroup: unknownList,
 		},
 		{
-			name:   "unchanged query keeps the state",
+			name:   "a change of another attribute",
 			config: alertOf("b", grouped, nullBool, nullList), state: state,
 			plan:     alertOf("b", grouped, unknownBool, unknownList),
+			wantRows: unknownBool, wantGroup: unknownList,
+		},
+		{
+			name:   "no change keeps the state",
+			config: alertOf("a", grouped, nullBool, nullList), state: state,
+			plan:     alertOf("a", grouped, boolValue(true), keys),
+			wantRows: boolValue(true), wantGroup: keys,
+		},
+		{
+			// The framework plans unconfigured computed values unknown also for a difference that a plan
+			// step undoes before the hook, so an alert without a change can arrive with both unknown.
+			name:   "no change that the framework planned unknown keeps the state",
+			config: alertOf("a", grouped, nullBool, nullList), state: state,
+			plan:     alertOf("a", grouped, unknownBool, unknownList),
 			wantRows: boolValue(true), wantGroup: keys,
 		},
 		{
@@ -159,8 +173,8 @@ func TestPlanAnalyticsThresholdGroupBy(t *testing.T) {
 		},
 		{
 			name:   "configured use_rows_as_permutations as in the state",
-			config: alertOf("b", grouped, boolValue(true), nullList), state: state,
-			plan:     alertOf("b", grouped, boolValue(true), unknownList),
+			config: alertOf("a", grouped, boolValue(true), nullList), state: state,
+			plan:     alertOf("a", grouped, boolValue(true), unknownList),
 			wantRows: boolValue(true), wantGroup: keys,
 		},
 		{

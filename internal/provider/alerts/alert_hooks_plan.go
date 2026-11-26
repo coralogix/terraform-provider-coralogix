@@ -19,6 +19,7 @@ import (
 	"maps"
 	"slices"
 
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -69,29 +70,28 @@ var armsWithConfiguredGroupBy = []string{
 	"logs_unique_count", "analytics_result_count", "tracing_immediate",
 }
 
-// groupByInput are the attributes of the arm whose change makes the API compute group_by again. An arm of
-// groupByArms without a line here (slo_threshold, tracing_threshold, flow) returns group_by independently of the
-// configuration, so the plan keeps the state value and leaves it unknown until the state holds one.
-var groupByInput = map[string][][]string{
-	"metric_threshold": {{"type_definition", "metric_threshold", "metric_filter", "promql"}},
-	"metric_anomaly":   {{"type_definition", "metric_anomaly", "metric_filter", "promql"}},
-	"logs_new_value":   {{"type_definition", "logs_new_value", "rules"}},
-	// The API infers the keys from the DataPrime query, and stores them only when each row is a permutation.
-	"analytics_threshold": {
-		analyticsThresholdQuery,
-		{"type_definition", "analytics_threshold", "use_rows_as_permutations"},
-	},
+// groupByInput is the attribute of the arm whose change makes the API compute group_by again. An arm of
+// groupByArms without a line here returns group_by independently of the configuration: armsInferredOnUpdate
+// recompute it on every update, and the others (slo_threshold, tracing_threshold, flow) keep the state value and
+// leave it unknown until the state holds one.
+var groupByInput = map[string][]string{
+	"metric_threshold": {"type_definition", "metric_threshold", "metric_filter", "promql"},
+	"metric_anomaly":   {"type_definition", "metric_anomaly", "metric_filter", "promql"},
+	"logs_new_value":   {"type_definition", "logs_new_value", "rules"},
 }
 
-// analyticsThresholdQuery is the DataPrime query of an analytics_threshold alert.
-var analyticsThresholdQuery = []string{"type_definition", "analytics_threshold", "dataprime_query", "query"}
+// armsInferredOnUpdate are the arms of groupByArms whose group_by the API infers again on every create and
+// update that sends none: analytics_threshold infers the keys from the DataPrime query, and derives
+// use_rows_as_permutations from them. The plan does not predict the inference: an unconfigured value is
+// unknown when the alert changes, so the update sends none, and the state value when it does not.
+var armsInferredOnUpdate = []string{"analytics_threshold"}
 
-// armsWithReturnedGroupBy are the arms of groupByArms that have no groupByInput: the API may return a
-// group_by for them that the configuration does not have.
+// armsWithReturnedGroupBy are the arms of groupByArms that have no groupByInput and are not inferred on
+// update: the API may return a group_by for them that the configuration does not have.
 func armsWithReturnedGroupBy() []string {
 	var arms []string
 	for _, arm := range groupByArms {
-		if _, ok := groupByInput[arm]; !ok {
+		if _, ok := groupByInput[arm]; !ok && !slices.Contains(armsInferredOnUpdate, arm) {
 			arms = append(arms, arm)
 		}
 	}
@@ -99,9 +99,10 @@ func armsWithReturnedGroupBy() []string {
 }
 
 // planGroupBy plans group_by when the configuration leaves it out:
-//   - metric_threshold, metric_anomaly (the promql), logs_new_value (the rules) and analytics_threshold (the
-//     DataPrime query and use_rows_as_permutations): the API derives group_by from them, so a change makes it
-//     unknown and no change keeps the state;
+//   - metric_threshold, metric_anomaly (the promql) and logs_new_value (the rules): the API derives
+//     group_by from them, so a change makes it unknown and no change keeps the state;
+//   - analytics_threshold (armsInferredOnUpdate): the API infers group_by on every update, so it is unknown
+//     when the alert changes and the state value when it does not;
 //   - slo_threshold, tracing_threshold, flow: the API may return a group_by that the configuration does not
 //     have, so it is unknown until the state holds one;
 //   - any other type: the planned value is the configured one, null.
@@ -122,9 +123,14 @@ func planGroupBy(ctx context.Context, req resource.ModifyPlanRequest, resp *reso
 	if arm := firstSetArm(typeDefinition, groupByArms); arm != "" {
 		input, hasInput := groupByInput[arm]
 		var changed bool
-		if hasInput {
-			changed = slices.ContainsFunc(input, func(names []string) bool { return valueChanged(req.State.Raw, resp.Plan.Raw, names) })
-		} else {
+		switch {
+		case hasInput:
+			changed = valueChanged(req.State.Raw, resp.Plan.Raw, input)
+		case slices.Contains(armsInferredOnUpdate, arm):
+			unchanged, unchangedDiags := alertUnchanged(ctx, req, resp.Plan)
+			diags.Append(unchangedDiags...)
+			changed = !unchanged
+		default:
 			changed = state.IsNull() || state.IsUnknown()
 		}
 		planned = state
@@ -136,65 +142,56 @@ func planGroupBy(ctx context.Context, req resource.ModifyPlanRequest, resp *reso
 	return diags
 }
 
+// rowsAsPermutationsPath is the use_rows_as_permutations of an analytics_threshold alert.
+var rowsAsPermutationsPath = path.Root("type_definition").AtName("analytics_threshold").AtName("use_rows_as_permutations")
+
 // planRowsAsPermutations plans the use_rows_as_permutations of an analytics_threshold alert when the
-// configuration leaves it out. The API derives it from the DataPrime query (true when the query has group-by
-// keys), so a new alert or a changed query makes it unknown, and an unchanged query keeps the state value.
-// A null state value is an alert saved before the API derived it, or an API that does not derive it: an
-// update may fill it in, so it is unknown when the alert changes and null when it does not. The framework
-// plans an unconfigured computed value unknown also for a change that a later plan step undoes, so this
-// compares the plan with the state itself. It is an input of group_by, so the same update recomputes the keys.
+// configuration leaves it out. The API derives it on every create and update that sends none (true when the
+// query has group-by keys), so it is unknown when the alert changes, and the state value when it does not.
 func planRowsAsPermutations(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) diag.Diagnostics {
-	rowsPath := path.Root("type_definition").AtName("analytics_threshold").AtName("use_rows_as_permutations")
 	var typeDefinition types.Object
 	diags := resp.Plan.GetAttribute(ctx, path.Root("type_definition"), &typeDefinition)
 	if diags.HasError() || !armIsSet(typeDefinition, "analytics_threshold") {
 		return diags
 	}
-	var config types.Bool
-	diags.Append(req.Config.GetAttribute(ctx, rowsPath, &config)...)
+	var config, state types.Bool
+	diags.Append(req.Config.GetAttribute(ctx, rowsAsPermutationsPath, &config)...)
 	if diags.HasError() || !config.IsNull() {
 		return diags
 	}
-	planned := types.BoolUnknown()
-	if !valueChanged(req.State.Raw, resp.Plan.Raw, analyticsThresholdQuery) {
-		var state types.Bool
-		diags.Append(req.State.GetAttribute(ctx, rowsPath, &state)...)
-		if diags.HasError() {
-			return diags
-		}
-		planned = state
-		if state.IsNull() {
-			unchanged, unchangedDiags := alertUnchanged(ctx, req, resp.Plan, rowsPath)
-			diags.Append(unchangedDiags...)
-			if diags.HasError() {
-				return diags
-			}
-			if !unchanged {
-				planned = types.BoolUnknown()
-			}
-		}
+	unchanged, unchangedDiags := alertUnchanged(ctx, req, resp.Plan)
+	diags.Append(unchangedDiags...)
+	if diags.HasError() {
+		return diags
 	}
-	diags.Append(resp.Plan.SetAttribute(ctx, rowsPath, planned)...)
+	planned := types.BoolUnknown()
+	if unchanged {
+		diags.Append(req.State.GetAttribute(ctx, rowsAsPermutationsPath, &state)...)
+		planned = state
+	}
+	diags.Append(resp.Plan.SetAttribute(ctx, rowsAsPermutationsPath, planned)...)
 	return diags
 }
 
-// alertUnchanged reports whether the plan holds the state, once the values that the hooks plan from the
-// state are taken from it: the attribute at rowsPath and an unconfigured group_by.
-func alertUnchanged(ctx context.Context, req resource.ModifyPlanRequest, plan tfsdk.Plan, rowsPath path.Path) (bool, diag.Diagnostics) {
+// alertUnchanged reports whether an existing alert does not change: the plan holds the state once the values
+// that the API infers on update, and the configuration leaves out, are taken from the state. The framework
+// plans an unconfigured computed value unknown also for a difference that a plan step undoes before the hook,
+// so an unknown value in the plan does not tell whether the alert changes.
+func alertUnchanged(ctx context.Context, req resource.ModifyPlanRequest, plan tfsdk.Plan) (bool, diag.Diagnostics) {
 	if req.State.Raw.IsNull() {
 		return false, nil
 	}
-	var rows types.Bool
-	diags := req.State.GetAttribute(ctx, rowsPath, &rows)
-	diags.Append(plan.SetAttribute(ctx, rowsPath, rows)...)
-	var configured, state types.List
-	diags.Append(req.Config.GetAttribute(ctx, path.Root("group_by"), &configured)...)
-	diags.Append(req.State.GetAttribute(ctx, path.Root("group_by"), &state)...)
-	if diags.HasError() {
-		return false, diags
-	}
-	if configured.IsNull() {
-		diags.Append(plan.SetAttribute(ctx, path.Root("group_by"), state)...)
+	var diags diag.Diagnostics
+	for _, p := range []path.Path{rowsAsPermutationsPath, path.Root("group_by")} {
+		var config, state attr.Value
+		diags.Append(req.Config.GetAttribute(ctx, p, &config)...)
+		diags.Append(req.State.GetAttribute(ctx, p, &state)...)
+		if diags.HasError() {
+			return false, diags
+		}
+		if config.IsNull() {
+			diags.Append(plan.SetAttribute(ctx, p, state)...)
+		}
 	}
 	return !diags.HasError() && plan.Raw.Equal(req.State.Raw), diags
 }
