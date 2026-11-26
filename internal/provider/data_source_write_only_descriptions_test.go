@@ -16,6 +16,7 @@ package provider
 
 import (
 	"context"
+	"slices"
 	"strings"
 	"testing"
 
@@ -47,8 +48,27 @@ func dataSourceAttributeText(t *testing.T, schema *tfprotov6.Schema, names ...st
 	return ""
 }
 
+// webhookArmsOf returns the top-level nested attributes of a webhook schema that have a child
+// attribute named child.
+func webhookArmsOf(schema *tfprotov6.Schema, child string) []string {
+	var arms []string
+	for _, a := range schema.Block.Attributes {
+		if a.NestedType == nil {
+			continue
+		}
+		for _, c := range a.NestedType.Attributes {
+			if c.Name == child {
+				arms = append(arms, a.Name)
+			}
+		}
+	}
+	slices.Sort(arms)
+	return arms
+}
+
 // A data source returns the secret in the plain attribute, and returns null in the write-only one.
 // The text that it copies from the resource says the opposite, so the data source replaces it.
+// The arms come from the schema, so a new arm with a url_wo is checked with no edit of the test.
 func TestDataSourceDescribesWriteOnlyAttributesAsNull(t *testing.T) {
 	server, err := testAccProtoV6ProviderFactories["coralogix"]()
 	if err != nil {
@@ -59,14 +79,19 @@ func TestDataSourceDescribesWriteOnlyAttributesAsNull(t *testing.T) {
 		t.Fatal(err)
 	}
 	webhook := schemas.DataSourceSchemas["coralogix_webhook"]
-	cases := map[string][]string{}
-	for _, arm := range []string{"custom", "slack", "microsoft_teams", "opsgenie", "demisto"} {
-		cases["webhook "+arm+".url_wo"] = []string{arm, "url_wo"}
-		cases["webhook "+arm+".url_wo_version"] = []string{arm, "url_wo_version"}
+	arms := webhookArmsOf(webhook, "url_wo")
+	if len(arms) == 0 {
+		t.Fatal("the webhook data source has no arm with url_wo")
 	}
-	for name, path := range cases {
-		if text := dataSourceAttributeText(t, webhook, path...); !strings.HasPrefix(text, "Always null in a data source.") {
-			t.Errorf("%s: description = %q", name, text)
+	for _, arm := range arms {
+		for _, name := range []string{"url_wo", "url_wo_version"} {
+			if text := dataSourceAttributeText(t, webhook, arm, name); !strings.HasPrefix(text, "Always null in a data source.") {
+				t.Errorf("webhook %s.%s: description = %q", arm, name, text)
+			}
+		}
+		// The advice to use url_wo is for the resource.
+		if text := dataSourceAttributeText(t, webhook, arm, "url"); strings.Contains(text, "belongs in") || strings.Contains(text, "exactly one of") {
+			t.Errorf("webhook %s.url: description = %q, want no advice to use url_wo", arm, text)
 		}
 	}
 	for source, names := range map[string][]string{
@@ -78,5 +103,38 @@ func TestDataSourceDescribesWriteOnlyAttributesAsNull(t *testing.T) {
 				t.Errorf("%s.%s: description = %q", source, name, text)
 			}
 		}
+	}
+}
+
+// A webhook arm with a url has url_wo too, unless it is listed here with the reason. A new arm with
+// a url fails this test until someone gives it url_wo or lists it. The arms with url_wo must also be
+// the arms that the resource tests run (webhookArms, and microsoft_teams, which has its own test).
+func TestWebhookArmsWithURLAreCovered(t *testing.T) {
+	server, err := testAccProtoV6ProviderFactories["coralogix"]()
+	if err != nil {
+		t.Fatal(err)
+	}
+	schemas, err := server.GetProviderSchema(context.Background(), &tfprotov6.GetProviderSchemaRequest{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	webhook := schemas.ResourceSchemas["coralogix_webhook"]
+	withoutWriteOnly := map[string]string{
+		"jira":                     "the credential of jira is api_token, which has api_token_wo",
+		"sendlog":                  "the url is computed, and the API returns it",
+		"microsoft_teams_workflow": "not asked for yet",
+	}
+	for _, arm := range webhookArmsOf(webhook, "url") {
+		if _, listed := withoutWriteOnly[arm]; !listed && !slices.Contains(webhookArmsOf(webhook, "url_wo"), arm) {
+			t.Errorf("the webhook arm %q has a url and no url_wo. Add url_wo, or list the arm with the reason", arm)
+		}
+	}
+	want := []string{"microsoft_teams"}
+	for _, tc := range webhookArms {
+		want = append(want, tc.arm)
+	}
+	slices.Sort(want)
+	if got := webhookArmsOf(webhook, "url_wo"); !slices.Equal(got, want) {
+		t.Errorf("arms with url_wo = %v, arms of the resource tests = %v. Add the new arm to webhookArms", got, want)
 	}
 }

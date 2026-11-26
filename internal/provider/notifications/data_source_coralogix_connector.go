@@ -36,8 +36,8 @@ type connectorDataSource struct{ *connector.DataSource }
 // template in `config_overrides`, a secret one too.
 func (d *connectorDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	d.DataSource.Schema(ctx, req, resp)
-	utils.DescribeDataSourceAttribute(resp.Schema,
-		"Always null in a data source. Every template is in `config_overrides[].fields[].template`, also one that the resource sets with `config_overrides_templates_wo`. A secret template is returned there.",
-		"config_overrides_templates_wo")
-	utils.DescribeDataSourceAttribute(resp.Schema, "Always null in a data source.", "config_overrides_templates_wo_versions")
+	utils.OverrideDatasourceDescriptions(&resp.Schema, map[string]string{
+		"config_overrides_templates_wo":          "Always null in a data source. Every template is in `config_overrides[].fields[].template`, also one that the resource sets with `config_overrides_templates_wo`. A secret template is returned there.",
+		"config_overrides_templates_wo_versions": "Always null in a data source.",
+	})
 }

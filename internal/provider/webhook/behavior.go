@@ -115,14 +115,27 @@ type webhookDataSource struct{ *generatedwebhook.DataSource }
 
 const webhookDataSourceURLWoText = "Always null in a data source. The URL is in `url`, also one that the resource sets with `url_wo`."
 
-// Schema corrects the text of the write-only URL attributes. A data source returns the URL in
-// `url`, and never writes a value to state in the way of a write-only attribute.
+// Schema corrects the text of the URL attributes that the data source copies from the resource.
+// A data source returns the URL in `url`, a secret one too. It never has a write-only value.
+// Every arm with a `url_wo` gets the text, so a new arm needs no edit here.
 func (d *webhookDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	d.DataSource.Schema(ctx, req, resp)
-	for _, arm := range []string{"custom", "slack", "microsoft_teams", "opsgenie", "demisto"} {
-		utils.DescribeDataSourceAttribute(resp.Schema, webhookDataSourceURLWoText, arm, "url_wo")
-		utils.DescribeDataSourceAttribute(resp.Schema, "Always null in a data source.", arm, "url_wo_version")
+	texts := map[string]string{}
+	for _, arm := range utils.NestedAttributesWith(resp.Schema, "url_wo") {
+		texts[arm+".url_wo"] = webhookDataSourceURLWoText
+		texts[arm+".url_wo_version"] = "Always null in a data source."
+		if url, ok := utils.DatasourceMarkdownDescription(resp.Schema, arm, "url"); ok {
+			texts[arm+".url"] = webhookDataSourceURLText(url)
+		}
 	}
+	utils.OverrideDatasourceDescriptions(&resp.Schema, texts)
+}
+
+// webhookDataSourceURLText drops the advice to use `url_wo` from the text of `url`: the advice is for
+// the resource.
+func webhookDataSourceURLText(text string) string {
+	text = strings.Replace(text, " A URL that carries a secret belongs in `url_wo` instead, so its value is never written to state.", " A URL that carries a secret is returned here too.", 1)
+	return strings.Replace(text, " Set exactly one of `url` and `url_wo`.", "", 1)
 }
 
 func (d *webhookDataSource) ValidateConfig(ctx context.Context, req datasource.ValidateConfigRequest, resp *datasource.ValidateConfigResponse) {

@@ -41,9 +41,10 @@ type integrationDataSource struct {
 // parameter in `parameters`, a secret one too.
 func (d *integrationDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	d.DataSource.Schema(ctx, req, resp)
-	utils.DescribeDataSourceAttribute(resp.Schema,
-		"Always null in a data source. Every parameter is in `parameters`, also one that the resource sets with `parameters_wo`. A secret parameter is returned there.", "parameters_wo")
-	utils.DescribeDataSourceAttribute(resp.Schema, "Always null in a data source.", "parameters_wo_versions")
+	utils.OverrideDatasourceDescriptions(&resp.Schema, map[string]string{
+		"parameters_wo":          "Always null in a data source. Every parameter is in `parameters`, also one that the resource sets with `parameters_wo`. A secret parameter is returned there.",
+		"parameters_wo_versions": "Always null in a data source.",
+	})
 }
 
 func (d *integrationDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
