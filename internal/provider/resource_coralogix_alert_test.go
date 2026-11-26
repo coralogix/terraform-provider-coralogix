@@ -2149,7 +2149,7 @@ func TestAccCoralogixResourceAlert_analytics_threshold_inferred_group_by(t *test
 	rows := tfjsonpath.New("type_definition").AtMapKey("analytics_threshold").AtMapKey("use_rows_as_permutations")
 	const byApp = "source logs | groupby $l.applicationname as app aggregate count() as cnt"
 	const bySubsystem = "source logs | groupby $l.subsystemname as sub aggregate count() as cnt"
-	const ungrouped = "source logs | count as cnt"
+	const ungrouped = "source logs | count into cnt"
 	resource.ParallelTest(t, resource.TestCase{
 		PreCheck:                 func() { testAccAnalyticsAlertsPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
