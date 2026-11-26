@@ -199,7 +199,38 @@ func afterReadAlert(ctx context.Context, state *tfsdk.State, prior any) diag.Dia
 	if diags.HasError() {
 		return diags
 	}
-	return append(diags, keepDestinationPeriodsUnset(ctx, state, prior)...)
+	diags = append(diags, keepDestinationPeriodsUnset(ctx, state, prior)...)
+	if diags.HasError() {
+		return diags
+	}
+	return append(diags, keepConfiguredRowsAsPermutations(ctx, state, prior)...)
+}
+
+// keepConfiguredRowsAsPermutations keeps the use_rows_as_permutations of an analytics_threshold alert that
+// the plan or the prior state holds, when the API returns another value. The API derives the value from the
+// DataPrime query (true when the query has group-by keys), so a configured value that disagrees reads back as
+// the derived one, and the apply would fail with an inconsistent result. The attribute is deprecated, and the
+// derived value is ignored. An omitted value is unknown in the plan, so the API value stays; an import and a
+// state upgrade have no prior value and read the API value.
+func keepConfiguredRowsAsPermutations(ctx context.Context, state *tfsdk.State, prior any) diag.Diagnostics {
+	data, ok := prior.(priorData)
+	if !ok || data == nil {
+		return nil
+	}
+	var kept, read types.Bool
+	if diags := data.GetAttribute(ctx, rowsAsPermutationsPath, &kept); diags.HasError() || kept.IsNull() || kept.IsUnknown() {
+		return diags
+	}
+	// An alert that is not an analytics_threshold in the response has no such attribute to keep: setting it
+	// would create the arm.
+	var arm types.Object
+	if diags := state.GetAttribute(ctx, rowsAsPermutationsPath.ParentPath(), &arm); diags.HasError() || arm.IsNull() || arm.IsUnknown() {
+		return diags
+	}
+	if diags := state.GetAttribute(ctx, rowsAsPermutationsPath, &read); diags.HasError() || read.Equal(kept) {
+		return diags
+	}
+	return state.SetAttribute(ctx, rowsAsPermutationsPath, kept)
 }
 
 // keepPlannedEmptyAccessPolicy keeps a planned "" in access_policy after a write. The "" says that the

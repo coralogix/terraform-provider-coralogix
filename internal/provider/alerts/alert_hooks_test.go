@@ -514,3 +514,59 @@ func TestAfterReadReadsAClearedDescriptionAsNull(t *testing.T) {
 		})
 	}
 }
+
+// The API derives use_rows_as_permutations from the DataPrime query, so a configured value that disagrees
+// reads back as the derived one. The state keeps the configured value, because the apply would fail with an
+// inconsistent result otherwise. An omitted value is unknown in the plan and takes the API value.
+func TestAfterReadKeepsConfiguredRowsAsPermutations(t *testing.T) {
+	ctx := context.Background()
+	boolValue := func(b bool) tftypes.Value { return tftypes.NewValue(tftypes.Bool, b) }
+	null := tftypes.NewValue(tftypes.Bool, nil)
+	unknown := tftypes.NewValue(tftypes.Bool, tftypes.UnknownValue)
+	analytics := func(rows tftypes.Value) tftypes.Value {
+		return typeDefinitionOf(ctx, map[string]map[string]tftypes.Value{"analytics_threshold": {"use_rows_as_permutations": rows}})
+	}
+	logsImmediate := typeDefinitionOf(ctx, map[string]map[string]tftypes.Value{"logs_immediate": {}})
+	alertOf := func(td tftypes.Value) tftypes.Value {
+		return alertPlan(ctx, map[string]tftypes.Value{"type_definition": td}).Raw
+	}
+	stateOf := func(td tftypes.Value) tfsdk.State { return tfsdk.State{Schema: alert.Schema(), Raw: alertOf(td)} }
+	planOf := func(td tftypes.Value) tfsdk.Plan { return tfsdk.Plan{Schema: alert.Schema(), Raw: alertOf(td)} }
+	rows := func(t *testing.T, state tfsdk.State) tftypes.Value {
+		t.Helper()
+		got, _, err := tftypes.WalkAttributePath(state.Raw, tftypes.NewAttributePath().WithAttributeName("type_definition").
+			WithAttributeName("analytics_threshold").WithAttributeName("use_rows_as_permutations"))
+		if err != nil {
+			return null // no analytics_threshold arm
+		}
+		return got.(tftypes.Value)
+	}
+	cases := []struct {
+		name  string
+		api   tfsdk.State
+		prior any
+		want  tftypes.Value
+	}{
+		{"planned false, the API derived true", stateOf(analytics(boolValue(true))), planOf(analytics(boolValue(false))), boolValue(false)},
+		{"planned true, the API derived false", stateOf(analytics(boolValue(false))), planOf(analytics(boolValue(true))), boolValue(true)},
+		{"planned as the API returns it", stateOf(analytics(boolValue(true))), planOf(analytics(boolValue(true))), boolValue(true)},
+		{"omitted: unknown in the plan, the API value stays", stateOf(analytics(boolValue(true))), planOf(analytics(unknown)), boolValue(true)},
+		{"omitted and the API derived false", stateOf(analytics(boolValue(false))), planOf(analytics(unknown)), boolValue(false)},
+		{"a refresh keeps the prior state value", stateOf(analytics(boolValue(true))), stateOf(analytics(boolValue(false))), boolValue(false)},
+		{"a prior state without a value takes the API value", stateOf(analytics(boolValue(true))), stateOf(analytics(null)), boolValue(true)},
+		{"an import has no prior value", stateOf(analytics(boolValue(true))), tfsdk.State{Schema: alert.Schema(), Raw: tftypes.NewValue(alert.Schema().Type().TerraformType(ctx), nil)}, boolValue(true)},
+		{"a state upgrade has no prior", stateOf(analytics(boolValue(true))), nil, boolValue(true)},
+		{"another alert type keeps no arm", stateOf(logsImmediate), planOf(analytics(boolValue(false))), null},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			state := tc.api
+			if diags := afterReadAlert(ctx, &state, tc.prior); diags.HasError() {
+				t.Fatal(diags)
+			}
+			if got := rows(t, state); !got.Equal(tc.want) {
+				t.Errorf("use_rows_as_permutations = %s, want %s", got, tc.want)
+			}
+		})
+	}
+}
