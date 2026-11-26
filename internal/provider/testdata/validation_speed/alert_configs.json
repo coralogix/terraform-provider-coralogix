@@ -19,9 +19,6 @@
  {
   "description": "full",
   "enabled": false,
-  "group_by": [
-   "app"
-  ],
   "name": "tfbaseline-analytics-result-count",
   "priority": "P2",
   "type_definition": {
