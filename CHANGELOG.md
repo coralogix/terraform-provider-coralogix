@@ -1,5 +1,9 @@
 # Unreleased
 
+#### resource/coralogix_alert
+
+- FIX: `analytics_threshold.use_rows_as_permutations` set in the configuration no longer fails the apply with "Provider produced inconsistent result after apply" when the API derives another value from the DataPrime query. The state keeps the configured value and ignores the derived one; an omitted value still takes the API value. The attribute stays deprecated.
+
 # Release 3.29.0
 
 #### resource/coralogix_alert

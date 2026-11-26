@@ -368,7 +368,7 @@ Read-Only:
 - `rules` (Attributes List) The per-priority threshold rules, between 1 and 5. This is an ordered list: the API preserves and reads back the submitted order, and rules carry no server-side ID. (see [below for nested schema](#nestedatt--type_definition--analytics_threshold--rules))
 - `target_column` (String) The name of the numeric result column to compare
 - `timeframe_minutes` (Number) The evaluation window duration in minutes
-- `use_rows_as_permutations` (Boolean) Whether each result row is treated as a separate permutation. When omitted, the Coralogix API derives it from the DataPrime query: true when the query has group-by keys. A configured value must match the query. When omitted, every update of the alert derives it again.
+- `use_rows_as_permutations` (Boolean) Whether each result row is treated as a separate permutation. When omitted, the Coralogix API derives it from the DataPrime query: true when the query has group-by keys, and every update of the alert derives it again. A configured value is kept in state and is not compared with the value that the API returns.
 
 <a id="nestedatt--type_definition--analytics_threshold--dataprime_query"></a>
 ### Nested Schema for `type_definition.analytics_threshold.dataprime_query`
