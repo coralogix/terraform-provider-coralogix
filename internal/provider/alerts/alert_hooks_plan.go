@@ -22,6 +22,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 )
@@ -29,20 +30,21 @@ import (
 // modifyAlertPlan plans what no plan modifier of one attribute can state: group_by, which some alert
 // types compute, and the override priority of a rule, which falls back to the priority of the alert.
 func modifyAlertPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
-	// The planned use_rows_as_permutations is an input of the planned group_by, so it is planned first.
-	resp.Diagnostics.Append(planRowsAsPermutations(ctx, req, resp)...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-	resp.Diagnostics.Append(planGroupBy(ctx, req, resp)...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
 	resp.Diagnostics.Append(planOverridePriority(ctx, req, resp)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 	resp.Diagnostics.Append(planWebhookAdvancedNotification(req, resp)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	// planRowsAsPermutations compares the rest of the plan with the state, so it runs after the steps
+	// above. The planned use_rows_as_permutations is an input of the planned group_by, so it runs first.
+	resp.Diagnostics.Append(planRowsAsPermutations(ctx, req, resp)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	resp.Diagnostics.Append(planGroupBy(ctx, req, resp)...)
 }
 
 // How the hooks treat group_by is decided per arm of type_definition, and the schema cannot state it, so
@@ -137,9 +139,10 @@ func planGroupBy(ctx context.Context, req resource.ModifyPlanRequest, resp *reso
 // planRowsAsPermutations plans the use_rows_as_permutations of an analytics_threshold alert when the
 // configuration leaves it out. The API derives it from the DataPrime query (true when the query has group-by
 // keys), so a new alert or a changed query makes it unknown, and an unchanged query keeps the state value.
-// A null state value is an alert saved before the API derived it: the next update derives it, so the plan
-// keeps what the framework planned (unknown when the alert changes, null when it does not). It is an input
-// of group_by, so the same update recomputes the keys.
+// A null state value is an alert saved before the API derived it, or an API that does not derive it: an
+// update may fill it in, so it is unknown when the alert changes and null when it does not. The framework
+// plans an unconfigured computed value unknown also for a change that a later plan step undoes, so this
+// compares the plan with the state itself. It is an input of group_by, so the same update recomputes the keys.
 func planRowsAsPermutations(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) diag.Diagnostics {
 	rowsPath := path.Root("type_definition").AtName("analytics_threshold").AtName("use_rows_as_permutations")
 	var typeDefinition types.Object
@@ -156,13 +159,44 @@ func planRowsAsPermutations(ctx context.Context, req resource.ModifyPlanRequest,
 	if !valueChanged(req.State.Raw, resp.Plan.Raw, analyticsThresholdQuery) {
 		var state types.Bool
 		diags.Append(req.State.GetAttribute(ctx, rowsPath, &state)...)
-		if diags.HasError() || state.IsNull() {
+		if diags.HasError() {
 			return diags
 		}
 		planned = state
+		if state.IsNull() {
+			unchanged, unchangedDiags := alertUnchanged(ctx, req, resp.Plan, rowsPath)
+			diags.Append(unchangedDiags...)
+			if diags.HasError() {
+				return diags
+			}
+			if !unchanged {
+				planned = types.BoolUnknown()
+			}
+		}
 	}
 	diags.Append(resp.Plan.SetAttribute(ctx, rowsPath, planned)...)
 	return diags
+}
+
+// alertUnchanged reports whether the plan holds the state, once the values that the hooks plan from the
+// state are taken from it: the attribute at rowsPath and an unconfigured group_by.
+func alertUnchanged(ctx context.Context, req resource.ModifyPlanRequest, plan tfsdk.Plan, rowsPath path.Path) (bool, diag.Diagnostics) {
+	if req.State.Raw.IsNull() {
+		return false, nil
+	}
+	var rows types.Bool
+	diags := req.State.GetAttribute(ctx, rowsPath, &rows)
+	diags.Append(plan.SetAttribute(ctx, rowsPath, rows)...)
+	var configured, state types.List
+	diags.Append(req.Config.GetAttribute(ctx, path.Root("group_by"), &configured)...)
+	diags.Append(req.State.GetAttribute(ctx, path.Root("group_by"), &state)...)
+	if diags.HasError() {
+		return false, diags
+	}
+	if configured.IsNull() {
+		diags.Append(plan.SetAttribute(ctx, path.Root("group_by"), state)...)
+	}
+	return !diags.HasError() && plan.Raw.Equal(req.State.Raw), diags
 }
 
 // firstSetArm returns the first of the arms that type_definition sets, and "" when it sets none.

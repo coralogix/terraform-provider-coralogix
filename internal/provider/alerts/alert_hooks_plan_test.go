@@ -176,6 +176,20 @@ func TestPlanAnalyticsThresholdGroupBy(t *testing.T) {
 			wantRows: nullBool, wantGroup: nullList,
 		},
 		{
+			// The framework plans unconfigured computed values unknown also for a difference that a plan
+			// step undoes before the hook, so an alert without a change can arrive with both unknown.
+			name:   "no change of an alert without use_rows_as_permutations that the framework planned unknown",
+			config: alertOf("a", grouped, nullBool, nullList), state: alertOf("a", grouped, nullBool, nullList),
+			plan:     alertOf("a", grouped, unknownBool, unknownList),
+			wantRows: nullBool, wantGroup: nullList,
+		},
+		{
+			name:   "a changed group_by of an alert without use_rows_as_permutations",
+			config: alertOf("a", grouped, nullBool, keys), state: alertOf("a", grouped, nullBool, nullList),
+			plan:     alertOf("a", grouped, unknownBool, keys),
+			wantRows: unknownBool, wantGroup: keys,
+		},
+		{
 			name:   "use_rows_as_permutations from a variable",
 			config: alertOf("b", grouped, unknownBool, nullList), state: state,
 			plan:     alertOf("b", grouped, unknownBool, unknownList),
