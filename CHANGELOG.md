@@ -1,5 +1,7 @@
 # Unreleased
 
+# Release 3.29.0
+
 #### resource/coralogix_alert
 
 - FIX: `analytics_threshold` plans `group_by` as computed when the configuration leaves it out. The Coralogix API now infers the keys from the group-by keys of the DataPrime query on every save, so an update plans them as `(known after apply)` and sends none; an alert that does not change keeps them. Before, an apply of a grouped query without `group_by` failed with "Provider produced inconsistent result after apply". Upgrade the provider before you apply such an alert, because older versions fail with that error.
