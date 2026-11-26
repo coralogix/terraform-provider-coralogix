@@ -40,7 +40,7 @@ func Schema() schema.Schema {
 									},
 									"template": schema.StringAttribute{
 										Required:            true,
-										MarkdownDescription: "Template.",
+										MarkdownDescription: "Template. Use `config_overrides_templates_wo` when the template holds a credential.",
 									},
 								},
 							},
@@ -111,6 +111,17 @@ func Schema() schema.Schema {
 					stringvalidator.OneOf("email", "eventbridge", "generic_https", "incident_io", "microsoft_teams", "pagerduty", "pagerduty_incidents", "service_now", "slack", "unspecified"),
 				},
 				MarkdownDescription: "Connector type. Valid values are: unspecified, slack, generic_https, pagerduty, pagerduty_incidents, email, service_now, microsoft_teams, eventbridge, incident_io. `incident_io` is a preview type.",
+			},
+			"config_overrides_templates_wo": schema.MapAttribute{
+				Optional:            true,
+				WriteOnly:           true,
+				ElementType:         types.StringType,
+				MarkdownDescription: "Templates of config overrides that hold a credential, keyed by `<entity_type>.<field_name>`, for example `alerts.body`. Use it when the template holds a credential. Terraform sends each template to the API and never writes it to state. Declare the entity type in `config_overrides` too, for example `{ entity_type = \"alerts\", fields = [] }`. A key here must not also appear in `config_overrides[].fields`. Each entry needs a matching entry in `config_overrides_templates_wo_versions`. Requires Terraform 1.11 or later.\n\nImporting is the one exception. An import has neither configuration nor prior state, so nothing identifies which template is a secret, and the API returns every template: the secret is written to state by the import itself. The following apply removes it again. Treat a secret that has been through an import as exposed, and rotate it. Reading the same connector through `data.coralogix_connector` also returns every template.",
+			},
+			"config_overrides_templates_wo_versions": schema.MapAttribute{
+				Optional:            true,
+				ElementType:         types.Int64Type,
+				MarkdownDescription: "Version of each `config_overrides_templates_wo` entry, keyed by the same `<entity_type>.<field_name>`. Increment a value to send a rotated secret: Terraform holds no copy of a write-only value, so it cannot notice that one changed. These versions are kept in state and are not secret.",
 			},
 		},
 		MarkdownDescription: "Coralogix Notification Center Connector. For more info please review - https://coralogix.com/docs/user-guides/notification-center/connectors/.",

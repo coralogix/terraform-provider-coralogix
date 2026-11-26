@@ -55,7 +55,9 @@ Read-Only:
 - `headers_wo_versions` (Map of Number) Version of each `headers_wo` value, keyed by header name. Increment a header's version to send a rotated secret.
 - `method` (String) Webhook method. can be one of: get, post, put
 - `payload` (String) Webhook payload. JSON string.
-- `url` (String) Webhook URL.
+- `url` (String) Webhook URL. A URL that carries a secret is returned here too.
+- `url_wo` (String) Always null in a data source. The URL is in `url`, also one that the resource sets with `url_wo`.
+- `url_wo_version` (Number) Always null in a data source.
 - `uuid` (String) Webhook UUID. Computed automatically.
 
 
@@ -65,7 +67,9 @@ Read-Only:
 Read-Only:
 
 - `payload` (String) Webhook payload. JSON string.
-- `url` (String) Microsoft Teams URL.
+- `url` (String) Demisto URL. A URL that carries a secret is returned here too.
+- `url_wo` (String) Always null in a data source. The URL is in `url`, also one that the resource sets with `url_wo`.
+- `url_wo_version` (Number) Always null in a data source.
 - `uuid` (String) Webhook UUID. Computed automatically.
 
 
@@ -107,7 +111,9 @@ Read-Only:
 
 Read-Only:
 
-- `url` (String) Microsoft Teams URL.
+- `url` (String) Microsoft Teams URL. A URL that carries a secret is returned here too.
+- `url_wo` (String) Always null in a data source. The URL is in `url`, also one that the resource sets with `url_wo`.
+- `url_wo_version` (Number) Always null in a data source.
 
 
 <a id="nestedatt--microsoft_teams_workflow"></a>
@@ -123,7 +129,9 @@ Read-Only:
 
 Read-Only:
 
-- `url` (String) Opsgenie URL.
+- `url` (String) Opsgenie URL. A URL that carries a secret is returned here too.
+- `url_wo` (String) Always null in a data source. The URL is in `url`, also one that the resource sets with `url_wo`.
+- `url_wo_version` (Number) Always null in a data source.
 
 
 <a id="nestedatt--pager_duty"></a>
@@ -153,7 +161,9 @@ Read-Only:
 
 - `attachments` (Attributes List) Slack attachments. (see [below for nested schema](#nestedatt--slack--attachments))
 - `notify_on` (Set of String) Slack notifications. can be one of: data_usage, error_and_critical_logs, flow_anomalies, spike_anomalies
-- `url` (String) Slack URL.
+- `url` (String) Slack URL. A URL that carries a secret is returned here too.
+- `url_wo` (String) Always null in a data source. The URL is in `url`, also one that the resource sets with `url_wo`.
+- `url_wo_version` (Number) Always null in a data source.
 
 <a id="nestedatt--slack--attachments"></a>
 ### Nested Schema for `slack.attachments`

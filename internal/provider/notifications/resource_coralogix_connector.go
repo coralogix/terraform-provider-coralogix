@@ -73,6 +73,7 @@ func (r *ConnectorResource) ImportState(ctx context.Context, req resource.Import
 			"Treat an imported secret as exposed and rotate it.\n\n"+
 			"To keep it out of state from then on, move the value from connector_config.fields into connector_config.field_values_wo, "+
 			"give it an entry in connector_config.field_values_wo_versions, and apply. That apply removes the imported value from state. "+
+			"For a config override template, use config_overrides_templates_wo and config_overrides_templates_wo_versions in the same way. "+
 			"Write-only attributes need Terraform 1.11 or later.",
 	)
 }
@@ -144,6 +145,7 @@ func connectorCredentialWarnings(ctx context.Context, id, name types.String, fie
 }
 
 func (r *ConnectorResource) ValidateConfig(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {
+	resp.Diagnostics.Append(validateWriteOnlyTemplates(ctx, req.Config)...)
 	var cfg types.Object
 	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("connector_config"), &cfg)...)
 	if resp.Diagnostics.HasError() || cfg.IsNull() || cfg.IsUnknown() {

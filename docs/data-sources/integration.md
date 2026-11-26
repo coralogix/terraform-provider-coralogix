@@ -28,5 +28,7 @@ data "coralogix_integration" "data_example" {
 ### Read-Only
 
 - `integration_key` (String) Selector for the integration.
-- `parameters` (Dynamic) Parameters required by the integration.
+- `parameters` (Dynamic) Parameters required by the integration. A parameter that carries a secret, such as an API key, belongs in `parameters_wo` instead, so its value is never written to state. Keep `parameters` as an object, and leave it empty (`{}`) when every parameter is in `parameters_wo`.
+- `parameters_wo` (Map of String) Always null in a data source. Every parameter is in `parameters`, also one that the resource sets with `parameters_wo`. A secret parameter is returned there.
+- `parameters_wo_versions` (Map of Number) Always null in a data source.
 - `version` (String) The integration version

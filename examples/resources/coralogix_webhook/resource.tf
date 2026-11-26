@@ -29,6 +29,12 @@ variable "pagerduty_service_key" {
   ephemeral = true
 }
 
+variable "slack_webhook_url" {
+  type      = string
+  sensitive = true
+  ephemeral = true
+}
+
 variable "jira_api_token" {
   type      = string
   sensitive = true
@@ -44,6 +50,18 @@ resource "coralogix_webhook" "slack_webhook" {
       type   = "metric_snapshot"
       active = true
     }]
+  }
+}
+
+resource "coralogix_webhook" "slack_webhook_secret_url" {
+  name = "slack-webhook-secret-url"
+  slack = {
+    notify_on = ["flow_anomalies"]
+    # A URL that carries a secret goes in url_wo rather than url: Terraform sends it
+    # to Coralogix and never writes it to state.
+    # Increment url_wo_version to send a rotated URL.
+    url_wo         = var.slack_webhook_url
+    url_wo_version = 1
   }
 }
 

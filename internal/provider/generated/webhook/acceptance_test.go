@@ -33,6 +33,8 @@ var sensitiveFields = []string{
 	"serviceKey",
 	"service_key",
 	"service_key_wo",
+	"url",
+	"url_wo",
 }
 
 // apiFields name the API field of each attribute, by its Terraform path without list positions.

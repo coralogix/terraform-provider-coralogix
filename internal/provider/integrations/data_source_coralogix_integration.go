@@ -21,6 +21,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/integration"
+	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 )
 
 // NewIntegrationDataSource returns the generated data source. The generated data source reads the
@@ -34,6 +35,16 @@ func NewIntegrationDataSource() datasource.DataSource {
 
 type integrationDataSource struct {
 	*integration.DataSource
+}
+
+// Schema corrects the text of the write-only parameter attributes. A data source returns every
+// parameter in `parameters`, a secret one too.
+func (d *integrationDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+	d.DataSource.Schema(ctx, req, resp)
+	utils.OverrideDatasourceDescriptions(&resp.Schema, map[string]string{
+		"parameters_wo":          "Always null in a data source. Every parameter is in `parameters`, also one that the resource sets with `parameters_wo`. A secret parameter is returned there.",
+		"parameters_wo_versions": "Always null in a data source.",
+	})
 }
 
 func (d *integrationDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {

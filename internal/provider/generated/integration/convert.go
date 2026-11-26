@@ -353,6 +353,8 @@ func flattenDeployedIntegrationInformation(ctx context.Context, p path.Path, v *
 	out.DefinitionVersion = types.StringPointerValue(&v.DefinitionVersion)
 	out.Id = types.StringPointerValue(&v.Id)
 	out.Parameters = types.DynamicNull()
+	out.ParametersWo = types.MapNull(types.StringType)
+	out.ParametersWoVersions = types.MapNull(types.Int64Type)
 	return out
 }
 

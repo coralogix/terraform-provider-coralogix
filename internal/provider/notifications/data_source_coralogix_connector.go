@@ -15,14 +15,29 @@
 package notifications
 
 import (
+	"context"
+
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/connector"
+	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 )
 
 // NewConnectorDataSource returns coralogix_connector, the generated data source of the resource. It
 // finds a connector by id or by name, and takes the first connector with the name. The data source
 // runs only the BeforeFlatten hook, which the resource does not set.
 func NewConnectorDataSource() datasource.DataSource {
-	return connector.NewDataSource(connector.Hooks{})
+	return &connectorDataSource{DataSource: connector.NewDataSource(connector.Hooks{}).(*connector.DataSource)}
+}
+
+type connectorDataSource struct{ *connector.DataSource }
+
+// Schema corrects the text of the write-only template attributes. A data source returns every
+// template in `config_overrides`, a secret one too.
+func (d *connectorDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+	d.DataSource.Schema(ctx, req, resp)
+	utils.OverrideDatasourceDescriptions(&resp.Schema, map[string]string{
+		"config_overrides_templates_wo":          "Always null in a data source. Every template is in `config_overrides[].fields[].template`, also one that the resource sets with `config_overrides_templates_wo`. A secret template is returned there.",
+		"config_overrides_templates_wo_versions": "Always null in a data source.",
+	})
 }

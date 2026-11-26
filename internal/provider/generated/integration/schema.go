@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
 // Schema is the Terraform schema of the resource.
@@ -34,7 +35,18 @@ func Schema() schema.Schema {
 			},
 			"parameters": schema.DynamicAttribute{
 				Required:            true,
-				MarkdownDescription: "Parameters required by the integration.",
+				MarkdownDescription: "Parameters required by the integration. A parameter that carries a secret, such as an API key, belongs in `parameters_wo` instead, so its value is never written to state. Keep `parameters` as an object, and leave it empty (`{}`) when every parameter is in `parameters_wo`.",
+			},
+			"parameters_wo": schema.MapAttribute{
+				Optional:            true,
+				WriteOnly:           true,
+				ElementType:         types.StringType,
+				MarkdownDescription: "Parameters whose values are secret, keyed by parameter name. Terraform sends the values to Coralogix as string parameters and never writes them to state. Every key needs a matching entry in `parameters_wo_versions`, and a key here must not also appear in `parameters`. Terraform never stores a write-only value, so it cannot detect that the secret changed: increment the version of a key to send a rotated secret. Requires Terraform 1.11 or later. Importing brings the values into state, because an import has neither configuration nor prior state to say which parameter is managed this way; one apply afterwards removes them again, so treat an imported secret as exposed and rotate it.",
+			},
+			"parameters_wo_versions": schema.MapAttribute{
+				Optional:            true,
+				ElementType:         types.Int64Type,
+				MarkdownDescription: "Version of each `parameters_wo` entry, keyed by the same parameter name. Increment a version to send a rotated secret. These versions are kept in state and are not secret.",
 			},
 		},
 		MarkdownDescription: "A Coralogix Integration. Check https://coralogix.com/docs/developer-portal/infrastructure-as-code/terraform-provider/integrations/aws-metrics-collector/ for available options.",

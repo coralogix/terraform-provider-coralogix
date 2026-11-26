@@ -36,7 +36,7 @@ func (r *webhookResource) ImportState(ctx context.Context, req resource.ImportSt
 		"Importing reads the webhook's current configuration from Coralogix, including any credential it carries, and writes it to state. "+
 			"Treat an imported credential as exposed and rotate it.\n\n"+
 			"To keep it out of state from then on, move the value into the matching write-only attribute "+
-			"(jira.api_token_wo, pager_duty.service_key_wo, or custom.headers_wo), set its version, and apply. "+
+			"(jira.api_token_wo, pager_duty.service_key_wo, custom.headers_wo, or url_wo of an arm that has it), set its version, and apply. "+
 			"That apply removes the imported value from state. Write-only attributes need Terraform 1.11 or later.")
 }
 
@@ -112,6 +112,31 @@ func NewDataSourceWithBehavior() datasource.DataSource {
 }
 
 type webhookDataSource struct{ *generatedwebhook.DataSource }
+
+const webhookDataSourceURLWoText = "Always null in a data source. The URL is in `url`, also one that the resource sets with `url_wo`."
+
+// Schema corrects the text of the URL attributes that the data source copies from the resource.
+// A data source returns the URL in `url`, a secret one too. It never has a write-only value.
+// Every arm with a `url_wo` gets the text, so a new arm needs no edit here.
+func (d *webhookDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+	d.DataSource.Schema(ctx, req, resp)
+	texts := map[string]string{}
+	for _, arm := range utils.NestedAttributesWith(resp.Schema, "url_wo") {
+		texts[arm+".url_wo"] = webhookDataSourceURLWoText
+		texts[arm+".url_wo_version"] = "Always null in a data source."
+		if url, ok := utils.DatasourceMarkdownDescription(resp.Schema, arm, "url"); ok {
+			texts[arm+".url"] = webhookDataSourceURLText(url)
+		}
+	}
+	utils.OverrideDatasourceDescriptions(&resp.Schema, texts)
+}
+
+// webhookDataSourceURLText drops the advice to use `url_wo` from the text of `url`: the advice is for
+// the resource.
+func webhookDataSourceURLText(text string) string {
+	text = strings.Replace(text, " A URL that carries a secret belongs in `url_wo` instead, so its value is never written to state.", " A URL that carries a secret is returned here too.", 1)
+	return strings.Replace(text, " Set exactly one of `url` and `url_wo`.", "", 1)
+}
 
 func (d *webhookDataSource) ValidateConfig(ctx context.Context, req datasource.ValidateConfigRequest, resp *datasource.ValidateConfigResponse) {
 	for _, name := range []string{"id", "name"} {
@@ -360,6 +385,16 @@ func webhookWriteCollections(data *webhooks.OutgoingWebhookInputData) {
 }
 
 func webhookWriteURL(model *generatedwebhook.OutgoingWebhookModel, data *webhooks.OutgoingWebhookInputData) {
+	// A write-only URL lives only in the configuration, so it comes first.
+	for _, url := range []types.String{
+		webhookURLWo(model.GenericWebhook), webhookURLWo(model.Slack), webhookURLWo(model.MicrosoftTeams),
+		webhookURLWo(model.Opsgenie), webhookURLWo(model.Demisto),
+	} {
+		if !url.IsNull() && !url.IsUnknown() {
+			data.Url = url.ValueStringPointer()
+			return
+		}
+	}
 	for _, url := range []types.String{
 		webhookURL(model.GenericWebhook), webhookURL(model.Slack), webhookURL(model.Jira),
 		webhookURL(model.MsTeamsWorkflow), webhookURL(model.Opsgenie), webhookURL(model.Demisto), webhookURL(model.SendLog),
@@ -451,6 +486,33 @@ func releasedWebhookType(data *webhooks.OutgoingWebhookInputData) webhooks.Webho
 		return webhooks.WEBHOOKTYPE_AWS_EVENT_BRIDGE
 	}
 	return ""
+}
+
+// webhookURLWo returns the write-only URL of an arm, or null when the arm has none.
+func webhookURLWo(m any) types.String {
+	switch v := m.(type) {
+	case *generatedwebhook.GenericWebhookConfigModel:
+		if v != nil {
+			return v.UrlWo
+		}
+	case *generatedwebhook.SlackConfigModel:
+		if v != nil {
+			return v.UrlWo
+		}
+	case *generatedwebhook.MicrosoftTeamsConfigModel:
+		if v != nil {
+			return v.UrlWo
+		}
+	case *generatedwebhook.OpsgenieConfigModel:
+		if v != nil {
+			return v.UrlWo
+		}
+	case *generatedwebhook.DemistoConfigModel:
+		if v != nil {
+			return v.UrlWo
+		}
+	}
+	return types.StringNull()
 }
 
 func webhookURL(m any) types.String {
@@ -545,6 +607,7 @@ func webhookAfterRead(ctx context.Context, state *tfsdk.State, prior any) diag.D
 		return diags
 	}
 	webhookKeepCredentialVersions(&current, &previous)
+	webhookStripWriteOnlyURLs(&current, &previous)
 	diags.Append(webhookStripWriteOnlyHeaders(ctx, &current, &previous)...)
 	if !diags.HasError() {
 		diags.Append(state.Set(ctx, &current)...)
@@ -560,6 +623,32 @@ func webhookKeepCredentialVersions(current, previous *generatedwebhook.OutgoingW
 	if current.PagerDuty != nil && previous.PagerDuty != nil && !previous.PagerDuty.ServiceKeyWoVersion.IsNull() {
 		current.PagerDuty.ServiceKey = types.StringNull()
 		current.PagerDuty.ServiceKeyWoVersion = previous.PagerDuty.ServiceKeyWoVersion
+	}
+}
+
+// webhookStripWriteOnlyURLs keeps a write-only URL out of state. The API returns the URL on
+// read, so flatten puts it in url. An arm whose prior url_wo_version is set has its url cleared
+// and its version kept, as the plan has them.
+func webhookStripWriteOnlyURLs(current, previous *generatedwebhook.OutgoingWebhookModel) {
+	if current.GenericWebhook != nil && previous.GenericWebhook != nil && !previous.GenericWebhook.UrlWoVersion.IsNull() {
+		current.GenericWebhook.Url = types.StringNull()
+		current.GenericWebhook.UrlWoVersion = previous.GenericWebhook.UrlWoVersion
+	}
+	if current.Slack != nil && previous.Slack != nil && !previous.Slack.UrlWoVersion.IsNull() {
+		current.Slack.Url = types.StringNull()
+		current.Slack.UrlWoVersion = previous.Slack.UrlWoVersion
+	}
+	if current.MicrosoftTeams != nil && previous.MicrosoftTeams != nil && !previous.MicrosoftTeams.UrlWoVersion.IsNull() {
+		current.MicrosoftTeams.Url = types.StringNull()
+		current.MicrosoftTeams.UrlWoVersion = previous.MicrosoftTeams.UrlWoVersion
+	}
+	if current.Opsgenie != nil && previous.Opsgenie != nil && !previous.Opsgenie.UrlWoVersion.IsNull() {
+		current.Opsgenie.Url = types.StringNull()
+		current.Opsgenie.UrlWoVersion = previous.Opsgenie.UrlWoVersion
+	}
+	if current.Demisto != nil && previous.Demisto != nil && !previous.Demisto.UrlWoVersion.IsNull() {
+		current.Demisto.Url = types.StringNull()
+		current.Demisto.UrlWoVersion = previous.Demisto.UrlWoVersion
 	}
 }
 

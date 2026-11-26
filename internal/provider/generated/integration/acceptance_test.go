@@ -24,7 +24,10 @@ const resourceAddress = "coralogix_integration.test"
 
 // sensitiveFields are the API names of the fields that the schema marks sensitive or write-only. The recorder
 // redacts them in every request and response that a failure line shows.
-var sensitiveFields = []string{}
+var sensitiveFields = []string{
+	"parameters",
+	"parameters_wo",
+}
 
 // apiFields name the API field of each attribute, by its Terraform path without list positions.
 // ErrorCheck shows the field in the line of a failure.

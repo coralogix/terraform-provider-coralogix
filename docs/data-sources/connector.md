@@ -33,6 +33,8 @@ data "coralogix_connector" "generic_https_example_data_by_name" {
 ### Read-Only
 
 - `config_overrides` (Attributes List) The config overrides. Removing this block keeps the value until another attribute changes. Set `config_overrides = []` to clear it. (see [below for nested schema](#nestedatt--config_overrides))
+- `config_overrides_templates_wo` (Map of String) Always null in a data source. Every template is in `config_overrides[].fields[].template`, also one that the resource sets with `config_overrides_templates_wo`. A secret template is returned there.
+- `config_overrides_templates_wo_versions` (Map of Number) Always null in a data source.
 - `connector_config` (Attributes) Configuration for a specific output schema of a connector (see [below for nested schema](#nestedatt--connector_config))
 - `description` (String) Human-readable description. The API stores an omitted description as an empty string, so Terraform treats this field as Optional and Computed with a default of `""`. Removing the attribute clears it.
 - `type` (String) Connector type. Valid values are: unspecified, slack, generic_https, pagerduty, pagerduty_incidents, email, service_now, microsoft_teams, eventbridge, incident_io. `incident_io` is a preview type.
@@ -51,7 +53,7 @@ Read-Only:
 Read-Only:
 
 - `field_name` (String) The field name.
-- `template` (String) Template.
+- `template` (String) Template. Use `config_overrides_templates_wo` when the template holds a credential.
 
 
 

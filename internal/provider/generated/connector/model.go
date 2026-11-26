@@ -8,12 +8,14 @@ import (
 )
 
 type ConnectorModel struct {
-	ConfigOverrides types.List            `tfsdk:"config_overrides"`
-	ConnectorConfig *ConnectorConfigModel `tfsdk:"connector_config"`
-	Description     types.String          `tfsdk:"description"`
-	Id              types.String          `tfsdk:"id"`
-	Name            types.String          `tfsdk:"name"`
-	Type            types.String          `tfsdk:"type"`
+	ConfigOverrides                    types.List            `tfsdk:"config_overrides"`
+	ConnectorConfig                    *ConnectorConfigModel `tfsdk:"connector_config"`
+	Description                        types.String          `tfsdk:"description"`
+	Id                                 types.String          `tfsdk:"id"`
+	Name                               types.String          `tfsdk:"name"`
+	Type                               types.String          `tfsdk:"type"`
+	ConfigOverridesTemplatesWo         types.Map             `tfsdk:"config_overrides_templates_wo"`
+	ConfigOverridesTemplatesWoVersions types.Map             `tfsdk:"config_overrides_templates_wo_versions"`
 }
 
 type TemplatedConnectorConfigFieldModel struct {
