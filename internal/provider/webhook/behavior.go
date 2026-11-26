@@ -113,6 +113,18 @@ func NewDataSourceWithBehavior() datasource.DataSource {
 
 type webhookDataSource struct{ *generatedwebhook.DataSource }
 
+const webhookDataSourceURLWoText = "Always null in a data source. The URL is in `url`, also one that the resource sets with `url_wo`."
+
+// Schema corrects the text of the write-only URL attributes. A data source returns the URL in
+// `url`, and never writes a value to state in the way of a write-only attribute.
+func (d *webhookDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+	d.DataSource.Schema(ctx, req, resp)
+	for _, arm := range []string{"custom", "slack", "microsoft_teams", "opsgenie", "demisto"} {
+		utils.DescribeDataSourceAttribute(resp.Schema, webhookDataSourceURLWoText, arm, "url_wo")
+		utils.DescribeDataSourceAttribute(resp.Schema, "Always null in a data source.", arm, "url_wo_version")
+	}
+}
+
 func (d *webhookDataSource) ValidateConfig(ctx context.Context, req datasource.ValidateConfigRequest, resp *datasource.ValidateConfigResponse) {
 	for _, name := range []string{"id", "name"} {
 		var value types.String

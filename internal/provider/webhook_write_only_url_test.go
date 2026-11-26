@@ -17,6 +17,7 @@ package provider
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
@@ -38,11 +39,13 @@ var webhookArms = []struct {
 	arm    string
 	apiArm string
 	extra  j
+	// edit changes an attribute of the arm that is not a URL. Opsgenie has none.
+	edit j
 }{
-	{arm: "custom", apiArm: "genericWebhook", extra: j{"method": "post"}},
-	{arm: "slack", apiArm: "slack", extra: j{}},
-	{arm: "opsgenie", apiArm: "opsgenie", extra: j{}},
-	{arm: "demisto", apiArm: "demisto", extra: j{}},
+	{arm: "custom", apiArm: "genericWebhook", extra: j{"method": "post"}, edit: j{"method": "put"}},
+	{arm: "slack", apiArm: "slack", extra: j{}, edit: j{"notify_on": []any{"data_usage"}}},
+	{arm: "opsgenie", apiArm: "opsgenie", extra: j{}, edit: j{}},
+	{arm: "demisto", apiArm: "demisto", extra: j{}, edit: j{"payload": "{}"}},
 }
 
 func webhookConfig(name, arm string, body j) j {
@@ -187,4 +190,103 @@ func TestWebhookURLValidation(t *testing.T) {
 			t.Errorf("%s with no url and no url_wo: want a validation error", arm)
 		}
 	}
+}
+
+// An edit of another attribute sends the whole webhook again. The write-only URL must be in that
+// request, or the API would lose it, and the state must still not hold it.
+func TestWebhookEditKeepsWriteOnlyURL(t *testing.T) {
+	for _, tc := range webhookArms {
+		t.Run(tc.arm, func(t *testing.T) {
+			h := newWebhookHarness(t)
+			secret := webhookSecretURL(t)
+			config := func(name string, edit j) j {
+				body := with(with(tc.extra, edit), j{"url_wo": secret, "url_wo_version": float64(1)})
+				return webhookConfig(name, tc.arm, body)
+			}
+			state := h.Apply("create", h.null(), config("tf edit", nil))
+			lastStep(t, h)
+
+			edits := map[string]j{"name": nil}
+			if len(tc.edit) > 0 {
+				edits["arm attribute"] = tc.edit
+			}
+			for what, edit := range edits {
+				name := "tf edit"
+				if what == "name" {
+					name = "tf edit renamed"
+				}
+				state = h.Apply("edit "+what, state, config(name, edit))
+				step := lastStep(t, h)
+				if step.NoChange {
+					t.Fatalf("editing %s planned no change", what)
+				}
+				requireSentURL(t, step, secret)
+				requireReplanEmpty(t, step, "editing "+what)
+				requireNoSecret(t, state, secret)
+			}
+		})
+	}
+}
+
+// Moving the URL to url_wo, and back, leaves an empty plan each time, and the secret is not in state.
+func TestWebhookMoveURLBetweenPlainAndWriteOnly(t *testing.T) {
+	for _, tc := range webhookArms {
+		t.Run(tc.arm, func(t *testing.T) {
+			h := newWebhookHarness(t)
+			secret := webhookSecretURL(t)
+			plain := "https://example.com/plain"
+			withPlain := webhookConfig("tf move", tc.arm, with(tc.extra, j{"url": plain}))
+			withWriteOnly := webhookConfig("tf move", tc.arm, with(tc.extra, j{"url_wo": secret, "url_wo_version": float64(1)}))
+
+			state := h.Apply("plain", h.null(), withPlain)
+			requireReplanEmpty(t, lastStep(t, h), "create")
+
+			state = h.Apply("to write-only", state, withWriteOnly)
+			step := lastStep(t, h)
+			requireReplanEmpty(t, step, "the move to url_wo")
+			requireSentURL(t, step, secret)
+			requireWriteOnlyArm(t, state, tc.arm)
+			requireNoSecret(t, state, secret)
+			state = h.RefreshPlan("refresh", state)
+			requireReplanEmpty(t, lastStep(t, h), "refresh")
+
+			state = h.Apply("back to plain", state, withPlain)
+			step = lastStep(t, h)
+			requireReplanEmpty(t, step, "the move back to url")
+			requireSentURL(t, step, plain)
+			arm := armState(t, state, tc.arm)
+			if arm["url"] != plain || arm["url_wo_version"] != nil {
+				t.Fatalf("state of %s: url = %v, url_wo_version = %v; want the plain url and no version", tc.arm, arm["url"], arm["url_wo_version"])
+			}
+			requireNoSecret(t, state, secret)
+		})
+	}
+}
+
+// The Microsoft Teams arm is deprecated. The released resource, and this one, refuse to create it:
+// webhookBeforeWrite returns "Unknown webhook type" for a Create with the arm. Only a webhook that
+// exists already, made by the UI or an older provider, takes an Update. url_wo works there, and the
+// read does not copy the URL into state.
+func TestWebhookMicrosoftTeamsWriteOnlyURL(t *testing.T) {
+	h := newWebhookHarness(t)
+	secret := webhookSecretURL(t)
+	config := j{"name": "legacy teams", "microsoft_teams": j{"url_wo": secret, "url_wo_version": float64(1)}}
+
+	h.Apply("create", h.null(), config)
+	if diags := h.steps[len(h.steps)-1].ApplyDiags; len(diags) != 1 || !strings.Contains(diags[0], "Unknown webhook type") {
+		t.Fatalf("create diagnostics = %v, want the legacy Unknown webhook type error", diags)
+	}
+
+	h.api.(*webhookFake).seedLegacyTeams("legacy-1", "legacy teams", "https://example.com/old")
+	state := h.Import("import", "legacy-1")
+	state = h.Apply("move to write-only", state, config)
+	// The deprecation warning of the arm is a diagnostic, so lastStep would stop on it.
+	step := h.steps[len(h.steps)-1]
+	if len(step.ApplyDiags) != 0 || len(step.PlanDiags) != 0 || len(step.Inconsistent) != 0 {
+		t.Fatalf("update: plan %v, apply %v, inconsistent %v", step.PlanDiags, step.ApplyDiags, step.Inconsistent)
+	}
+	requireSentURL(t, step, secret)
+	requireReplanEmpty(t, step, "the move to url_wo")
+	requireWriteOnlyArm(t, state, "microsoft_teams")
+	requireNoSecret(t, state, secret)
 }

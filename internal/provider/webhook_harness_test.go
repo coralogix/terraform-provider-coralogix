@@ -132,6 +132,14 @@ func (f *webhookFake) handle(method, path string, body any) (int, any) {
 	return grFail(http.StatusMethodNotAllowed, "unsupported "+method+" "+path)
 }
 
+// seedLegacyTeams stores a deprecated Microsoft Teams webhook, as an older UI or provider made it.
+func (f *webhookFake) seedLegacyTeams(id, name, teamsURL string) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.seq++
+	f.webhooks[id] = f.record(id, f.seq, map[string]any{"name": name, "url": teamsURL, "microsoftTeams": map[string]any{}})
+}
+
 // record builds the stored webhook from the data of a request.
 func (f *webhookFake) record(id string, externalID int, data map[string]any) map[string]any {
 	out := maps.Clone(data)
@@ -141,6 +149,10 @@ func (f *webhookFake) record(id string, externalID int, data map[string]any) map
 	out["updatedAt"] = "2026-01-01T00:00:00Z"
 	if _, ok := out["type"]; !ok {
 		out["type"] = "UNKNOWN_WEBHOOK_TYPE"
+		// The API infers the type of the deprecated Microsoft Teams arm from the arm.
+		if _, ok := out["microsoftTeams"]; ok {
+			out["type"] = "MICROSOFT_TEAMS"
+		}
 	}
 	// The API gives a Slack or Opsgenie webhook an empty config object at least.
 	for _, arm := range []string{"opsgenie", "microsoftTeams", "msTeamsWorkflow"} {

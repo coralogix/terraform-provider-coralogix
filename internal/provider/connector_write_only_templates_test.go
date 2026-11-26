@@ -113,3 +113,64 @@ func TestConnectorWriteOnlyTemplateValidation(t *testing.T) {
 		}
 	}
 }
+
+// An override with only `fields = []` and a write-only template works: the plain list stays empty
+// in state, and the template is in the request only.
+func TestConnectorWriteOnlyTemplateWithEmptyFields(t *testing.T) {
+	h := newConnectorHarness(t)
+	secret := randomSecret(t)
+	config := connectorTemplateConfig([]any{alertsOverride()}, j{"alerts.body": secret}, j{"alerts.body": float64(1)})
+
+	state := h.Apply("create", h.null(), config)
+	step := lastStep(t, h)
+	requireReplanEmpty(t, step, "create")
+	if got := sentOverrideTemplates(t, step.Requests)["ALERTS.body"]; got != secret {
+		t.Fatalf("the API got %q, want the write-only template", got)
+	}
+	requireNoSecret(t, state, secret)
+	h.RefreshPlan("refresh", state)
+	requireReplanEmpty(t, lastStep(t, h), "refresh")
+}
+
+// A field name may hold dots. The key is split at the first dot only.
+func TestConnectorWriteOnlyTemplateWithDottedFieldName(t *testing.T) {
+	h := newConnectorHarness(t)
+	secret := randomSecret(t)
+	config := connectorTemplateConfig([]any{alertsOverride()}, j{"alerts.a.b": secret}, j{"alerts.a.b": float64(1)})
+
+	state := h.Apply("create", h.null(), config)
+	step := lastStep(t, h)
+	requireReplanEmpty(t, step, "create")
+	if got := sentOverrideTemplates(t, step.Requests)["ALERTS.a.b"]; got != secret {
+		t.Fatalf("the API got %v, want the template under the field a.b", sentOverrideTemplates(t, step.Requests))
+	}
+	requireNoSecret(t, state, secret)
+	state = h.RefreshPlan("refresh", state)
+	requireReplanEmpty(t, lastStep(t, h), "refresh")
+	requireNoSecret(t, state, secret)
+}
+
+// An edit of another attribute sends the whole connector again. The write-only template must be in
+// that request, or the API would lose it, and the state must still not hold it.
+func TestConnectorEditKeepsWriteOnlyTemplate(t *testing.T) {
+	h := newConnectorHarness(t)
+	secret := randomSecret(t)
+	wo, versions := j{"alerts.body": secret}, j{"alerts.body": float64(1)}
+	overrides := []any{alertsOverride(j{"field_name": "title", "template": "plain title"})}
+
+	state := h.Apply("create", h.null(), connectorTemplateConfig(overrides, wo, versions))
+	lastStep(t, h)
+
+	renamed := connectorTemplateConfig(overrides, wo, versions)
+	renamed["name"] = "tf template connector renamed"
+	state = h.Apply("edit", state, renamed)
+	step := lastStep(t, h)
+	if step.NoChange {
+		t.Fatal("editing the name planned no change")
+	}
+	if got := sentOverrideTemplates(t, step.Requests)["ALERTS.body"]; got != secret {
+		t.Fatalf("the API got %q after an edit, want the write-only template", got)
+	}
+	requireReplanEmpty(t, step, "the edit")
+	requireNoSecret(t, state, secret)
+}

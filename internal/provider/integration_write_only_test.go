@@ -170,3 +170,60 @@ func TestIntegrationWriteOnlyValidation(t *testing.T) {
 		}
 	}
 }
+
+// An edit of a plain parameter sends the whole integration again. The write-only secret must be in
+// that request, or the API would lose it, and the state must still not hold it.
+func TestIntegrationEditKeepsWriteOnlyParameter(t *testing.T) {
+	h := newIntegrationHarness(t)
+	secret := randomSecret(t)
+	wo, versions := j{"ApiKey": secret}, j{"ApiKey": float64(1)}
+
+	state := h.Apply("create", h.null(), integrationConfig(j{"IntegrationName": "example"}, wo, versions))
+	lastStep(t, h)
+
+	state = h.Apply("edit", state, integrationConfig(j{"IntegrationName": "renamed"}, wo, versions))
+	step := lastStep(t, h)
+	if step.NoChange {
+		t.Fatal("editing a plain parameter planned no change")
+	}
+	if got, _ := sentParameters(t, step.Requests)["ApiKey"]["stringValue"].(string); got != secret {
+		t.Fatalf("the API got %v for ApiKey after an edit, want the write-only value", sentParameters(t, step.Requests)["ApiKey"])
+	}
+	requireReplanEmpty(t, step, "the edit")
+	requireNoSecret(t, state, secret)
+}
+
+// A secret that leaves parameters_wo and parameters_wo_versions leaves the request. The other
+// secret stays.
+func TestIntegrationDroppedWriteOnlyParameterLeavesTheRequest(t *testing.T) {
+	h := newIntegrationHarness(t)
+	kept, dropped := randomSecret(t), randomSecret(t)
+	plain := j{"IntegrationName": "example"}
+
+	state := h.Apply("create", h.null(), integrationConfig(plain,
+		j{"ApiKey": kept, "Token": dropped}, j{"ApiKey": float64(1), "Token": float64(1)}))
+	if sent := sentParameters(t, lastStep(t, h).Requests); sent["Token"] == nil {
+		t.Fatalf("the create did not send Token: %v", sent)
+	}
+
+	state = h.Apply("drop one", state, integrationConfig(plain, j{"ApiKey": kept}, j{"ApiKey": float64(1)}))
+	step := lastStep(t, h)
+	sent := sentParameters(t, step.Requests)
+	if sent["Token"] != nil {
+		t.Fatalf("the API still got Token: %v", sent["Token"])
+	}
+	if got, _ := sent["ApiKey"]["stringValue"].(string); got != kept {
+		t.Fatalf("the API got %v for ApiKey, want the kept value", sent["ApiKey"])
+	}
+	requireReplanEmpty(t, step, "dropping a secret")
+	requireNoSecret(t, state, kept, dropped)
+
+	// Dropping the last one leaves only the plain parameters.
+	state = h.Apply("drop all", state, integrationConfig(plain, nil, nil))
+	step = lastStep(t, h)
+	if sent := sentParameters(t, step.Requests); sent["ApiKey"] != nil || sent["Token"] != nil {
+		t.Fatalf("the API still got a secret: %v", sent)
+	}
+	requireReplanEmpty(t, step, "dropping every secret")
+	requireNoSecret(t, state, kept, dropped)
+}

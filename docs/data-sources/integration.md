@@ -29,6 +29,6 @@ data "coralogix_integration" "data_example" {
 
 - `integration_key` (String) Selector for the integration.
 - `parameters` (Dynamic) Parameters required by the integration. A parameter that carries a secret, such as an API key, belongs in `parameters_wo` instead, so its value is never written to state. Keep `parameters` as an object, and leave it empty (`{}`) when every parameter is in `parameters_wo`.
-- `parameters_wo` (Map of String) Parameters whose values are secret, keyed by parameter name. Terraform sends the values to Coralogix as string parameters and never writes them to state. Every key needs a matching entry in `parameters_wo_versions`, and a key here must not also appear in `parameters`. Terraform never stores a write-only value, so it cannot detect that the secret changed: increment the version of a key to send a rotated secret. Requires Terraform 1.11 or later. Importing brings the values into state, because an import has neither configuration nor prior state to say which parameter is managed this way; one apply afterwards removes them again, so treat an imported secret as exposed and rotate it.
-- `parameters_wo_versions` (Map of Number) Version of each `parameters_wo` entry, keyed by the same parameter name. Increment a version to send a rotated secret. These versions are kept in state and are not secret.
+- `parameters_wo` (Map of String) Always null in a data source. Every parameter is in `parameters`, also one that the resource sets with `parameters_wo`. A secret parameter is returned there.
+- `parameters_wo_versions` (Map of Number) Always null in a data source.
 - `version` (String) The integration version
