@@ -265,3 +265,15 @@ func TestHooksToleratePlanAndReadOfAnUnknownArm(t *testing.T) {
 		}
 	}
 }
+
+// An arm inferred on update plans group_by from whether the alert changes, not from an input attribute.
+func TestArmsInferredOnUpdateAreGroupByArmsWithoutInput(t *testing.T) {
+	for _, arm := range armsInferredOnUpdate {
+		if !slices.Contains(groupByArms, arm) {
+			t.Errorf("armsInferredOnUpdate lists %q, which is not in groupByArms (alert_hooks_plan.go)", arm)
+		}
+		if _, ok := groupByInput[arm]; ok {
+			t.Errorf("armsInferredOnUpdate lists %q, which also has a groupByInput line: it must be in one of them", arm)
+		}
+	}
+}

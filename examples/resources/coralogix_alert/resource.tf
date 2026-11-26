@@ -841,7 +841,7 @@ resource "coralogix_alert" "test" {
 #   type_definition = {
 #     analytics_threshold = {
 #       dataprime_query = {
-#         query = "source logs | filter severity == 'error' | count as error_count"
+#         query = "source logs | filter severity == 'error' | count into error_count"
 #       }
 #       rules = [{
 #         condition = {
@@ -851,10 +851,9 @@ resource "coralogix_alert" "test" {
 #           priority = "P1"
 #         }
 #       }]
-#       operator                 = "LESS_THAN"
-#       target_column            = "error_count"
-#       use_rows_as_permutations = false
-#       timeframe_minutes        = 30
+#       operator          = "LESS_THAN"
+#       target_column     = "error_count"
+#       timeframe_minutes = 30
 #     }
 #   }
 # }

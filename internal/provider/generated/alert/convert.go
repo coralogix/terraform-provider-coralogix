@@ -746,6 +746,7 @@ var computedAttrs = map[string]bool{
 	"type_definition.analytics_threshold.no_data_policy":                                                              true,
 	"type_definition.analytics_threshold.no_data_policy.state":                                                        true,
 	"type_definition.analytics_threshold.rules.override.priority":                                                     true,
+	"type_definition.analytics_threshold.use_rows_as_permutations":                                                    true,
 	"type_definition.flow.enforce_suppression":                                                                        true,
 	"type_definition.flow.stages.flow_stages_groups.alert_defs.not":                                                   true,
 	"type_definition.flow.stages.timeframe_ms":                                                                        true,

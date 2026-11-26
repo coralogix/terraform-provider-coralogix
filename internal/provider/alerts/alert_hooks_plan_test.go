@@ -18,6 +18,8 @@ import (
 	"context"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/alert"
@@ -88,5 +90,150 @@ func TestWithStateAdvancedNotification(t *testing.T) {
 				t.Errorf("got %v, want %v", got, tc.want)
 			}
 		})
+	}
+}
+
+// The API infers the group_by of an analytics_threshold alert from its DataPrime query on every create and
+// update that sends none, and derives use_rows_as_permutations from the keys, so both are planned unknown
+// when the alert changes and kept when it does not. A configured value is planned as configured.
+func TestPlanAnalyticsThresholdGroupBy(t *testing.T) {
+	ctx := context.Background()
+	s := alert.Schema()
+	rootType := s.Type().TerraformType(ctx)
+	armType := attributeType(rootType, "type_definition", "analytics_threshold")
+	queryType := attributeType(armType, "dataprime_query")
+	listType := tftypes.List{ElementType: tftypes.String}
+	unknownList := tftypes.NewValue(listType, tftypes.UnknownValue)
+	nullList := tftypes.NewValue(listType, nil)
+	keys := tftypes.NewValue(listType, []tftypes.Value{stringValue("app")})
+	unknownBool := tftypes.NewValue(tftypes.Bool, tftypes.UnknownValue)
+	nullBool := tftypes.NewValue(tftypes.Bool, nil)
+	boolValue := func(b bool) tftypes.Value { return tftypes.NewValue(tftypes.Bool, b) }
+	alertOf := func(name, query string, rows, groupBy tftypes.Value) tftypes.Value {
+		arm := nullObject(armType, map[string]tftypes.Value{
+			"dataprime_query":          nullObject(queryType, map[string]tftypes.Value{"query": stringValue(query)}),
+			"use_rows_as_permutations": rows,
+		})
+		td := nullObject(attributeType(rootType, "type_definition"), map[string]tftypes.Value{"analytics_threshold": arm})
+		return nullObject(rootType, map[string]tftypes.Value{"name": stringValue(name), "type_definition": td, "group_by": groupBy})
+	}
+	const grouped = "source logs | groupby $l.applicationname as app aggregate count() as cnt"
+	const other = "source logs | groupby $l.subsystemname as sub aggregate count() as cnt"
+	state := alertOf("a", grouped, boolValue(true), keys)
+	cases := []struct {
+		name          string
+		config, state tftypes.Value
+		// plan is the plan of the framework: an unconfigured computed attribute of a changed alert is unknown.
+		plan                tftypes.Value
+		wantRows, wantGroup tftypes.Value
+	}{
+		{
+			name:   "new alert",
+			config: alertOf("a", grouped, nullBool, nullList), state: tftypes.NewValue(rootType, nil),
+			plan:     alertOf("a", grouped, unknownBool, unknownList),
+			wantRows: unknownBool, wantGroup: unknownList,
+		},
+		{
+			name:   "changed query",
+			config: alertOf("a", other, nullBool, nullList), state: state,
+			plan:     alertOf("a", other, unknownBool, unknownList),
+			wantRows: unknownBool, wantGroup: unknownList,
+		},
+		{
+			name:   "a change of another attribute",
+			config: alertOf("b", grouped, nullBool, nullList), state: state,
+			plan:     alertOf("b", grouped, unknownBool, unknownList),
+			wantRows: unknownBool, wantGroup: unknownList,
+		},
+		{
+			name:   "no change keeps the state",
+			config: alertOf("a", grouped, nullBool, nullList), state: state,
+			plan:     alertOf("a", grouped, boolValue(true), keys),
+			wantRows: boolValue(true), wantGroup: keys,
+		},
+		{
+			// The framework plans unconfigured computed values unknown also for a difference that a plan
+			// step undoes before the hook, so an alert without a change can arrive with both unknown.
+			name:   "no change that the framework planned unknown keeps the state",
+			config: alertOf("a", grouped, nullBool, nullList), state: state,
+			plan:     alertOf("a", grouped, unknownBool, unknownList),
+			wantRows: boolValue(true), wantGroup: keys,
+		},
+		{
+			name:   "configured group_by",
+			config: alertOf("a", other, nullBool, keys), state: state,
+			plan:     alertOf("a", other, unknownBool, keys),
+			wantRows: unknownBool, wantGroup: keys,
+		},
+		{
+			name:   "configured use_rows_as_permutations that changes",
+			config: alertOf("a", grouped, boolValue(false), nullList), state: state,
+			plan:     alertOf("a", grouped, boolValue(false), unknownList),
+			wantRows: boolValue(false), wantGroup: unknownList,
+		},
+		{
+			name:   "configured use_rows_as_permutations as in the state",
+			config: alertOf("a", grouped, boolValue(true), nullList), state: state,
+			plan:     alertOf("a", grouped, boolValue(true), unknownList),
+			wantRows: boolValue(true), wantGroup: keys,
+		},
+		{
+			name:   "an update of an alert saved before the API derived use_rows_as_permutations",
+			config: alertOf("b", grouped, nullBool, nullList), state: alertOf("a", grouped, nullBool, nullList),
+			plan:     alertOf("b", grouped, unknownBool, unknownList),
+			wantRows: unknownBool, wantGroup: unknownList,
+		},
+		{
+			name:   "no change of an alert saved before the API derived use_rows_as_permutations",
+			config: alertOf("a", grouped, nullBool, nullList), state: alertOf("a", grouped, nullBool, nullList),
+			plan:     alertOf("a", grouped, nullBool, nullList),
+			wantRows: nullBool, wantGroup: nullList,
+		},
+		{
+			// The framework plans unconfigured computed values unknown also for a difference that a plan
+			// step undoes before the hook, so an alert without a change can arrive with both unknown.
+			name:   "no change of an alert without use_rows_as_permutations that the framework planned unknown",
+			config: alertOf("a", grouped, nullBool, nullList), state: alertOf("a", grouped, nullBool, nullList),
+			plan:     alertOf("a", grouped, unknownBool, unknownList),
+			wantRows: nullBool, wantGroup: nullList,
+		},
+		{
+			name:   "a changed group_by of an alert without use_rows_as_permutations",
+			config: alertOf("a", grouped, nullBool, keys), state: alertOf("a", grouped, nullBool, nullList),
+			plan:     alertOf("a", grouped, unknownBool, keys),
+			wantRows: unknownBool, wantGroup: keys,
+		},
+		{
+			name:   "use_rows_as_permutations from a variable",
+			config: alertOf("b", grouped, unknownBool, nullList), state: state,
+			plan:     alertOf("b", grouped, unknownBool, unknownList),
+			wantRows: unknownBool, wantGroup: unknownList,
+		},
+	}
+	rowsPath := tftypes.NewAttributePath().WithAttributeName("type_definition").WithAttributeName("analytics_threshold").WithAttributeName("use_rows_as_permutations")
+	groupByPath := tftypes.NewAttributePath().WithAttributeName("group_by")
+	for _, tc := range cases {
+		req := resource.ModifyPlanRequest{
+			Config: tfsdk.Config{Schema: s, Raw: tc.config},
+			State:  tfsdk.State{Schema: s, Raw: tc.state},
+			Plan:   tfsdk.Plan{Schema: s, Raw: tc.plan},
+		}
+		resp := &resource.ModifyPlanResponse{Plan: tfsdk.Plan{Schema: s, Raw: tc.plan}}
+		modifyAlertPlan(ctx, req, resp)
+		if resp.Diagnostics.HasError() {
+			t.Fatalf("%s: %v", tc.name, resp.Diagnostics)
+		}
+		for _, check := range []struct {
+			p    *tftypes.AttributePath
+			want tftypes.Value
+		}{{rowsPath, tc.wantRows}, {groupByPath, tc.wantGroup}} {
+			got, _, err := tftypes.WalkAttributePath(resp.Plan.Raw, check.p)
+			if err != nil {
+				t.Fatalf("%s: %v", tc.name, err)
+			}
+			if !got.(tftypes.Value).Equal(check.want) {
+				t.Errorf("%s: planned %s = %s, want %s", tc.name, check.p, got, check.want)
+			}
+		}
 	}
 }
