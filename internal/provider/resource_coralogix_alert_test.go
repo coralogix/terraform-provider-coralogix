@@ -2140,6 +2140,84 @@ func testAccCoralogixResourceAlertAnalyticsThresholdEmptyRules() string {
 `
 }
 
+// The API infers the group_by of an analytics_threshold alert from the DataPrime query and derives
+// use_rows_as_permutations from it, so a configuration that sets neither applies with the inferred values,
+// keeps them when the query does not change, and plans them again when it does. The target tenant must
+// run an alerts API that infers the keys.
+func TestAccCoralogixResourceAlert_analytics_threshold_inferred_group_by(t *testing.T) {
+	groupBy := tfjsonpath.New("group_by")
+	rows := tfjsonpath.New("type_definition").AtMapKey("analytics_threshold").AtMapKey("use_rows_as_permutations")
+	const byApp = "source logs | groupby $l.applicationname as app aggregate count() as cnt"
+	const bySubsystem = "source logs | groupby $l.subsystemname as sub aggregate count() as cnt"
+	const ungrouped = "source logs | count as cnt"
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:                 func() { testAccAnalyticsAlertsPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckAlertDestroy(t),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceAlertAnalyticsThresholdQuery("analytics threshold inferred keys", byApp),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(alertResourceName, "group_by.#", "1"),
+					resource.TestCheckResourceAttr(alertResourceName, "group_by.0", "app"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_threshold.use_rows_as_permutations", "true"),
+				),
+			},
+			{
+				Config: testAccCoralogixResourceAlertAnalyticsThresholdQuery("analytics threshold inferred keys renamed", byApp),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectKnownValue(alertResourceName, groupBy, knownvalue.ListExact([]knownvalue.Check{knownvalue.StringExact("app")})),
+						plancheck.ExpectKnownValue(alertResourceName, rows, knownvalue.Bool(true)),
+					},
+				},
+			},
+			{
+				Config: testAccCoralogixResourceAlertAnalyticsThresholdQuery("analytics threshold inferred keys renamed", bySubsystem),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectUnknownValue(alertResourceName, groupBy),
+						plancheck.ExpectUnknownValue(alertResourceName, rows),
+					},
+				},
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(alertResourceName, "group_by.#", "1"),
+					resource.TestCheckResourceAttr(alertResourceName, "group_by.0", "sub"),
+				),
+			},
+			{
+				Config: testAccCoralogixResourceAlertAnalyticsThresholdQuery("analytics threshold inferred keys renamed", ungrouped),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckNoResourceAttr(alertResourceName, "group_by"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.analytics_threshold.use_rows_as_permutations", "false"),
+				),
+			},
+		},
+	})
+}
+
+func testAccCoralogixResourceAlertAnalyticsThresholdQuery(name, query string) string {
+	return fmt.Sprintf(`resource "coralogix_alert" "test" {
+  name = %q
+
+  type_definition = {
+    analytics_threshold = {
+      dataprime_query = {
+        query = %q
+      }
+      rules = [{
+        condition = { threshold = 10 }
+        override  = { priority = "P3" }
+      }]
+      operator          = "MORE_THAN"
+      target_column     = "cnt"
+      timeframe_minutes = 10
+    }
+  }
+}
+`, name, query)
+}
+
 func testAccCheckAlertDestroy(t *testing.T) resource.TestCheckFunc {
 	t.Helper()
 	return testAccCheckAlertDestroyState

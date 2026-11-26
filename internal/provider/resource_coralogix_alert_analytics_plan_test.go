@@ -22,6 +22,8 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
+
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/alert"
 )
 
 // Plan-time behavior — defaults, plan modifiers and unknown marking — never calls
@@ -122,15 +124,11 @@ func planAlertResourceChange(ctx context.Context, t *testing.T, object tftypes.O
 		}
 		return &dv
 	}
-	// Terraform core's proposed new state takes the config value wherever the config
-	// sets one and the prior value for a Computed attribute the config leaves null.
-	// Every Computed attribute these fixtures leave null is also null in the prior
-	// state, so the proposed new state is the config itself.
 	resp, err := server.PlanResourceChange(ctx, &tfprotov6.PlanResourceChangeRequest{
 		TypeName:         "coralogix_alert",
 		PriorState:       encode(prior),
 		Config:           encode(config),
-		ProposedNewState: encode(config),
+		ProposedNewState: encode(proposedNewState(ctx, t, prior, config)),
 	})
 	if err != nil {
 		t.Fatalf("PlanResourceChange: %s", err)
@@ -147,12 +145,42 @@ func planAlertResourceChange(ctx context.Context, t *testing.T, object tftypes.O
 	return planned
 }
 
+// proposedNewState is the proposed new state of Terraform core: the config value wherever the config sets
+// one, and the prior value for a Computed attribute that the config leaves null. The framework compares it
+// with the prior state, and marks every unconfigured Computed value unknown when they differ, so a config
+// passed as the proposed new state would plan an update of an alert that does not change.
+func proposedNewState(ctx context.Context, t *testing.T, prior, config tftypes.Value) tftypes.Value {
+	t.Helper()
+	if prior.IsNull() {
+		return config
+	}
+	s := alert.Schema()
+	proposed, err := tftypes.Transform(config, func(p *tftypes.AttributePath, v tftypes.Value) (tftypes.Value, error) {
+		if !v.IsNull() || len(p.Steps()) == 0 {
+			return v, nil
+		}
+		attribute, err := s.AttributeAtTerraformPath(ctx, p)
+		if err != nil || !attribute.IsComputed() {
+			return v, nil
+		}
+		priorValue, _, err := tftypes.WalkAttributePath(prior, p)
+		if err != nil {
+			return v, nil
+		}
+		return priorValue.(tftypes.Value), nil
+	})
+	if err != nil {
+		t.Fatalf("proposed new state: %s", err)
+	}
+	return proposed
+}
+
 // TestPlanAnalyticsMinimalConfigIsStable checks that a config with only the required
 // fields set and every optional leaf unset re-plans with no diff against the state a
 // previous apply wrote. A plain Optional leaf that flattened an absent value to a
 // zero value, or a no_data_policy flattened to an object of null attributes, would
-// fail here. It also pins that the analytics arms take the plain group_by path —
-// planning group_by as null rather than unknown.
+// fail here. It also pins that an unchanged alert plans group_by and
+// use_rows_as_permutations as in the state (null) rather than unknown.
 func TestPlanAnalyticsMinimalConfigIsStable(t *testing.T) {
 	ctx := context.Background()
 	object := alertResourceObjectType(ctx, t)

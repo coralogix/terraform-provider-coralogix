@@ -273,7 +273,9 @@ func Schema() schema.Schema {
 							},
 							"use_rows_as_permutations": schema.BoolAttribute{
 								Optional:            true,
-								MarkdownDescription: "Whether each result row is treated as a separate permutation. Defaults to true for threshold alerts as permutation count is easier to estimate.",
+								Computed:            true,
+								DeprecationMessage:  "The Coralogix API derives this value from the DataPrime query: true when the query groups its results (for example with groupby), false otherwise. Leave it out; a value that disagrees with the query is rejected.",
+								MarkdownDescription: "Whether each result row is treated as a separate permutation. When omitted, the Coralogix API derives it from the DataPrime query: true when the query has group-by keys. A configured value must match the query. Once it is in the state, deleting the line keeps the value until the query changes.",
 							},
 						},
 						MarkdownDescription: "Analytics threshold alert type definition (preview) — fires when a numeric column in the DataPrime result violates a per-priority threshold. Per-row fan-out is expressed with `use_rows_as_permutations`.",
@@ -2402,7 +2404,7 @@ func Schema() schema.Schema {
 				Optional:            true,
 				Computed:            true,
 				ElementType:         types.StringType,
-				MarkdownDescription: "Keys used to group and aggregate alert data",
+				MarkdownDescription: "Keys used to group and aggregate alert data. For `analytics_threshold`, the Coralogix API infers the keys from the group-by keys of the DataPrime query when `use_rows_as_permutations` is true: leave `group_by` out and it plans the keys again when the query changes. A configured `group_by` must match the inferred keys.",
 			},
 			"incidents_settings": schema.SingleNestedAttribute{
 				Optional: true,

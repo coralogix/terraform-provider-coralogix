@@ -1,5 +1,10 @@
 # Unreleased
 
+#### resource/coralogix_alert
+
+- FIX: `analytics_threshold` plans `group_by` as computed when the configuration leaves it out: unknown when the DataPrime query or `use_rows_as_permutations` changes, the state value otherwise. The Coralogix API now infers the keys from the group-by keys of the query. Before, an apply of a grouped query without `group_by` failed with "Provider produced inconsistent result after apply". Upgrade the provider before you apply such an alert, because older versions fail with that error.
+- DEPRECATION: `analytics_threshold.use_rows_as_permutations` is deprecated and now Optional and Computed. The Coralogix API derives it from the query: true when the query has group-by keys. When it is left out, the plan keeps the state value until the query changes. A configured value that disagrees with the query is rejected by the API.
+
 #### resource/coralogix_user
 
 - FEAT: `coralogix_user` is generated from the Users API contract. The schema is the released one: `id`, `user_name`, `name` (`given_name`, `family_name`), `active`, and `groups`, with `allowed_login_mode` added — the login modes the released resource kept in private state and echoed on every update now sit in state, so a configuration can manage them. The state keeps the order and the repetitions of the configuration: the backend answers the modes in its own order, and the read matches the configuration against that answer, so a configuration that lists the modes the other way round plans no change. The read pages the Search with the page size of 100, and stops when the page token stops moving forward.

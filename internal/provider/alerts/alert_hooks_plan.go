@@ -29,6 +29,11 @@ import (
 // modifyAlertPlan plans what no plan modifier of one attribute can state: group_by, which some alert
 // types compute, and the override priority of a rule, which falls back to the priority of the alert.
 func modifyAlertPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	// The planned use_rows_as_permutations is an input of the planned group_by, so it is planned first.
+	resp.Diagnostics.Append(planRowsAsPermutations(ctx, req, resp)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 	resp.Diagnostics.Append(planGroupBy(ctx, req, resp)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -52,22 +57,32 @@ func modifyAlertPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *
 // reads an empty one as null: the hooks never panic on it.
 
 // groupByArms are the arms of type_definition for which the API computes group_by.
-var groupByArms = []string{"metric_threshold", "metric_anomaly", "logs_new_value", "slo_threshold", "tracing_threshold", "flow"}
+var groupByArms = []string{
+	"metric_threshold", "metric_anomaly", "logs_new_value", "analytics_threshold", "slo_threshold", "tracing_threshold", "flow",
+}
 
 // armsWithConfiguredGroupBy are the arms of type_definition for which the API does not compute group_by.
 var armsWithConfiguredGroupBy = []string{
 	"logs_immediate", "logs_threshold", "logs_ratio_threshold", "logs_time_relative_threshold", "logs_anomaly",
-	"logs_unique_count", "analytics_result_count", "analytics_threshold", "tracing_immediate",
+	"logs_unique_count", "analytics_result_count", "tracing_immediate",
 }
 
-// groupByInput is the attribute of the arm whose change makes the API compute group_by again. An arm of
+// groupByInput are the attributes of the arm whose change makes the API compute group_by again. An arm of
 // groupByArms without a line here (slo_threshold, tracing_threshold, flow) returns group_by independently of the
 // configuration, so the plan keeps the state value and leaves it unknown until the state holds one.
-var groupByInput = map[string][]string{
-	"metric_threshold": {"type_definition", "metric_threshold", "metric_filter", "promql"},
-	"metric_anomaly":   {"type_definition", "metric_anomaly", "metric_filter", "promql"},
-	"logs_new_value":   {"type_definition", "logs_new_value", "rules"},
+var groupByInput = map[string][][]string{
+	"metric_threshold": {{"type_definition", "metric_threshold", "metric_filter", "promql"}},
+	"metric_anomaly":   {{"type_definition", "metric_anomaly", "metric_filter", "promql"}},
+	"logs_new_value":   {{"type_definition", "logs_new_value", "rules"}},
+	// The API infers the keys from the DataPrime query, and stores them only when each row is a permutation.
+	"analytics_threshold": {
+		analyticsThresholdQuery,
+		{"type_definition", "analytics_threshold", "use_rows_as_permutations"},
+	},
 }
+
+// analyticsThresholdQuery is the DataPrime query of an analytics_threshold alert.
+var analyticsThresholdQuery = []string{"type_definition", "analytics_threshold", "dataprime_query", "query"}
 
 // armsWithReturnedGroupBy are the arms of groupByArms that have no groupByInput: the API may return a
 // group_by for them that the configuration does not have.
@@ -82,8 +97,9 @@ func armsWithReturnedGroupBy() []string {
 }
 
 // planGroupBy plans group_by when the configuration leaves it out:
-//   - metric_threshold, metric_anomaly (the promql) and logs_new_value (the rules): the API derives
-//     group_by from them, so a change makes it unknown and no change keeps the state;
+//   - metric_threshold, metric_anomaly (the promql), logs_new_value (the rules) and analytics_threshold (the
+//     DataPrime query and use_rows_as_permutations): the API derives group_by from them, so a change makes it
+//     unknown and no change keeps the state;
 //   - slo_threshold, tracing_threshold, flow: the API may return a group_by that the configuration does not
 //     have, so it is unknown until the state holds one;
 //   - any other type: the planned value is the configured one, null.
@@ -105,7 +121,7 @@ func planGroupBy(ctx context.Context, req resource.ModifyPlanRequest, resp *reso
 		input, hasInput := groupByInput[arm]
 		var changed bool
 		if hasInput {
-			changed = valueChanged(req.State.Raw, resp.Plan.Raw, input)
+			changed = slices.ContainsFunc(input, func(names []string) bool { return valueChanged(req.State.Raw, resp.Plan.Raw, names) })
 		} else {
 			changed = state.IsNull() || state.IsUnknown()
 		}
@@ -115,6 +131,37 @@ func planGroupBy(ctx context.Context, req resource.ModifyPlanRequest, resp *reso
 		}
 	}
 	diags.Append(resp.Plan.SetAttribute(ctx, groupByPath, planned)...)
+	return diags
+}
+
+// planRowsAsPermutations plans the use_rows_as_permutations of an analytics_threshold alert when the
+// configuration leaves it out. The API derives it from the DataPrime query (true when the query has group-by
+// keys), so a new alert or a changed query makes it unknown, and an unchanged query keeps the state value.
+// A null state value is an alert saved before the API derived it: the next update derives it, so the plan
+// keeps what the framework planned (unknown when the alert changes, null when it does not). It is an input
+// of group_by, so the same update recomputes the keys.
+func planRowsAsPermutations(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) diag.Diagnostics {
+	rowsPath := path.Root("type_definition").AtName("analytics_threshold").AtName("use_rows_as_permutations")
+	var typeDefinition types.Object
+	diags := resp.Plan.GetAttribute(ctx, path.Root("type_definition"), &typeDefinition)
+	if diags.HasError() || !armIsSet(typeDefinition, "analytics_threshold") {
+		return diags
+	}
+	var config types.Bool
+	diags.Append(req.Config.GetAttribute(ctx, rowsPath, &config)...)
+	if diags.HasError() || !config.IsNull() {
+		return diags
+	}
+	planned := types.BoolUnknown()
+	if !valueChanged(req.State.Raw, resp.Plan.Raw, analyticsThresholdQuery) {
+		var state types.Bool
+		diags.Append(req.State.GetAttribute(ctx, rowsPath, &state)...)
+		if diags.HasError() || state.IsNull() {
+			return diags
+		}
+		planned = state
+	}
+	diags.Append(resp.Plan.SetAttribute(ctx, rowsPath, planned)...)
 	return diags
 }
 

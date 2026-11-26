@@ -102,35 +102,42 @@ func TestGroupByTablesCoverTheSchemaArms(t *testing.T) {
 	}
 }
 
-// groupByInput names the attribute whose change recomputes group_by: it must exist in the schema, or
+// groupByInput names the attributes whose change recomputes group_by: it must exist in the schema, or
 // valueChanged never sees a change, and the state keeps stale keys.
 func TestGroupByInputIsASchemaAttribute(t *testing.T) {
 	root := alert.Schema().Attributes
-	for arm, names := range groupByInput {
+	for arm, inputs := range groupByInput {
 		if !slices.Contains(groupByArms, arm) {
 			t.Errorf("groupByInput has a line for %q, which is not in groupByArms (alert_hooks_plan.go)", arm)
 		}
-		if len(names) < 2 || names[0] != "type_definition" || names[1] != arm {
-			t.Errorf("groupByInput[%q] = %v: it must start with type_definition, %s", arm, names, arm)
-			continue
+		for _, names := range inputs {
+			checkGroupByInputPath(t, root, arm, names)
 		}
-		attributes := root
-		for i, name := range names {
-			attribute, ok := attributes[name]
-			if !ok {
-				t.Errorf("groupByInput[%q] = %v: the schema has no attribute %q (alert_hooks_plan.go)", arm, names, name)
-				break
-			}
-			if i == len(names)-1 {
-				break
-			}
-			object, ok := attribute.(schema.SingleNestedAttribute)
-			if !ok {
-				t.Errorf("groupByInput[%q] = %v: %q is not a nested object", arm, names, name)
-				break
-			}
-			attributes = object.Attributes
+	}
+}
+
+func checkGroupByInputPath(t *testing.T, root map[string]schema.Attribute, arm string, names []string) {
+	t.Helper()
+	if len(names) < 2 || names[0] != "type_definition" || names[1] != arm {
+		t.Errorf("groupByInput[%q] = %v: it must start with type_definition, %s", arm, names, arm)
+		return
+	}
+	attributes := root
+	for i, name := range names {
+		attribute, ok := attributes[name]
+		if !ok {
+			t.Errorf("groupByInput[%q] = %v: the schema has no attribute %q (alert_hooks_plan.go)", arm, names, name)
+			return
 		}
+		if i == len(names)-1 {
+			return
+		}
+		object, ok := attribute.(schema.SingleNestedAttribute)
+		if !ok {
+			t.Errorf("groupByInput[%q] = %v: %q is not a nested object", arm, names, name)
+			return
+		}
+		attributes = object.Attributes
 	}
 }
 

@@ -851,10 +851,9 @@ resource "coralogix_alert" "test" {
 #           priority = "P1"
 #         }
 #       }]
-#       operator                 = "LESS_THAN"
-#       target_column            = "error_count"
-#       use_rows_as_permutations = false
-#       timeframe_minutes        = 30
+#       operator          = "LESS_THAN"
+#       target_column     = "error_count"
+#       timeframe_minutes = 30
 #     }
 #   }
 # }
