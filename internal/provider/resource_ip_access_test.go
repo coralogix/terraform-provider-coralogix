@@ -15,8 +15,11 @@
 package provider
 
 import (
+	"bytes"
 	_ "embed"
+	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -96,7 +99,7 @@ func precheckIpAccessResource(t *testing.T) {
 }
 
 func clearIpAccessTestFixture(base, apiKey string, disposable bool) error {
-	status, body := sendIpAccessFidelityRequestNoTest(base, apiKey, http.MethodGet, "", nil)
+	status, body := sendIpAccessRequest(base, apiKey, http.MethodGet, "", nil)
 	if status == http.StatusNotFound {
 		return nil
 	}
@@ -120,7 +123,7 @@ func clearIpAccessTestFixture(base, apiKey string, disposable bool) error {
 			return fmt.Errorf("IP access preflight found an unowned entry; refusing to delete")
 		}
 	}
-	status, _ = sendIpAccessFidelityRequestNoTest(base, apiKey, http.MethodDelete, "", nil)
+	status, _ = sendIpAccessRequest(base, apiKey, http.MethodDelete, "", nil)
 	if status != http.StatusOK && status != http.StatusNoContent && status != http.StatusNotFound {
 		return fmt.Errorf("IP access preflight DELETE failed with status %d", status)
 	}
@@ -159,31 +162,86 @@ func TestClearIpAccessTestFixture(t *testing.T) {
 		{name: "disposable enabled support access", allow: true, supportEnabled: true},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			fake := newIpAccessFidelityFake()
-			fake.getStatus = test.getStatus
+			settings := map[string]any{
+				"ipAccess":                             map[string]any{},
+				"enableCoralogixCustomerSupportAccess": "CORALOGIX_CUSTOMER_SUPPORT_ACCESS_DISABLED",
+			}
 			if test.supportEnabled {
-				fake.settings["enableCoralogixCustomerSupportAccess"] = "CORALOGIX_CUSTOMER_SUPPORT_ACCESS_ENABLED"
+				settings["enableCoralogixCustomerSupportAccess"] = "CORALOGIX_CUSTOMER_SUPPORT_ACCESS_ENABLED"
 			}
 			if test.entry != nil {
 				entries := map[string]any{"test-entry": test.entry}
 				if test.extraEntry != nil {
 					entries["extra-entry"] = test.extraEntry
 				}
-				fake.settings["ipAccess"] = entries
+				settings["ipAccess"] = entries
 			}
-			server := httptest.NewServer(fake)
+			var methods []string
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				methods = append(methods, r.Method)
+				w.Header().Set("Content-Type", "application/json")
+				switch {
+				case r.URL.Path != ipAccessBasePath:
+					w.WriteHeader(http.StatusNotFound)
+				case r.Method == http.MethodGet && test.getStatus != 0:
+					w.WriteHeader(test.getStatus)
+				case r.Method == http.MethodGet:
+					_ = json.NewEncoder(w).Encode(map[string]any{"settings": settings})
+				case r.Method == http.MethodDelete:
+					_ = json.NewEncoder(w).Encode(map[string]any{})
+				default:
+					w.WriteHeader(http.StatusMethodNotAllowed)
+				}
+			}))
 			t.Cleanup(server.Close)
 			err := clearIpAccessTestFixture(server.URL, "test-key", test.allow)
 			if (err == nil) != (test.delete || test.getStatus == http.StatusNotFound) {
 				t.Fatalf("clear error = %v, want delete = %v", err, test.delete)
 			}
 			deleted := false
-			for _, request := range fake.requests {
-				deleted = deleted || request.Method == http.MethodDelete
+			for _, method := range methods {
+				deleted = deleted || method == http.MethodDelete
 			}
 			if deleted != test.delete {
 				t.Fatalf("deleted = %v, want %v", deleted, test.delete)
 			}
 		})
 	}
+}
+
+// ipAccessBasePath is the route of the team IP access settings.
+const ipAccessBasePath = "/aaa/team-sec-ip-access/v1"
+
+// sendIpAccessRequest calls the IP access API directly and returns the status and the parsed body.
+func sendIpAccessRequest(base, apiKey, method, path string, body any) (int, any) {
+	url := strings.TrimRight(base, "/") + ipAccessBasePath + path
+	var reader io.Reader
+	if body != nil {
+		raw, _ := json.Marshal(body)
+		reader = bytes.NewReader(raw)
+	}
+	req, _ := http.NewRequest(method, url, reader)
+	req.Header.Set("Authorization", "Bearer "+apiKey)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return 0, err.Error()
+	}
+	defer resp.Body.Close()
+	raw, _ := io.ReadAll(resp.Body)
+	var parsed any
+	if len(bytes.TrimSpace(raw)) == 0 {
+		parsed = map[string]any{}
+	} else if json.Unmarshal(raw, &parsed) != nil {
+		parsed = map[string]any{"raw": string(raw)}
+	}
+	return resp.StatusCode, parsed
+}
+
+func asObject(value any) map[string]any {
+	if object, ok := value.(map[string]any); ok {
+		return object
+	}
+	return map[string]any{}
 }

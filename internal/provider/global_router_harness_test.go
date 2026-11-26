@@ -31,9 +31,8 @@ import (
 	"testing"
 )
 
-// grFake is a small in-memory backend for global routers. It is checked
-// against recorded answers of the real API (global_router_fidelity_test.go).
-// It follows what was probed and recorded on a real tenant:
+// grFake is a small in-memory backend for global routers. It follows what was probed and
+// recorded on a real tenant:
 //   - the server sets createTime, updateTime, and every target id (new on each write)
 //   - an omitted scalar or collection is returned as its zero value, but an unset routing label is left out
 //   - a rule without entityType becomes ALERTS, and ENTITY_TYPE_UNSPECIFIED is refused

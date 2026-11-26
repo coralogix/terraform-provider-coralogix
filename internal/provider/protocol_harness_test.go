@@ -12,45 +12,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// The protocol harness of the baseline tests that remain: the handwritten resources that are not
-// generated yet (scope, custom role, and IP access). A handwritten resource that moves to the
-// generator records its baseline on master first, with this harness (see the skill
-// record-migration-baseline). The baselines of the generated resources are gone: the generated
-// acceptance tests and the handwritten acceptance tests cover them.
+// The protocol harness: it drives a resource through the plugin protocol against an in-memory
+// backend, so a test can assert on plans, applies, refreshes, imports, and state upgrades without a
+// Coralogix tenant. The tests that use it assert in code; no golden files are recorded.
 
 package provider
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"io/fs"
-	"maps"
 	"math/big"
 	"net/http"
 	"net/url"
-	"os"
-	"path/filepath"
-	"reflect"
 	"regexp"
 	"slices"
-	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 )
-
-// marshalDataSourceGolden masks the random ids of the dashboard goldens. The other data sources
-// have none.
-func marshalDataSourceGolden(t *testing.T, name string, steps any) []byte {
-	if name == "dashboard" {
-		return marshalDashboardGolden(t, steps)
-	}
-	return marshalGolden(t, steps)
-}
 
 // UpgradeFrom upgrades a raw state that was written by the given schema version.
 func (h *grHarness) UpgradeFrom(name string, version int64, rawJSON string) tftypes.Value {
@@ -70,32 +51,6 @@ func (h *grHarness) UpgradeFrom(name string, version int64, rawJSON string) tfty
 	step.State = toJSON(state)
 	h.record(step)
 	return state
-}
-
-var dashboardUUIDPattern = regexp.MustCompile(`[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}`)
-
-// marshalDashboardGolden masks the ids that the provider makes at random (section, row, widget,
-// filter and action ids). A mask is numbered by the first place it shows in the file, so the golden
-// is the same on every run. Dashboard ids come from the fake and are already fixed.
-func marshalDashboardGolden(t *testing.T, v any) []byte {
-	t.Helper()
-	masks := map[string]string{}
-	return dashboardUUIDPattern.ReplaceAllFunc(marshalGolden(t, v), func(id []byte) []byte {
-		mask, ok := masks[string(id)]
-		if !ok {
-			mask = "<id-" + itoa(len(masks)+1) + ">"
-			masks[string(id)] = mask
-		}
-		return []byte(mask)
-	})
-}
-
-func itoa(n int) string {
-	digits := []byte{}
-	for ; n > 0; n /= 10 {
-		digits = append([]byte{byte('0' + n%10)}, digits...)
-	}
-	return string(digits)
 }
 
 // grRequest is one request that the provider sent to the fake backend.
@@ -506,12 +461,6 @@ func (h *grHarness) Import(name, id string) tftypes.Value {
 	return h.Refresh(name+" (refresh)", h.decode(resp.ImportedResources[0].State))
 }
 
-// UpgradeV0 upgrades a raw state that was written by schema version 0.
-func (h *grHarness) UpgradeV0(name, rawJSON string) tftypes.Value {
-	h.t.Helper()
-	return h.UpgradeFrom(name, 0, rawJSON)
-}
-
 // ReadDataSource validates the config of the data source with the type name of the harness, and
 // reads it, as Terraform core does during a plan. The state of the step is the data source result.
 func (h *grHarness) ReadDataSource(name string, cfgJSON map[string]any) {
@@ -544,51 +493,6 @@ func (h *grHarness) ReadDataSource(name string, cfgJSON map[string]any) {
 		step.State = toJSON(state)
 	}
 	h.record(step)
-}
-
-// dataSourceSchemaText returns the data source schema as Terraform core receives it: one line per
-// attribute, sorted by path, with its type, its flags, and its descriptions.
-func dataSourceSchemaText(s *tfprotov6.Schema) string {
-	var lines []string
-	var walk func(prefix string, attrs []*tfprotov6.SchemaAttribute)
-	walk = func(prefix string, attrs []*tfprotov6.SchemaAttribute) {
-		for _, a := range attrs {
-			p := prefix + a.Name
-			kind := "nested"
-			if a.Type != nil {
-				kind = a.Type.String()
-			} else if a.NestedType != nil {
-				kind = "nested " + a.NestedType.Nesting.String()
-			}
-			var flags []string
-			for _, f := range []struct {
-				on   bool
-				name string
-			}{{a.Required, "required"}, {a.Optional, "optional"}, {a.Computed, "computed"}, {a.Sensitive, "sensitive"}, {a.Deprecated, "deprecated"}, {a.WriteOnly, "write-only"}} {
-				if f.on {
-					flags = append(flags, f.name)
-				}
-			}
-			line := p + "  " + kind + " " + strings.Join(flags, ",")
-			if a.Description != "" {
-				line += "\n    description: " + strings.ReplaceAll(a.Description, "\n", "\\n")
-			}
-			lines = append(lines, line)
-			if a.NestedType != nil {
-				walk(p+".", a.NestedType.Attributes)
-			}
-		}
-	}
-	walk("", s.Block.Attributes)
-	slices.Sort(lines)
-	header := "(data source schema)"
-	if s.Block.Description != "" {
-		header += "\n    description: " + strings.ReplaceAll(s.Block.Description, "\n", "\\n")
-	}
-	if s.Block.Deprecated {
-		header += "\n    deprecated"
-	}
-	return header + "\n" + strings.Join(lines, "\n") + "\n"
 }
 
 // idOf returns the id in a state.
@@ -1113,266 +1017,10 @@ func hasError(ds []*tfprotov6.Diagnostic) bool {
 	return false
 }
 
-func checkGoldenAt(t *testing.T, dir, name string, got []byte) {
-	t.Helper()
-	file := filepath.Join(dir, name)
-	if os.Getenv("UPDATE_GOLDEN") == "1" {
-		if err := os.MkdirAll(filepath.Dir(file), 0o755); err != nil {
-			t.Fatal(err)
-		}
-		if err := os.WriteFile(file, got, 0o644); err != nil {
-			t.Fatal(err)
-		}
-		return
-	}
-	want, err := os.ReadFile(file)
-	if err != nil {
-		t.Fatalf("%v\nrun with UPDATE_GOLDEN=1 to create it", err)
-	}
-	if !bytes.Equal(want, got) {
-		t.Errorf("%s differs from the golden file (first difference below).\n%s\nrun with UPDATE_GOLDEN=1 to accept the change", name, firstDifference(string(want), string(got)))
-	}
-}
-
-func firstDifference(want, got string) string {
-	w, g := strings.Split(want, "\n"), strings.Split(got, "\n")
-	for i := 0; i < len(w) || i < len(g); i++ {
-		var wl, gl string
-		if i < len(w) {
-			wl = w[i]
-		}
-		if i < len(g) {
-			gl = g[i]
-		}
-		if wl != gl {
-			return fmt.Sprintf("line %d\n  golden: %s\n  actual: %s", i+1, wl, gl)
-		}
-	}
-	return ""
-}
-
-func marshalGolden(t *testing.T, v any) []byte {
-	t.Helper()
-	var b bytes.Buffer
-	enc := json.NewEncoder(&b)
-	enc.SetEscapeHTML(false)
-	enc.SetIndent("", "  ")
-	if err := enc.Encode(v); err != nil {
-		t.Fatal(err)
-	}
-	return b.Bytes()
-}
-
 type (
 	j = map[string]any
 	l = []any
 )
-
-type fidelityStep struct {
-	Method  string `json:"method"`
-	Path    string `json:"path"`
-	Body    any    `json:"body"`
-	Capture string `json:"capture"`
-}
-
-type fidelityCases struct {
-	Cases []struct {
-		Name  string         `json:"name"`
-		Steps []fidelityStep `json:"steps"`
-	} `json:"cases"`
-}
-
-type fidelityRecorded struct {
-	Cases []struct {
-		Name  string `json:"name"`
-		Steps []struct {
-			Status   int `json:"status"`
-			Response any `json:"response"`
-		} `json:"steps"`
-	} `json:"cases"`
-}
-
-func loadFidelityAt(t *testing.T, goldenDir string) (fidelityCases, fidelityRecorded) {
-	t.Helper()
-	dir := filepath.Join(goldenDir, "fidelity")
-	rawRecorded, err := os.ReadFile(filepath.Join(dir, "recorded.json"))
-	if errors.Is(err, fs.ErrNotExist) {
-		t.Skip("fidelity/recorded.json does not exist: run the recorder first")
-	}
-	if err != nil {
-		t.Fatal(err)
-	}
-	rawCases, err := os.ReadFile(filepath.Join(dir, "cases.json"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	var cases fidelityCases
-	var recorded fidelityRecorded
-	if err := json.Unmarshal(rawCases, &cases); err != nil {
-		t.Fatal(err)
-	}
-	if err := json.Unmarshal(rawRecorded, &recorded); err != nil {
-		t.Fatal(err)
-	}
-	if len(cases.Cases) != len(recorded.Cases) {
-		t.Fatalf("cases.json has %d cases and recorded.json has %d: record again", len(cases.Cases), len(recorded.Cases))
-	}
-	return cases, recorded
-}
-
-func compareFidelityStep(t *testing.T, label string, status int, got any, wantStatus int, want any) {
-	t.Helper()
-	if status != wantStatus {
-		t.Errorf("%s: status %d, real API %d\n  fake response: %s\n  real response: %s", label, status, wantStatus, compact(got), compact(want))
-		return
-	}
-	if status != 200 {
-
-		if g, w := normalizeMessage(errorMessage(got)), normalizeMessage(errorMessage(want)); g != w {
-			t.Errorf("%s: same status %d, different message\n  fake: %s\n  real: %s", label, status, g, w)
-		}
-		return
-	}
-	if diff := firstJSONDifference("", normalizeFidelity(got), normalizeFidelity(want)); diff != "" {
-		t.Errorf("%s: response differs from the real API at %s\n  fake: %s\n  real: %s", label, diff, compact(got), compact(want))
-	}
-}
-
-func roundTrip(t *testing.T, v any) any {
-	t.Helper()
-	raw, err := json.Marshal(v)
-	if err != nil {
-		t.Fatal(err)
-	}
-	var out any
-	if err := json.Unmarshal(raw, &out); err != nil {
-		t.Fatal(err)
-	}
-	return out
-}
-
-func substString(s string, vars map[string]string) string {
-	for name, value := range vars {
-		s = strings.ReplaceAll(s, "{{"+name+"}}", value)
-	}
-	return s
-}
-
-func substJSON(t *testing.T, v any, vars map[string]string) any {
-	t.Helper()
-	raw, err := json.Marshal(v)
-	if err != nil {
-		t.Fatal(err)
-	}
-	var out any
-	if err := json.Unmarshal([]byte(substString(string(raw), vars)), &out); err != nil {
-		t.Fatal(err)
-	}
-	return out
-}
-
-func unsubstJSON(t *testing.T, v any, vars map[string]string) any {
-	t.Helper()
-	raw, err := json.Marshal(v)
-	if err != nil {
-		t.Fatal(err)
-	}
-	s := string(raw)
-	for name, value := range vars {
-		if value != "" {
-			s = strings.ReplaceAll(s, value, "{{"+name+"}}")
-		}
-	}
-	var out any
-	if err := json.Unmarshal([]byte(s), &out); err != nil {
-		t.Fatal(err)
-	}
-	return out
-}
-
-// normalizeFidelity replaces the values that are different in every run:
-// timestamps, and the ids that the server makes for targets.
-func normalizeFidelity(v any) any {
-	switch x := v.(type) {
-	case map[string]any:
-		out := map[string]any{}
-		_, isTarget := x["connectorId"]
-		for k, e := range x {
-			switch {
-			case k == "id" && isTarget:
-				out[k] = "<id>"
-			case k == "createTime" || k == "updateTime":
-				out[k] = "<time>"
-			case k == "teamId":
-				out[k] = "<teamId>"
-			default:
-				out[k] = normalizeFidelity(e)
-			}
-		}
-		return out
-	case []any:
-		out := make([]any, len(x))
-		for i, e := range x {
-			out[i] = normalizeFidelity(e)
-		}
-		return out
-	}
-	return v
-}
-
-// firstJSONDifference returns the path of the first difference, or "".
-func firstJSONDifference(path string, a, b any) string {
-	switch x := a.(type) {
-	case map[string]any:
-		y, ok := b.(map[string]any)
-		if !ok {
-			return pathOrRoot(path)
-		}
-		keys := slices.Sorted(maps.Keys(x))
-		for k := range y {
-			if _, ok := x[k]; !ok {
-				keys = append(keys, k)
-			}
-		}
-		slices.Sort(keys)
-		for _, k := range slices.Compact(keys) {
-			av, aok := x[k]
-			bv, bok := y[k]
-			sub := path + "." + k
-			switch {
-			case aok != bok:
-				return sub + " (key only in the " + map[bool]string{true: "fake", false: "real response"}[aok] + ")"
-			default:
-				if d := firstJSONDifference(sub, av, bv); d != "" {
-					return d
-				}
-			}
-		}
-		return ""
-	case []any:
-		y, ok := b.([]any)
-		if !ok || len(x) != len(y) {
-			return pathOrRoot(path) + " (list length)"
-		}
-		for i := range x {
-			if d := firstJSONDifference(fmt.Sprintf("%s[%d]", path, i), x[i], y[i]); d != "" {
-				return d
-			}
-		}
-		return ""
-	}
-	if !reflect.DeepEqual(a, b) {
-		return pathOrRoot(path)
-	}
-	return ""
-}
-
-func pathOrRoot(p string) string {
-	if p == "" {
-		return "(root)"
-	}
-	return p
-}
 
 func compact(v any) string {
 	raw, _ := json.Marshal(v)
@@ -1381,32 +1029,3 @@ func compact(v any) string {
 	}
 	return string(raw)
 }
-
-var (
-	uuidPattern    = regexp.MustCompile(`[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`)
-	linePosPattern = regexp.MustCompile(`\(line \d+:\d+\)`)
-)
-
-// normalizeMessage removes what differs in every run: generated ids and the position in the request text.
-func normalizeMessage(s string) string {
-	s = uuidPattern.ReplaceAllString(s, "<uuid>")
-	return linePosPattern.ReplaceAllString(s, "(line L:C)")
-}
-
-func errorMessage(v any) string {
-	m, _ := v.(map[string]any)
-	s, _ := m["message"].(string)
-	return s
-}
-
-func asSlice(value any) []any {
-	items, _ := value.([]any)
-	return items
-}
-
-// missingID is an id that no fake has. It has the form of an id, because an SDK can check the form
-// before the request.
-const missingID = "00000000-0000-4000-8000-999999999999"
-
-// byID is the data source config that looks up id.
-func byID(id string) j { return j{"id": id} }
