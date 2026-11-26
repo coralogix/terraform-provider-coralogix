@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -269,7 +270,20 @@ func (r *Resource) create(ctx context.Context, body *users_management_service.Cr
 	if out == nil || len(out.Results) == 0 {
 		return nil, fmt.Errorf("the API returned no result for the new %s", TypeName)
 	}
-	result := out.Results[0]
+	// The result echoes the value the request sent: only the result that belongs
+	// to the one item this request sent counts, as the released resource insisted.
+	at := -1
+	for i := range out.Results {
+		echo := out.Results[i].Username
+		if strings.EqualFold(echo, *(body.UserTemplate.Username)) {
+			at = i
+			break
+		}
+	}
+	if at < 0 {
+		return nil, fmt.Errorf("create returned no result for %q", *(body.UserTemplate.Username))
+	}
+	result := out.Results[at]
 	if result.Status == nil {
 		return nil, fmt.Errorf("the API returned no status for the new %s", TypeName)
 	}
