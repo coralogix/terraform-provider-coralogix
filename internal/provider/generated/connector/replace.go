@@ -31,6 +31,7 @@ var updateFields = []struct {
 	{attr: "id", serverDefault: false},
 	{attr: "name", serverDefault: false},
 	{attr: "type", serverDefault: false},
+	{attr: "config_overrides_templates_wo_versions", serverDefault: false},
 }
 
 // updateChanged reports whether an Update field has a different value in the

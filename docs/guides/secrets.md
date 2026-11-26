@@ -64,9 +64,15 @@ A write-only attribute sends the value to Coralogix. Terraform never writes it t
 | `coralogix_webhook` | `custom.headers_wo` | `custom.headers_wo_versions` |
 | `coralogix_webhook` | `pager_duty.service_key_wo` | `pager_duty.service_key_wo_version` |
 | `coralogix_webhook` | `jira.api_token_wo` | `jira.api_token_wo_version` |
+| `coralogix_webhook` | `url_wo` in `custom`, `slack`, `microsoft_teams`, `opsgenie`, and `demisto` | `url_wo_version` in the same block |
+| `coralogix_connector` | `config_overrides_templates_wo` | `config_overrides_templates_wo_versions` |
+| `coralogix_integration` | `parameters_wo` | `parameters_wo_versions` |
 
-A plain attribute stores its value in the state. Examples are `connector_config.fields[].value`, `pager_duty.service_key`, and `jira.api_token`.
+A plain attribute stores its value in the state. Examples are `connector_config.fields[].value`, `pager_duty.service_key`, `jira.api_token`, `slack.url`, `config_overrides[].fields[].template`, and `parameters` of `coralogix_integration`.
 Do not use a plain attribute for a secret.
+
+Most URLs, templates, and parameters are not secret. Keep using the plain attribute for those.
+Use the write-only attribute when the value holds a credential. For a webhook URL, set exactly one of `url` and `url_wo`.
 
 An ephemeral variable cannot feed a plain attribute. Terraform stops with an error, so a mistake cannot store the secret by accident:
 
@@ -76,6 +82,28 @@ Error: Invalid use of ephemeral value
 Ephemeral values are not valid for "connector_config", because it is not a
 write-only attribute and must be persisted to state.
 ```
+
+## Keys of the map attributes
+
+`field_values_wo`, `headers_wo`, and `parameters_wo` use the name of the field, header, or parameter as the key.
+`config_overrides_templates_wo` uses `<entity_type>.<field_name>` as the key. Declare the entity type in `config_overrides`, and leave the secret template out of its `fields`:
+
+```hcl
+config_overrides = [
+  {
+    entity_type = "alerts"
+    fields      = []
+  }
+]
+config_overrides_templates_wo = {
+  "alerts.additionalHeaders" = var.connector_headers
+}
+config_overrides_templates_wo_versions = {
+  "alerts.additionalHeaders" = 1
+}
+```
+
+A key is in the plain attribute or in the write-only attribute, not in both.
 
 ## Rotate a secret
 
@@ -97,4 +125,4 @@ Terraform does not save an ephemeral value in the plan file. If you run `terrafo
 An import and a data source read the secret from the API, because they have no configuration that says the value is write-only.
 
 - `terraform import` writes the secret to the state. The next `terraform apply` removes it. Treat an imported secret as exposed and rotate it.
-- `data.coralogix_connector` and `data.coralogix_webhook` return the secret in their result, and Terraform stores it in the state of the configuration that uses the data source.
+- `data.coralogix_connector`, `data.coralogix_webhook`, and `data.coralogix_integration` return the secret in their result, and Terraform stores it in the state of the configuration that uses the data source.

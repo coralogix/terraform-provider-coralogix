@@ -42,9 +42,10 @@ import (
 func NewIntegrationResource() resource.Resource {
 	h := &integrationHooks{}
 	generated := integration.NewResource(integration.Hooks{
-		BeforeWrite:   h.beforeWrite,
-		BeforeFlatten: h.rememberParameters,
-		AfterRead:     h.setStateParameters,
+		BeforeWrite:    h.beforeWrite,
+		BeforeFlatten:  h.rememberParameters,
+		AfterRead:      h.setStateParameters,
+		ValidateConfig: validateWriteOnlyParameters,
 	})
 	return &integrationResource{Resource: generated.(*integration.Resource), hooks: h}
 }
@@ -150,8 +151,12 @@ func requestMetadata(body any) *integrationsSDK.IntegrationMetadata {
 
 // beforeWrite puts the parameters of the configuration in the request, then asks the API to test
 // the integration before Create and Update save it.
-func (h *integrationHooks) beforeWrite(ctx context.Context, _ tfsdk.Config, plan tfsdk.Plan, _ *tfsdk.State, body any) diag.Diagnostics {
+func (h *integrationHooks) beforeWrite(ctx context.Context, config tfsdk.Config, plan tfsdk.Plan, _ *tfsdk.State, body any) diag.Diagnostics {
 	diags := h.setParameters(ctx, plan, nil, body)
+	if diags.HasError() {
+		return diags
+	}
+	diags.Append(addWriteOnlyParameters(ctx, config, body)...)
 	if diags.HasError() {
 		return diags
 	}
@@ -203,6 +208,7 @@ func (h *integrationHooks) setStateParameters(ctx context.Context, state *tfsdk.
 		}
 		if hasKnownParameters(parameters) {
 			diags.Append(state.SetAttribute(ctx, path.Root("parameters"), parameters)...)
+			diags.Append(keepParameterVersions(ctx, state, p)...)
 			return diags
 		}
 	}

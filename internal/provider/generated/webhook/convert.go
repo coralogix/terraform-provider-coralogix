@@ -535,6 +535,8 @@ func flattenDemistoConfig(ctx context.Context, p path.Path, v *outgoing_webhooks
 	out.Payload = types.StringPointerValue(&v.Payload)
 	out.Uuid = types.StringPointerValue(v.Uuid)
 	out.Url = types.StringNull()
+	out.UrlWo = types.StringNull()
+	out.UrlWoVersion = types.Int64Null()
 	return out
 }
 
@@ -584,6 +586,8 @@ func flattenGenericWebhookConfig(ctx context.Context, p path.Path, v *outgoing_w
 	out.HeadersWo = types.MapNull(types.StringType)
 	out.HeadersWoVersions = types.MapNull(types.Int64Type)
 	out.Url = types.StringNull()
+	out.UrlWo = types.StringNull()
+	out.UrlWoVersion = types.Int64Null()
 	return out
 }
 
@@ -682,6 +686,8 @@ func flattenSlackConfig(ctx context.Context, p path.Path, v *outgoing_webhooks_s
 	}
 	out.NotifyOn = types.SetNull(types.StringType)
 	out.Url = types.StringNull()
+	out.UrlWo = types.StringNull()
+	out.UrlWoVersion = types.Int64Null()
 	return out
 }
 
@@ -752,6 +758,8 @@ func flattenOutgoingWebhook(ctx context.Context, p path.Path, v *outgoing_webhoo
 	if v.MicrosoftTeams != nil {
 		out.MicrosoftTeams = &MicrosoftTeamsConfigModel{}
 		out.MicrosoftTeams.Url = types.StringNull()
+		out.MicrosoftTeams.UrlWo = types.StringNull()
+		out.MicrosoftTeams.UrlWoVersion = types.Int64Null()
 	}
 	if v.MsTeamsWorkflow != nil {
 		out.MsTeamsWorkflow = &MSTeamsWorkflowConfigModel{}
@@ -761,6 +769,8 @@ func flattenOutgoingWebhook(ctx context.Context, p path.Path, v *outgoing_webhoo
 	if v.Opsgenie != nil {
 		out.Opsgenie = &OpsgenieConfigModel{}
 		out.Opsgenie.Url = types.StringNull()
+		out.Opsgenie.UrlWo = types.StringNull()
+		out.Opsgenie.UrlWoVersion = types.Int64Null()
 	}
 	out.PagerDuty = flattenPagerDutyConfig(ctx, p.AtName("pager_duty"), v.PagerDuty, diags)
 	out.SendLog = flattenSendLogConfig(ctx, p.AtName("sendlog"), v.SendLog, diags)

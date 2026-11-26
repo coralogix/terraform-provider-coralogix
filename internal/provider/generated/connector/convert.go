@@ -562,6 +562,8 @@ func flattenConnector(ctx context.Context, p path.Path, v *connectors_service.Co
 	out.Id = types.StringPointerValue(v.Id)
 	out.Name = types.StringPointerValue(&v.Name)
 	out.Type = flattenEnumMapped(p.AtName("type"), &v.Type, notificationCenterConnectorTypeFromAPI, diags)
+	out.ConfigOverridesTemplatesWo = types.MapNull(types.StringType)
+	out.ConfigOverridesTemplatesWoVersions = types.MapNull(types.Int64Type)
 	return out
 }
 

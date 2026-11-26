@@ -1,5 +1,21 @@
 # Unreleased
 
+#### resource/coralogix_webhook
+
+- FEAT: Add `url_wo` and `url_wo_version` to the `custom`, `slack`, `microsoft_teams`, `opsgenie`, and `demisto` blocks. Use `url_wo` when the URL holds a credential: Terraform sends it to Coralogix and never writes it to state. In `opsgenie` and `demisto`, `url` is now optional, and exactly one of `url` and `url_wo` is required. Existing configurations stay valid.
+
+#### resource/coralogix_integration
+
+- FEAT: Add `parameters_wo` and `parameters_wo_versions`. Use `parameters_wo` for a parameter that holds a credential, such as an API key: Terraform sends it to Coralogix as a string parameter and never writes it to state. A key is in `parameters` or in `parameters_wo`, not in both.
+
+#### resource/coralogix_connector
+
+- FEAT: Add `config_overrides_templates_wo` and `config_overrides_templates_wo_versions`. Use `config_overrides_templates_wo` when a config override template holds a credential. The key is `<entity_type>.<field_name>`. Terraform sends the template to Coralogix and never writes it to state.
+
+#### provider
+
+- DOCS: The guide "Keeping Secrets Out of Terraform State" lists the new write-only attributes.
+
 # Release 3.29.1
 
 #### resource/coralogix_alert

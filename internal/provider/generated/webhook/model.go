@@ -33,9 +33,11 @@ type AwsEventBridgeConfigModel struct {
 }
 
 type DemistoConfigModel struct {
-	Payload types.String `tfsdk:"payload"`
-	Uuid    types.String `tfsdk:"uuid"`
-	Url     types.String `tfsdk:"url"`
+	Payload      types.String `tfsdk:"payload"`
+	Uuid         types.String `tfsdk:"uuid"`
+	Url          types.String `tfsdk:"url"`
+	UrlWo        types.String `tfsdk:"url_wo"`
+	UrlWoVersion types.Int64  `tfsdk:"url_wo_version"`
 }
 
 type EmailGroupConfigModel struct {
@@ -50,6 +52,8 @@ type GenericWebhookConfigModel struct {
 	HeadersWo         types.Map    `tfsdk:"headers_wo"`
 	HeadersWoVersions types.Map    `tfsdk:"headers_wo_versions"`
 	Url               types.String `tfsdk:"url"`
+	UrlWo             types.String `tfsdk:"url_wo"`
+	UrlWoVersion      types.Int64  `tfsdk:"url_wo_version"`
 }
 
 type JiraConfigModel struct {
@@ -62,7 +66,9 @@ type JiraConfigModel struct {
 }
 
 type MicrosoftTeamsConfigModel struct {
-	Url types.String `tfsdk:"url"`
+	Url          types.String `tfsdk:"url"`
+	UrlWo        types.String `tfsdk:"url_wo"`
+	UrlWoVersion types.Int64  `tfsdk:"url_wo_version"`
 }
 
 type MSTeamsWorkflowConfigModel struct {
@@ -70,7 +76,9 @@ type MSTeamsWorkflowConfigModel struct {
 }
 
 type OpsgenieConfigModel struct {
-	Url types.String `tfsdk:"url"`
+	Url          types.String `tfsdk:"url"`
+	UrlWo        types.String `tfsdk:"url_wo"`
+	UrlWoVersion types.Int64  `tfsdk:"url_wo_version"`
 }
 
 type PagerDutyConfigModel struct {
@@ -91,7 +99,9 @@ type AttachmentModel struct {
 }
 
 type SlackConfigModel struct {
-	Attachments types.List   `tfsdk:"attachments"`
-	NotifyOn    types.Set    `tfsdk:"notify_on"`
-	Url         types.String `tfsdk:"url"`
+	Attachments  types.List   `tfsdk:"attachments"`
+	NotifyOn     types.Set    `tfsdk:"notify_on"`
+	Url          types.String `tfsdk:"url"`
+	UrlWo        types.String `tfsdk:"url_wo"`
+	UrlWoVersion types.Int64  `tfsdk:"url_wo_version"`
 }

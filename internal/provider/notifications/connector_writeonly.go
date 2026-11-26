@@ -30,6 +30,15 @@ type priorAttributes interface {
 }
 
 func mergeWriteOnlyIntoRequest(ctx context.Context, config tfsdk.Config, _ tfsdk.Plan, _ *tfsdk.State, body any) diag.Diagnostics {
+	diags := mergeWriteOnlyFieldsIntoRequest(ctx, config, body)
+	if diags.HasError() {
+		return diags
+	}
+	diags.Append(mergeWriteOnlyTemplatesIntoRequest(ctx, config, body)...)
+	return diags
+}
+
+func mergeWriteOnlyFieldsIntoRequest(ctx context.Context, config tfsdk.Config, body any) diag.Diagnostics {
 	// A write-only value lives only in the configuration: the framework does not store it
 	// in the plan or the state.
 	var secrets types.Map
@@ -55,6 +64,15 @@ func mergeWriteOnlyIntoRequest(ctx context.Context, config tfsdk.Config, _ tfsdk
 }
 
 func restoreWriteOnlyAfterRead(ctx context.Context, state *tfsdk.State, prior any) diag.Diagnostics {
+	diags := restoreWriteOnlyFieldsAfterRead(ctx, state, prior)
+	if diags.HasError() {
+		return diags
+	}
+	diags.Append(restoreWriteOnlyTemplatesAfterRead(ctx, state, prior)...)
+	return diags
+}
+
+func restoreWriteOnlyFieldsAfterRead(ctx context.Context, state *tfsdk.State, prior any) diag.Diagnostics {
 	if state == nil || prior == nil {
 		return nil
 	}

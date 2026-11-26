@@ -23,6 +23,12 @@ variable "pagerduty_integration_key" {
   ephemeral = true
 }
 
+variable "opsgenie_api_key" {
+  type      = string
+  sensitive = true
+  ephemeral = true
+}
+
 variable "service_now_password" {
   type      = string
   sensitive = true
@@ -81,15 +87,6 @@ resource "coralogix_connector" "generic_https_example" {
 EOF
         },
         {
-          field_name = "additionalHeaders"
-          template   = <<EOF
-                {
-                 "Authorization": "GenieKey some-key",
-                 "Content-Type": "application/json"
-              }
-EOF
-        },
-        {
           field_name : "additionalBodyFields"
           template : <<EOF
           {
@@ -100,6 +97,20 @@ EOF
       ]
     }
   ]
+  # The additionalHeaders template of the alerts override holds a credential, so it is set here
+  # rather than in config_overrides: Terraform sends it to Coralogix and never writes it to state.
+  # The key is <entity_type>.<field_name>. Declare the entity type in config_overrides too.
+  # Increment the matching version to send a rotated secret.
+  config_overrides_templates_wo = {
+    "alerts.additionalHeaders" = jsonencode(
+      {
+        "Authorization" : "GenieKey ${var.opsgenie_api_key}",
+        "Content-Type" : "application/json"
+    })
+  }
+  config_overrides_templates_wo_versions = {
+    "alerts.additionalHeaders" = 1
+  }
 }
 
 resource "coralogix_connector" "slack_example" {

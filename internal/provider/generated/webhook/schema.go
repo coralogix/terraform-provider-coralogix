@@ -73,8 +73,26 @@ func Schema() schema.Schema {
 						MarkdownDescription: "Webhook UUID. Computed automatically.",
 					},
 					"url": schema.StringAttribute{
-						Required:            true,
-						MarkdownDescription: "Microsoft Teams URL.",
+						Optional: true,
+						Validators: []validator.String{
+							stringvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("url_wo")),
+						},
+						MarkdownDescription: "Demisto URL. A URL that carries a secret belongs in `url_wo` instead, so its value is never written to state. Set exactly one of `url` and `url_wo`.",
+					},
+					"url_wo": schema.StringAttribute{
+						Optional:  true,
+						WriteOnly: true,
+						Validators: []validator.String{
+							stringvalidator.AlsoRequires(path.MatchRelative().AtParent().AtName("url_wo_version")),
+						},
+						MarkdownDescription: "Demisto URL that carries a secret. Set exactly one of `url` and `url_wo`. Terraform sends it to Coralogix and never writes it to state. Terraform never stores a write-only value, so it cannot detect that the secret changed: increment `url_wo_version` to send a rotated one. Requires Terraform 1.11 or later. Importing brings the value into state, because an import has neither configuration nor prior state to say the value is managed this way; one apply afterwards removes it again, so treat an imported URL as exposed and rotate it. Reading the same webhook through `data.coralogix_webhook` does return this value, because a data source reads from the API and has no configuration telling it which value is managed write-only.",
+					},
+					"url_wo_version": schema.Int64Attribute{
+						Optional: true,
+						Validators: []validator.Int64{
+							int64validator.AlsoRequires(path.MatchRelative().AtParent().AtName("url_wo")),
+						},
+						MarkdownDescription: "Version of `url_wo`. Increment it to send a rotated URL.",
 					},
 				},
 				MarkdownDescription: "Demisto webhook.",
@@ -137,7 +155,23 @@ func Schema() schema.Schema {
 					},
 					"url": schema.StringAttribute{
 						Optional:            true,
-						MarkdownDescription: "Webhook URL.",
+						MarkdownDescription: "Webhook URL. A URL that carries a secret belongs in `url_wo` instead, so its value is never written to state.",
+					},
+					"url_wo": schema.StringAttribute{
+						Optional:  true,
+						WriteOnly: true,
+						Validators: []validator.String{
+							stringvalidator.AlsoRequires(path.MatchRelative().AtParent().AtName("url_wo_version")),
+							stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("url")),
+						},
+						MarkdownDescription: "Webhook URL that carries a secret. It must not be set together with `url`. Terraform sends it to Coralogix and never writes it to state. Terraform never stores a write-only value, so it cannot detect that the secret changed: increment `url_wo_version` to send a rotated one. Requires Terraform 1.11 or later. Importing brings the value into state, because an import has neither configuration nor prior state to say the value is managed this way; one apply afterwards removes it again, so treat an imported URL as exposed and rotate it. Reading the same webhook through `data.coralogix_webhook` does return this value, because a data source reads from the API and has no configuration telling it which value is managed write-only.",
+					},
+					"url_wo_version": schema.Int64Attribute{
+						Optional: true,
+						Validators: []validator.Int64{
+							int64validator.AlsoRequires(path.MatchRelative().AtParent().AtName("url_wo")),
+						},
+						MarkdownDescription: "Version of `url_wo`. Increment it to send a rotated URL.",
 					},
 				},
 				MarkdownDescription: "Generic webhook.",
@@ -199,7 +233,23 @@ func Schema() schema.Schema {
 				Attributes: map[string]schema.Attribute{
 					"url": schema.StringAttribute{
 						Optional:            true,
-						MarkdownDescription: "Microsoft Teams URL.",
+						MarkdownDescription: "Microsoft Teams URL. A URL that carries a secret belongs in `url_wo` instead, so its value is never written to state.",
+					},
+					"url_wo": schema.StringAttribute{
+						Optional:  true,
+						WriteOnly: true,
+						Validators: []validator.String{
+							stringvalidator.AlsoRequires(path.MatchRelative().AtParent().AtName("url_wo_version")),
+							stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("url")),
+						},
+						MarkdownDescription: "Microsoft Teams URL that carries a secret. It must not be set together with `url`. Terraform sends it to Coralogix and never writes it to state. Terraform never stores a write-only value, so it cannot detect that the secret changed: increment `url_wo_version` to send a rotated one. Requires Terraform 1.11 or later. Importing brings the value into state, because an import has neither configuration nor prior state to say the value is managed this way; one apply afterwards removes it again, so treat an imported URL as exposed and rotate it. Reading the same webhook through `data.coralogix_webhook` does return this value, because a data source reads from the API and has no configuration telling it which value is managed write-only.",
+					},
+					"url_wo_version": schema.Int64Attribute{
+						Optional: true,
+						Validators: []validator.Int64{
+							int64validator.AlsoRequires(path.MatchRelative().AtParent().AtName("url_wo")),
+						},
+						MarkdownDescription: "Version of `url_wo`. Increment it to send a rotated URL.",
 					},
 				},
 				MarkdownDescription: "Microsoft Teams webhook. (Deprecated, please use microsoft_teams_workflow)",
@@ -232,8 +282,26 @@ func Schema() schema.Schema {
 				},
 				Attributes: map[string]schema.Attribute{
 					"url": schema.StringAttribute{
-						Required:            true,
-						MarkdownDescription: "Opsgenie URL.",
+						Optional: true,
+						Validators: []validator.String{
+							stringvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("url_wo")),
+						},
+						MarkdownDescription: "Opsgenie URL. A URL that carries a secret belongs in `url_wo` instead, so its value is never written to state. Set exactly one of `url` and `url_wo`.",
+					},
+					"url_wo": schema.StringAttribute{
+						Optional:  true,
+						WriteOnly: true,
+						Validators: []validator.String{
+							stringvalidator.AlsoRequires(path.MatchRelative().AtParent().AtName("url_wo_version")),
+						},
+						MarkdownDescription: "Opsgenie URL that carries a secret. Set exactly one of `url` and `url_wo`. Terraform sends it to Coralogix and never writes it to state. Terraform never stores a write-only value, so it cannot detect that the secret changed: increment `url_wo_version` to send a rotated one. Requires Terraform 1.11 or later. Importing brings the value into state, because an import has neither configuration nor prior state to say the value is managed this way; one apply afterwards removes it again, so treat an imported URL as exposed and rotate it. Reading the same webhook through `data.coralogix_webhook` does return this value, because a data source reads from the API and has no configuration telling it which value is managed write-only.",
+					},
+					"url_wo_version": schema.Int64Attribute{
+						Optional: true,
+						Validators: []validator.Int64{
+							int64validator.AlsoRequires(path.MatchRelative().AtParent().AtName("url_wo")),
+						},
+						MarkdownDescription: "Version of `url_wo`. Increment it to send a rotated URL.",
 					},
 				},
 				MarkdownDescription: "Opsgenie webhook.",
@@ -329,7 +397,23 @@ func Schema() schema.Schema {
 					},
 					"url": schema.StringAttribute{
 						Optional:            true,
-						MarkdownDescription: "Slack URL.",
+						MarkdownDescription: "Slack URL. A URL that carries a secret belongs in `url_wo` instead, so its value is never written to state.",
+					},
+					"url_wo": schema.StringAttribute{
+						Optional:  true,
+						WriteOnly: true,
+						Validators: []validator.String{
+							stringvalidator.AlsoRequires(path.MatchRelative().AtParent().AtName("url_wo_version")),
+							stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("url")),
+						},
+						MarkdownDescription: "Slack URL that carries a secret. It must not be set together with `url`. Terraform sends it to Coralogix and never writes it to state. Terraform never stores a write-only value, so it cannot detect that the secret changed: increment `url_wo_version` to send a rotated one. Requires Terraform 1.11 or later. Importing brings the value into state, because an import has neither configuration nor prior state to say the value is managed this way; one apply afterwards removes it again, so treat an imported URL as exposed and rotate it. Reading the same webhook through `data.coralogix_webhook` does return this value, because a data source reads from the API and has no configuration telling it which value is managed write-only.",
+					},
+					"url_wo_version": schema.Int64Attribute{
+						Optional: true,
+						Validators: []validator.Int64{
+							int64validator.AlsoRequires(path.MatchRelative().AtParent().AtName("url_wo")),
+						},
+						MarkdownDescription: "Version of `url_wo`. Increment it to send a rotated URL.",
 					},
 				},
 				MarkdownDescription: "Slack webhook.",

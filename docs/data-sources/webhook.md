@@ -55,7 +55,9 @@ Read-Only:
 - `headers_wo_versions` (Map of Number) Version of each `headers_wo` value, keyed by header name. Increment a header's version to send a rotated secret.
 - `method` (String) Webhook method. can be one of: get, post, put
 - `payload` (String) Webhook payload. JSON string.
-- `url` (String) Webhook URL.
+- `url` (String) Webhook URL. A URL that carries a secret belongs in `url_wo` instead, so its value is never written to state.
+- `url_wo` (String) Webhook URL that carries a secret. It must not be set together with `url`. Terraform sends it to Coralogix and never writes it to state. Terraform never stores a write-only value, so it cannot detect that the secret changed: increment `url_wo_version` to send a rotated one. Requires Terraform 1.11 or later. Importing brings the value into state, because an import has neither configuration nor prior state to say the value is managed this way; one apply afterwards removes it again, so treat an imported URL as exposed and rotate it. Reading the same webhook through `data.coralogix_webhook` does return this value, because a data source reads from the API and has no configuration telling it which value is managed write-only.
+- `url_wo_version` (Number) Version of `url_wo`. Increment it to send a rotated URL.
 - `uuid` (String) Webhook UUID. Computed automatically.
 
 
@@ -65,7 +67,9 @@ Read-Only:
 Read-Only:
 
 - `payload` (String) Webhook payload. JSON string.
-- `url` (String) Microsoft Teams URL.
+- `url` (String) Demisto URL. A URL that carries a secret belongs in `url_wo` instead, so its value is never written to state. Set exactly one of `url` and `url_wo`.
+- `url_wo` (String) Demisto URL that carries a secret. Set exactly one of `url` and `url_wo`. Terraform sends it to Coralogix and never writes it to state. Terraform never stores a write-only value, so it cannot detect that the secret changed: increment `url_wo_version` to send a rotated one. Requires Terraform 1.11 or later. Importing brings the value into state, because an import has neither configuration nor prior state to say the value is managed this way; one apply afterwards removes it again, so treat an imported URL as exposed and rotate it. Reading the same webhook through `data.coralogix_webhook` does return this value, because a data source reads from the API and has no configuration telling it which value is managed write-only.
+- `url_wo_version` (Number) Version of `url_wo`. Increment it to send a rotated URL.
 - `uuid` (String) Webhook UUID. Computed automatically.
 
 
@@ -107,7 +111,9 @@ Read-Only:
 
 Read-Only:
 
-- `url` (String) Microsoft Teams URL.
+- `url` (String) Microsoft Teams URL. A URL that carries a secret belongs in `url_wo` instead, so its value is never written to state.
+- `url_wo` (String) Microsoft Teams URL that carries a secret. It must not be set together with `url`. Terraform sends it to Coralogix and never writes it to state. Terraform never stores a write-only value, so it cannot detect that the secret changed: increment `url_wo_version` to send a rotated one. Requires Terraform 1.11 or later. Importing brings the value into state, because an import has neither configuration nor prior state to say the value is managed this way; one apply afterwards removes it again, so treat an imported URL as exposed and rotate it. Reading the same webhook through `data.coralogix_webhook` does return this value, because a data source reads from the API and has no configuration telling it which value is managed write-only.
+- `url_wo_version` (Number) Version of `url_wo`. Increment it to send a rotated URL.
 
 
 <a id="nestedatt--microsoft_teams_workflow"></a>
@@ -123,7 +129,9 @@ Read-Only:
 
 Read-Only:
 
-- `url` (String) Opsgenie URL.
+- `url` (String) Opsgenie URL. A URL that carries a secret belongs in `url_wo` instead, so its value is never written to state. Set exactly one of `url` and `url_wo`.
+- `url_wo` (String) Opsgenie URL that carries a secret. Set exactly one of `url` and `url_wo`. Terraform sends it to Coralogix and never writes it to state. Terraform never stores a write-only value, so it cannot detect that the secret changed: increment `url_wo_version` to send a rotated one. Requires Terraform 1.11 or later. Importing brings the value into state, because an import has neither configuration nor prior state to say the value is managed this way; one apply afterwards removes it again, so treat an imported URL as exposed and rotate it. Reading the same webhook through `data.coralogix_webhook` does return this value, because a data source reads from the API and has no configuration telling it which value is managed write-only.
+- `url_wo_version` (Number) Version of `url_wo`. Increment it to send a rotated URL.
 
 
 <a id="nestedatt--pager_duty"></a>
@@ -153,7 +161,9 @@ Read-Only:
 
 - `attachments` (Attributes List) Slack attachments. (see [below for nested schema](#nestedatt--slack--attachments))
 - `notify_on` (Set of String) Slack notifications. can be one of: data_usage, error_and_critical_logs, flow_anomalies, spike_anomalies
-- `url` (String) Slack URL.
+- `url` (String) Slack URL. A URL that carries a secret belongs in `url_wo` instead, so its value is never written to state.
+- `url_wo` (String) Slack URL that carries a secret. It must not be set together with `url`. Terraform sends it to Coralogix and never writes it to state. Terraform never stores a write-only value, so it cannot detect that the secret changed: increment `url_wo_version` to send a rotated one. Requires Terraform 1.11 or later. Importing brings the value into state, because an import has neither configuration nor prior state to say the value is managed this way; one apply afterwards removes it again, so treat an imported URL as exposed and rotate it. Reading the same webhook through `data.coralogix_webhook` does return this value, because a data source reads from the API and has no configuration telling it which value is managed write-only.
+- `url_wo_version` (Number) Version of `url_wo`. Increment it to send a rotated URL.
 
 <a id="nestedatt--slack--attachments"></a>
 ### Nested Schema for `slack.attachments`

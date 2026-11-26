@@ -25,6 +25,9 @@ const resourceAddress = "coralogix_connector.test"
 // sensitiveFields are the API names of the fields that the schema marks sensitive or write-only. The recorder
 // redacts them in every request and response that a failure line shows.
 var sensitiveFields = []string{
+	"configOverridesTemplates",
+	"config_overrides_templates",
+	"config_overrides_templates_wo",
 	"fieldValues",
 	"field_values",
 	"field_values_wo",
