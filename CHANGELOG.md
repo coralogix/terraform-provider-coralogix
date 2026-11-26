@@ -9,22 +9,7 @@
 
 #### resource/coralogix_user
 
-- FEAT: `coralogix_user` is generated from the Users API contract. The schema is the released one: `id`, `user_name`, `name` (`given_name`, `family_name`), `active`, and `groups`, with `allowed_login_mode` added — the login modes the released resource kept in private state and echoed on every update now sit in state, so a configuration can manage them. The state keeps the order and the repetitions of the configuration: the backend answers the modes in its own order, and the read matches the configuration against that answer, so a configuration that lists the modes the other way round plans no change. The read pages the Search with the page size of 100, and stops when the page token stops moving forward.
-- NOTE: `emails` stays the read-only set it was: exactly one primary work email whose value is the `user_name`, derived because the Users API has no email collection; the state upgrade keeps it.
-- NOTE: `name` keeps the form of the released resource: a read without a prior state (an import, a data source) writes an empty string — not null — for the one component the API does not hold, and a configuration whose component is explicitly empty keeps its own form.
-- FEAT: `access_type` is configurable: a configuration can set `permanent_access`, or `temporary_access` with an `expire_at`, as the API stores it. The released resource kept the access type in private state and sent it unchanged; a configuration that leaves it out keeps the access the user has.
-- NOTE: Importing by `user_name` (an email) resolves the name through the Search `username` filter to the user id, and the generated import reads by that id; an id-shaped import passes through unchanged. The resolution is a handwritten wrapper, because the generated import cannot express a filter lookup (the V6 generator follow-up).
-- FIX: A refresh of a user renamed outside Terraform keeps the resource in state and reports the name drift, as the released read did: the filtered Search that misses is retried without the filter before the user is removed. Before, the user was removed from state and the next plan proposed a create that fails with "already exists".
-- FIX: An update of a user the API no longer has fails with "Resource no longer exists" instead of the generated "Missing Resource State After Update".
-- FIX: Destroy deactivates the user through the status operation of the API (`PATCH /aaa/users/v2:updateStatuses`) instead of echoing the user's values in a PUT.
 - FIX: The create accepts only the batch result that echoes the requested `user_name`, as the released resource insisted: a response whose result belongs to another user fails with `create returned no result for` the requested `user_name` instead of adopting a stranger's id.
-- FIX: The errors of a failed create keep the wording of the released resource: a create the API refused names the refusing status (`CREATE_USER_STATUS_…`), an account that already exists says to import it, an invitation that was never accepted says the user has no id, and the message the API sends follows the status.
-
-#### data-source/coralogix_user
-
-- FEAT: `data.coralogix_user` is generated from the Users API contract, and reads by `id` or by `user_name`, exactly one of the two set, as the released data source did. The lookup sends the configured name as the server-side `username` filter of the Search and matches the answer case-insensitively; the state keeps the case of the configuration. The resolution is a handwritten wrapper, because the generated data source cannot express a filter lookup (the V6 generator follow-up).
-- FEAT: `data.coralogix_user` shows `access_type` and `allowed_login_mode`, the login modes and access configuration the Users API holds and the released data source did not show.
-- NOTE: `emails` stays the read-only set it was, as on the resource: exactly one primary work email whose value is the `user_name`.
 
 #### provider
 - DOCS: A new guide, "Keeping Secrets Out of Terraform State", explains the difference between a `sensitive` and an `ephemeral` variable. It shows how to pass a secret to a write-only attribute of `coralogix_connector` and `coralogix_webhook`. The examples of both resources use an ephemeral variable for the secret.
