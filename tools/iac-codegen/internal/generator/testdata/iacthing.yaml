@@ -1,0 +1,201 @@
+# A new resource whose fields carry x-coralogix-iac hints (the knobs of openapiv3_field.iac).
+# - name: examples and required_by_api on a plain string.
+# - mode: examples on an enum $ref; the hint sits next to the $ref.
+# - priority: requires another field, with and without a value.
+# - colors: a map of objects with an example that holds the keys.
+# - search: an object whose nested fields carry hints (a string, an int32, a uint64 in a string, a float, a date, base64 bytes, a set).
+# - source: a oneOf whose arms are fixed in an update (arm_fixed).
+# - note: the hint is only in the Create request, not in the response.
+openapi: 3.1.0
+info: {title: iacthing, version: 1.0.0}
+paths:
+  /iacthings:
+    post:
+      tags: [Iac Things Service]
+      operationId: IacThingsService_CreateIacThing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              title: CreateIacThingRequest
+              type: object
+              required: [name]
+              properties:
+                name: {type: string, minLength: 1, x-coralogix-presence: true}
+                mode: {$ref: '#/components/schemas/IacMode'}
+                priority: {type: string, x-coralogix-presence: true}
+                note:
+                  type: string
+                  x-coralogix-presence: true
+                  x-coralogix-iac: {examples: ["first note", "second note"]}
+                colors:
+                  type: object
+                  additionalProperties: {$ref: '#/components/schemas/IacColor'}
+                search: {$ref: '#/components/schemas/IacSearch'}
+                source: {$ref: '#/components/schemas/IacSource'}
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/IacThing'}
+  /iacthings/{id}:
+    parameters:
+      - {name: id, in: path, required: true, schema: {type: string}}
+    get:
+      tags: [Iac Things Service]
+      operationId: IacThingsService_GetIacThing
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/IacThing'}
+    put:
+      tags: [Iac Things Service]
+      operationId: IacThingsService_ReplaceIacThing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              title: ReplaceIacThingRequest
+              type: object
+              required: [name]
+              properties:
+                name: {type: string, minLength: 1, x-coralogix-presence: true}
+                mode: {$ref: '#/components/schemas/IacMode'}
+                priority: {type: string, x-coralogix-presence: true}
+                note: {type: string, x-coralogix-presence: true}
+                colors:
+                  type: object
+                  additionalProperties: {$ref: '#/components/schemas/IacColor'}
+                search: {$ref: '#/components/schemas/IacSearch'}
+                source: {$ref: '#/components/schemas/IacSource'}
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/IacThing'}
+    delete:
+      tags: [Iac Things Service]
+      operationId: IacThingsService_DeleteIacThing
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {type: object, required: []}
+components:
+  schemas:
+    IacThing:
+      type: object
+      required: [id, name]
+      properties:
+        id: {type: string, readOnly: true, x-coralogix-presence: true}
+        name:
+          type: string
+          minLength: 1
+          x-coralogix-presence: true
+          x-coralogix-iac:
+            examples: ["alpha", "beta"]
+            requiredByApi: true
+        mode:
+          $ref: '#/components/schemas/IacMode'
+          x-coralogix-iac: {examples: ["IAC_MODE_FAST", "IAC_MODE_SAFE"]}
+        priority:
+          type: string
+          x-coralogix-presence: true
+          x-coralogix-iac:
+            conflictsWith: [note]
+            requires:
+              - {field: mode, equals: "IAC_MODE_FAST"}
+              - {field: name}
+        note: {type: string, x-coralogix-presence: true}
+        colors:
+          type: object
+          additionalProperties: {$ref: '#/components/schemas/IacColor'}
+          x-coralogix-iac:
+            examples:
+              - {"cpu": {"color": "#ff0000"}}
+              - {"cpu": {"color": "#00ff00"}, "mem": {"color": "#0000ff"}}
+        search: {$ref: '#/components/schemas/IacSearch'}
+        source: {$ref: '#/components/schemas/IacSource'}
+    IacSearch:
+      type: object
+      required: [text]
+      properties:
+        text:
+          type: string
+          minLength: 1
+          x-coralogix-presence: true
+          x-coralogix-iac: {examples: ["source logs | limit 1", "source logs | limit 2"]}
+        limit:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 100
+          x-coralogix-presence: true
+          x-coralogix-iac: {examples: [10, 20]}
+        count:
+          type: string
+          format: uint64
+          x-coralogix-presence: true
+          x-coralogix-iac: {examples: ["5", "6"]}
+        serial:
+          type: string
+          pattern: '^[0-9]+$'
+          x-coralogix-presence: true
+          x-coralogix-iac: {examples: ["7"]}
+        ratio:
+          type: number
+          format: float
+          x-coralogix-presence: true
+          x-coralogix-iac: {examples: [0.5]}
+        day:
+          type: string
+          format: date
+          x-coralogix-presence: true
+          x-coralogix-iac: {examples: ["2026-01-02"]}
+        blob:
+          type: string
+          format: byte
+          x-coralogix-presence: true
+          x-coralogix-iac: {examples: ["aGVsbG8="]}
+        tags:
+          type: array
+          items: {type: string}
+          uniqueItems: true
+          x-coralogix-collection: set
+          x-coralogix-iac: {examples: [["a", "b"]]}
+    IacColor:
+      type: object
+      required: [color]
+      properties:
+        color: {type: string, minLength: 1, x-coralogix-presence: true}
+    IacSource:
+      type: object
+      required: []
+      properties:
+        logs:
+          $ref: '#/components/schemas/IacLogs'
+          x-coralogix-iac: {armFixed: true}
+        metrics: {$ref: '#/components/schemas/IacMetrics'}
+      oneOf:
+        - required: [logs]
+        - required: [metrics]
+    IacLogs:
+      type: object
+      required: []
+      properties:
+        query: {type: string, x-coralogix-presence: true}
+    IacMetrics:
+      type: object
+      required: []
+      properties:
+        query: {type: string, x-coralogix-presence: true}
+    IacMode:
+      type: string
+      enum: [IAC_MODE_UNSPECIFIED, IAC_MODE_FAST, IAC_MODE_SAFE]

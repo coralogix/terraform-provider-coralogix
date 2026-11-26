@@ -16,10 +16,37 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/acctest/failpaths"
+	"github.com/coralogix/terraform-provider-coralogix/internal/acctest/failreport"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider"
 )
 
 const resourceAddress = "coralogix_preset.test"
+
+// sensitiveFields are the API names of the fields that the schema marks sensitive or write-only. The recorder
+// redacts them in every request and response that a failure line shows.
+var sensitiveFields = []string{}
+
+// apiFields name the API field of each attribute, by its Terraform path without list positions.
+// ErrorCheck shows the field in the line of a failure.
+var apiFields = map[string]string{
+	"attachment_config":                                                              "Preset.attachmentConfig",
+	"config_overrides":                                                               "Preset.configOverrides",
+	"config_overrides.condition_type":                                                "ConfigOverrides.conditionType",
+	"config_overrides.condition_type.match_entity_type":                              "notification_center.ConditionType.matchEntityType",
+	"config_overrides.condition_type.match_entity_type_and_sub_type":                 "notification_center.ConditionType.matchEntityTypeAndSubType",
+	"config_overrides.condition_type.match_entity_type_and_sub_type.entity_sub_type": "MatchEntityTypeAndSubTypeCondition.entitySubType",
+	"config_overrides.message_config":                                                "ConfigOverrides.messageConfig",
+	"config_overrides.message_config.fields":                                         "MessageConfig.fields",
+	"config_overrides.message_config.fields.field_name":                              "notification_center.MessageConfigField.fieldName",
+	"config_overrides.message_config.fields.template":                                "notification_center.MessageConfigField.template",
+	"config_overrides.payload_type":                                                  "ConfigOverrides.payloadType",
+	"connector_type":                                                                 "Preset.connectorType",
+	"description":                                                                    "Preset.description",
+	"entity_type":                                                                    "Preset.entityType",
+	"id":                                                                             "Preset.id",
+	"name":                                                                           "Preset.name",
+	"parent_id":                                                                      "Preset.parentId",
+}
 
 // requiredEnv are the variables that the test config reads, besides the API key.
 var requiredEnv = []string{}
@@ -301,19 +328,21 @@ var importPlanStep = resource.TestStep{
 // so that a failure in one does not hide the others. After every apply, the framework plans again and
 // fails when the plan is not empty.
 func TestAccCoralogixResourcePresetGenerated(t *testing.T) {
+	failreport.Install(sensitiveFields...) // records the HTTP calls that ErrorCheck shows in the line of a failure
 	// full-lifecycle sets every attribute, imports, reads the data source, changes the attributes, and imports again.
 	t.Run("full-lifecycle", func(t *testing.T) {
 		run := newRun()
 		resource.Test(t, resource.TestCase{
 			PreCheck:                 func() { preCheck(t) },
 			ProtoV6ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
+			ErrorCheck:               failreport.ErrorCheck(apiFields),
+			Steps: failreport.Steps(t, []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 				importStep,
 				{Config: config(run, fullConfig+"\n\n"+dataSourceConfig), Check: dataSourceChecks()},
 				{Config: config(run, updatedConfig), Check: updatedChecks(run)},
 				importStep,
-			},
+			}),
 		})
 	})
 
@@ -324,14 +353,15 @@ func TestAccCoralogixResourcePresetGenerated(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			PreCheck:                 func() { preCheck(t) },
 			ProtoV6ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
+			ErrorCheck:               failreport.ErrorCheck(apiFields),
+			Steps: failreport.Steps(t, []resource.TestStep{
 				{Config: config(run, minimalConfig), Check: minimalChecks(run)},
 				importStep,
 				importPlanStep,
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 				{Config: config(run, minimalConfig), Check: minimalChecks(run)},
 				importStep,
-			},
+			}),
 		})
 	})
 
@@ -345,10 +375,11 @@ func TestAccCoralogixResourcePresetGenerated(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			PreCheck:                 func() { preCheck(t) },
 			ProtoV6ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
+			ErrorCheck:               failreport.ErrorCheck(apiFields),
+			Steps: failreport.Steps(t, []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 				{Config: config(run, variant1Config), Check: variant1Checks(run)},
-			},
+			}),
 		})
 	})
 }

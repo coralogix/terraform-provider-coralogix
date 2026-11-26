@@ -16,10 +16,115 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/acctest/failpaths"
+	"github.com/coralogix/terraform-provider-coralogix/internal/acctest/failreport"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider"
 )
 
 const resourceAddress = "coralogix_parsing_rules.test"
+
+// sensitiveFields are the API names of the fields that the schema marks sensitive or write-only. The recorder
+// redacts them in every request and response that a failure line shows.
+var sensitiveFields = []string{}
+
+// apiFields name the API field of each attribute, by its Terraform path without list positions.
+// ErrorCheck shows the field in the line of a failure.
+var apiFields = map[string]string{
+	"active":                                 "RuleGroup.enabled",
+	"applications":                           "RuleMatcher.applicationName",
+	"creator":                                "RuleGroup.creator",
+	"description":                            "RuleGroup.description",
+	"hidden":                                 "RuleGroup.hidden",
+	"id":                                     "RuleGroup.id",
+	"name":                                   "RuleGroup.name",
+	"order":                                  "RuleGroup.order",
+	"rule_subgroups":                         "RuleGroup.ruleSubgroups",
+	"rule_subgroups.active":                  "RuleSubgroup.enabled",
+	"rule_subgroups.id":                      "RuleSubgroup.id",
+	"rule_subgroups.order":                   "RuleSubgroup.order",
+	"rule_subgroups.rules":                   "RuleSubgroup.rules",
+	"rule_subgroups.rules.block":             "RuleParameters.blockParameters",
+	"rule_subgroups.rules.block.active":      "rules.v1.Rule.enabled",
+	"rule_subgroups.rules.block.description": "rules.v1.Rule.description",
+	"rule_subgroups.rules.block.id":          "rules.v1.Rule.id",
+	"rule_subgroups.rules.block.keep_blocked_logs":                 "BlockParameters.keepBlockedLogs",
+	"rule_subgroups.rules.block.name":                              "rules.v1.Rule.name",
+	"rule_subgroups.rules.block.order":                             "rules.v1.Rule.order",
+	"rule_subgroups.rules.block.regular_expression":                "BlockParameters.rule",
+	"rule_subgroups.rules.block.source_field":                      "rules.v1.Rule.sourceField",
+	"rule_subgroups.rules.extract":                                 "RuleParameters.extractParameters",
+	"rule_subgroups.rules.extract.active":                          "rules.v1.Rule.enabled",
+	"rule_subgroups.rules.extract.description":                     "rules.v1.Rule.description",
+	"rule_subgroups.rules.extract.id":                              "rules.v1.Rule.id",
+	"rule_subgroups.rules.extract.name":                            "rules.v1.Rule.name",
+	"rule_subgroups.rules.extract.order":                           "rules.v1.Rule.order",
+	"rule_subgroups.rules.extract.regular_expression":              "ExtractParameters.rule",
+	"rule_subgroups.rules.extract.source_field":                    "rules.v1.Rule.sourceField",
+	"rule_subgroups.rules.extract_timestamp":                       "RuleParameters.extractTimestampParameters",
+	"rule_subgroups.rules.extract_timestamp.active":                "rules.v1.Rule.enabled",
+	"rule_subgroups.rules.extract_timestamp.description":           "rules.v1.Rule.description",
+	"rule_subgroups.rules.extract_timestamp.field_format_standard": "ExtractTimestampParameters.standard",
+	"rule_subgroups.rules.extract_timestamp.id":                    "rules.v1.Rule.id",
+	"rule_subgroups.rules.extract_timestamp.name":                  "rules.v1.Rule.name",
+	"rule_subgroups.rules.extract_timestamp.order":                 "rules.v1.Rule.order",
+	"rule_subgroups.rules.extract_timestamp.source_field":          "rules.v1.Rule.sourceField",
+	"rule_subgroups.rules.extract_timestamp.time_format":           "ExtractTimestampParameters.format",
+	"rule_subgroups.rules.json_extract":                            "RuleParameters.jsonExtractParameters",
+	"rule_subgroups.rules.json_extract.active":                     "rules.v1.Rule.enabled",
+	"rule_subgroups.rules.json_extract.description":                "rules.v1.Rule.description",
+	"rule_subgroups.rules.json_extract.destination_field":          "JsonExtractParameters.destinationFieldType",
+	"rule_subgroups.rules.json_extract.destination_field_text":     "JsonExtractParameters.destinationFieldText",
+	"rule_subgroups.rules.json_extract.id":                         "rules.v1.Rule.id",
+	"rule_subgroups.rules.json_extract.json_key":                   "JsonExtractParameters.rule",
+	"rule_subgroups.rules.json_extract.name":                       "rules.v1.Rule.name",
+	"rule_subgroups.rules.json_extract.order":                      "rules.v1.Rule.order",
+	"rule_subgroups.rules.json_stringify":                          "RuleParameters.jsonStringifyParameters",
+	"rule_subgroups.rules.json_stringify.active":                   "rules.v1.Rule.enabled",
+	"rule_subgroups.rules.json_stringify.description":              "rules.v1.Rule.description",
+	"rule_subgroups.rules.json_stringify.destination_field":        "JsonStringifyParameters.destinationField",
+	"rule_subgroups.rules.json_stringify.id":                       "rules.v1.Rule.id",
+	"rule_subgroups.rules.json_stringify.keep_source_field":        "JsonStringifyParameters.deleteSource",
+	"rule_subgroups.rules.json_stringify.name":                     "rules.v1.Rule.name",
+	"rule_subgroups.rules.json_stringify.order":                    "rules.v1.Rule.order",
+	"rule_subgroups.rules.json_stringify.source_field":             "rules.v1.Rule.sourceField",
+	"rule_subgroups.rules.parse":                                   "RuleParameters.parseParameters",
+	"rule_subgroups.rules.parse.active":                            "rules.v1.Rule.enabled",
+	"rule_subgroups.rules.parse.description":                       "rules.v1.Rule.description",
+	"rule_subgroups.rules.parse.destination_field":                 "ParseParameters.destinationField",
+	"rule_subgroups.rules.parse.id":                                "rules.v1.Rule.id",
+	"rule_subgroups.rules.parse.name":                              "rules.v1.Rule.name",
+	"rule_subgroups.rules.parse.order":                             "rules.v1.Rule.order",
+	"rule_subgroups.rules.parse.regular_expression":                "ParseParameters.rule",
+	"rule_subgroups.rules.parse.source_field":                      "rules.v1.Rule.sourceField",
+	"rule_subgroups.rules.parse_json_field":                        "RuleParameters.jsonParseParameters",
+	"rule_subgroups.rules.parse_json_field.active":                 "rules.v1.Rule.enabled",
+	"rule_subgroups.rules.parse_json_field.description":            "rules.v1.Rule.description",
+	"rule_subgroups.rules.parse_json_field.destination_field":      "JsonParseParameters.destinationField",
+	"rule_subgroups.rules.parse_json_field.id":                     "rules.v1.Rule.id",
+	"rule_subgroups.rules.parse_json_field.keep_destination_field": "JsonParseParameters.overrideDest",
+	"rule_subgroups.rules.parse_json_field.keep_source_field":      "JsonParseParameters.deleteSource",
+	"rule_subgroups.rules.parse_json_field.name":                   "rules.v1.Rule.name",
+	"rule_subgroups.rules.parse_json_field.order":                  "rules.v1.Rule.order",
+	"rule_subgroups.rules.parse_json_field.source_field":           "rules.v1.Rule.sourceField",
+	"rule_subgroups.rules.remove_fields":                           "RuleParameters.removeFieldsParameters",
+	"rule_subgroups.rules.remove_fields.active":                    "rules.v1.Rule.enabled",
+	"rule_subgroups.rules.remove_fields.description":               "rules.v1.Rule.description",
+	"rule_subgroups.rules.remove_fields.excluded_fields":           "RemoveFieldsParameters.fields",
+	"rule_subgroups.rules.remove_fields.id":                        "rules.v1.Rule.id",
+	"rule_subgroups.rules.remove_fields.name":                      "rules.v1.Rule.name",
+	"rule_subgroups.rules.remove_fields.order":                     "rules.v1.Rule.order",
+	"rule_subgroups.rules.replace":                                 "RuleParameters.replaceParameters",
+	"rule_subgroups.rules.replace.active":                          "rules.v1.Rule.enabled",
+	"rule_subgroups.rules.replace.description":                     "rules.v1.Rule.description",
+	"rule_subgroups.rules.replace.destination_field":               "ReplaceParameters.destinationField",
+	"rule_subgroups.rules.replace.id":                              "rules.v1.Rule.id",
+	"rule_subgroups.rules.replace.name":                            "rules.v1.Rule.name",
+	"rule_subgroups.rules.replace.order":                           "rules.v1.Rule.order",
+	"rule_subgroups.rules.replace.regular_expression":              "ReplaceParameters.rule",
+	"rule_subgroups.rules.replace.replacement_string":              "ReplaceParameters.replaceNewVal",
+	"rule_subgroups.rules.replace.source_field":                    "rules.v1.Rule.sourceField",
+	"severities": "RuleMatcher.severity",
+	"subsystems": "RuleMatcher.subsystemName",
+}
 
 // requiredEnv are the variables that the test config reads, besides the API key.
 var requiredEnv = []string{}
@@ -310,19 +415,21 @@ var importPlanStep = resource.TestStep{
 // so that a failure in one does not hide the others. After every apply, the framework plans again and
 // fails when the plan is not empty.
 func TestAccCoralogixResourceParsingRulesGenerated(t *testing.T) {
+	failreport.Install(sensitiveFields...) // records the HTTP calls that ErrorCheck shows in the line of a failure
 	// full-lifecycle sets every attribute, imports, reads the data source, changes the attributes, and imports again.
 	t.Run("full-lifecycle", func(t *testing.T) {
 		run := newRun()
 		resource.Test(t, resource.TestCase{
 			PreCheck:                 func() { preCheck(t) },
 			ProtoV6ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
+			ErrorCheck:               failreport.ErrorCheck(apiFields),
+			Steps: failreport.Steps(t, []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 				importStep,
 				{Config: config(run, fullConfig+"\n\n"+dataSourceConfig), Check: dataSourceChecks()},
 				{Config: config(run, updatedConfig), Check: updatedChecks(run)},
 				importStep,
-			},
+			}),
 		})
 	})
 
@@ -333,14 +440,15 @@ func TestAccCoralogixResourceParsingRulesGenerated(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			PreCheck:                 func() { preCheck(t) },
 			ProtoV6ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
+			ErrorCheck:               failreport.ErrorCheck(apiFields),
+			Steps: failreport.Steps(t, []resource.TestStep{
 				{Config: config(run, minimalConfig), Check: minimalChecks(run)},
 				importStep,
 				importPlanStep,
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 				{Config: config(run, minimalConfig), Check: minimalChecks(run)},
 				importStep,
-			},
+			}),
 		})
 	})
 
@@ -354,10 +462,11 @@ func TestAccCoralogixResourceParsingRulesGenerated(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			PreCheck:                 func() { preCheck(t) },
 			ProtoV6ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
+			ErrorCheck:               failreport.ErrorCheck(apiFields),
+			Steps: failreport.Steps(t, []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 				{Config: config(run, variant1Config), Check: variant1Checks(run)},
-			},
+			}),
 		})
 	})
 }

@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 
 	"{{.FailPathsImport}}"
+	"{{.FailReportImport}}"
 	"{{.ProviderImport}}"
 {{- if .LeftoversImport}}
 	"{{.LeftoversImport}}"
@@ -23,6 +24,22 @@ import (
 )
 
 const resourceAddress = {{printf "%q" .Address}}
+
+// sensitiveFields are the API names of the fields that the schema marks sensitive or write-only. The recorder
+// redacts them in every request and response that a failure line shows.
+var sensitiveFields = []string{
+{{- range .SensitiveFields}}
+	{{printf "%q" .}},
+{{- end}}
+}
+
+// apiFields name the API field of each attribute, by its Terraform path without list positions.
+// ErrorCheck shows the field in the line of a failure.
+var apiFields = map[string]string{
+{{- range .APIFields}}
+	{{printf "%q" .Path}}: {{printf "%q" .Field}},
+{{- end}}
+}
 
 // requiredEnv are the variables that the test config reads, besides the API key.
 var requiredEnv = []string{ {{- range .Env}}{{printf "%q" .}}, {{end -}} }
@@ -249,6 +266,7 @@ var importPlanStep = resource.TestStep{
 // so that a failure in one does not hide the others. After every apply, the framework plans again and
 // fails when the plan is not empty.
 func TestAccCoralogixResource{{.Name}}Generated(t *testing.T) {
+	failreport.Install(sensitiveFields...) // records the HTTP calls that ErrorCheck shows in the line of a failure
 	// full-lifecycle sets every attribute, imports,{{if .DataSource}} reads the data source,{{end}} changes the attributes, and imports again.
 	t.Run("full-lifecycle", func(t *testing.T) {
 {{- with index .SkipTests "full-lifecycle"}}
@@ -258,7 +276,8 @@ func TestAccCoralogixResource{{.Name}}Generated(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			PreCheck:                 func() { {{.PreCheck "fullConfig" "updatedConfig"}} },
 			ProtoV6ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
+			ErrorCheck:               failreport.ErrorCheck(apiFields),
+			Steps: failreport.Steps(t, []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 				importStep,
 {{- if .DataSource}}
@@ -266,7 +285,7 @@ func TestAccCoralogixResource{{.Name}}Generated(t *testing.T) {
 {{- end}}
 				{Config: config(run, updatedConfig), Check: updatedChecks(run)},
 				importStep,
-			},
+			}),
 		})
 	})
 
@@ -280,7 +299,8 @@ func TestAccCoralogixResource{{.Name}}Generated(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			PreCheck:                 func() { {{.PreCheck "minimalConfig" "fullConfig"}} },
 			ProtoV6ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
+			ErrorCheck:               failreport.ErrorCheck(apiFields),
+			Steps: failreport.Steps(t, []resource.TestStep{
 				{Config: config(run, minimalConfig), Check: minimalChecks(run)},
 				importStep,
 				importPlanStep,
@@ -291,7 +311,7 @@ func TestAccCoralogixResource{{.Name}}Generated(t *testing.T) {
 				// The resource always exists, so the API keeps the last state after the test: end in the full config.
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 {{- end}}
-			},
+			}),
 		})
 	})
 {{- if .Variants}}
@@ -314,14 +334,15 @@ func TestAccCoralogixResource{{.Name}}Generated(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			PreCheck:                 func() { {{$.PreCheck "fullConfig"}} },
 			ProtoV6ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
+			ErrorCheck:               failreport.ErrorCheck(apiFields),
+			Steps: failreport.Steps(t, []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 				{Config: config(run, variant{{$v.N}}Config){{if $v.Checks}}, Check: variant{{$v.N}}Checks(run){{end}}},
 {{- if $.EndWithFull}}
 				// The resource always exists, so the API keeps the last state after the test: end in the full config.
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 {{- end}}
-			},
+			}),
 		})
 	})
 {{- end}}
@@ -334,7 +355,8 @@ func TestAccCoralogixResource{{.Name}}Generated(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			PreCheck:                 func() { {{.PreCheck "fullConfig"}} },
 			ProtoV6ProviderFactories: providerFactories,
-			Steps: []resource.TestStep{
+			ErrorCheck:               failreport.ErrorCheck(apiFields),
+			Steps: failreport.Steps(t, []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 {{- range $v := .Variants}}
 				{Config: config(run, variant{{$v.N}}Config){{if $v.Checks}}, Check: variant{{$v.N}}Checks(run){{end}}},
@@ -343,7 +365,7 @@ func TestAccCoralogixResource{{.Name}}Generated(t *testing.T) {
 				// The resource always exists, so the API keeps the last state after the test: end in the full config.
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 {{- end}}
-			},
+			}),
 		})
 	})
 {{- end}}

@@ -12,6 +12,23 @@ provider "coralogix" {
   #env = "<add the environment you want to work at or add env variable CORALOGIX_ENV>"
 }
 
+# A secret comes in through a variable that is both sensitive and ephemeral.
+# sensitive hides the value in the plan and apply output.
+# ephemeral keeps it out of the state and out of the saved plan file.
+# Terraform lets an ephemeral value feed a write-only attribute only, such as field_values_wo.
+# Set the value with the environment variable TF_VAR_<name>.
+variable "pagerduty_integration_key" {
+  type      = string
+  sensitive = true
+  ephemeral = true
+}
+
+variable "service_now_password" {
+  type      = string
+  sensitive = true
+  ephemeral = true
+}
+
 resource "coralogix_connector" "generic_https_example" {
   id          = "generic_https_example" //This field is optional, if not provided a random id will be generated
   type        = "generic_https"
@@ -131,12 +148,15 @@ resource "coralogix_connector" "pagerduty_example" {
   name        = "pagerduty connector"
   description = "pagerduty connector example"
   connector_config = {
-    fields = [
-      {
-        field_name = "integrationKey"
-        value      = "integrationKey-example"
-      }
-    ]
+    fields = []
+    # The integration key is a secret, so it is set here rather than in fields.
+    # Increment the matching version to send a rotated key.
+    field_values_wo = {
+      integrationKey = var.pagerduty_integration_key
+    }
+    field_values_wo_versions = {
+      integrationKey = 1
+    }
   }
   config_overrides = [
     {
@@ -204,12 +224,14 @@ resource "coralogix_connector" "service_now_example" {
       {
         field_name = "username"
         value      = "username-example"
-      },
-      {
-        field_name = "password"
-        value      = "password-example"
       }
     ]
+    field_values_wo = {
+      password = var.service_now_password
+    }
+    field_values_wo_versions = {
+      password = 1
+    }
   }
 }
 

@@ -60,7 +60,7 @@ func TestGoldenOutputMaskThing(t *testing.T) {
 			t.Errorf("acceptance_test.go does not contain %q", want)
 		}
 	}
-	if strings.Contains(acceptance, `"owner"`) {
+	if strings.Contains(acceptance, `resourceAddress, "owner"`) {
 		t.Error("acceptance_test.go checks owner, which the response does not list as required")
 	}
 	if strings.Contains(acceptance, "The resource always exists") {

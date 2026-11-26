@@ -198,6 +198,8 @@ type tfAttr struct {
 	// Example is the example that the contract states for the field (schema_example.go). The
 	// acceptance test of a new resource uses it in place of a made-up value. nil: none.
 	Example *contractExample
+	// IaC are the knobs of the field (openapiv3_field.iac) that change the generated acceptance test. nil: none.
+	IaC *model.IaCHints
 	// ServerSetInRequest: the request requires the field, and Get requires it and marks it
 	// read-only, as an id that a write sends back to name an item of an overwrite resource.
 	ServerSetInRequest bool
