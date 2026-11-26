@@ -29,11 +29,11 @@ var sensitiveFields = []string{}
 // apiFields name the API field of each attribute, by its Terraform path without list positions.
 // ErrorCheck shows the field in the line of a failure.
 var apiFields = map[string]string{
-	"attachment_config":                                                              "Preset.attachmentConfig",
-	"config_overrides":                                                               "Preset.configOverrides",
-	"config_overrides.condition_type":                                                "ConfigOverrides.conditionType",
-	"config_overrides.condition_type.match_entity_type":                              "notification_center.ConditionType.matchEntityType",
-	"config_overrides.condition_type.match_entity_type_and_sub_type":                 "notification_center.ConditionType.matchEntityTypeAndSubType",
+	"attachment_config":                                              "Preset.attachmentConfig",
+	"config_overrides":                                               "Preset.configOverrides",
+	"config_overrides.condition_type":                                "ConfigOverrides.conditionType",
+	"config_overrides.condition_type.match_entity_type":              "notification_center.ConditionType.matchEntityType",
+	"config_overrides.condition_type.match_entity_type_and_sub_type": "notification_center.ConditionType.matchEntityTypeAndSubType",
 	"config_overrides.condition_type.match_entity_type_and_sub_type.entity_sub_type": "MatchEntityTypeAndSubTypeCondition.entitySubType",
 	"config_overrides.message_config":                                                "ConfigOverrides.messageConfig",
 	"config_overrides.message_config.fields":                                         "MessageConfig.fields",
