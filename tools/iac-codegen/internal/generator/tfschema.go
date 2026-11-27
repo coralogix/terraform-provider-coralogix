@@ -1745,10 +1745,36 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 	if carry := carryField(b.file, t); carry != nil {
 		return b.carryAttributes(p, t, carry)
 	}
+	attrs, fields, err := b.plainAttributes(p, t)
+	if err != nil {
+		return nil, err
+	}
+	name := typeModelName(t)
+	if err := b.claimModel(name, "the component "+t.Schema); err != nil {
+		return nil, err
+	}
+	if !b.seen[name] {
+		b.seen[name] = true
+		b.models = append(b.models, &tfModel{Name: name, Fields: fields})
+		return attrs, nil
+	}
+	// One model struct serves every place of the component. A computed
+	// object is a types.Object, so it must be computed in every place.
+	for _, m := range b.models {
+		if m.Name == name && !slices.Equal(m.Fields, fields) {
+			return nil, fmt.Errorf("component %s needs another model struct in each place: %s", t.Schema, modelFieldDifference(m.Fields, fields))
+		}
+	}
+	return attrs, nil
+}
+
+// plainAttributes are the attributes and the model fields of the fields of the object t, each
+// shown as itself. The caller makes the model struct.
+func (b *tfBuilder) plainAttributes(p attrPath, t *model.Type) ([]*tfAttr, []tfModelField, error) {
 	var attrs []*tfAttr
 	var fields []tfModelField
 	if err := checkPlaceFields(b.file, t); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	groups := newNestedGroups(b, t.Schema, slices.Contains(p, anySetItem))
 	for _, f := range t.Fields {
@@ -1782,7 +1808,7 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 		only := b.sent.responseOnly(component, f)
 		a, err := b.attribute(child, component, f.Name, f.Description, ftype, nestedAttrs(f), only)
 		if err != nil {
-			return nil, fmt.Errorf("%s: %w", f.Name, err)
+			return nil, nil, fmt.Errorf("%s: %w", f.Name, err)
 		}
 		a.Name = tfName
 		if f.Attrs.Computed && !a.Required {
@@ -1797,17 +1823,17 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 			b.requiresReplace(a, child.dotted())
 		}
 		if err := b.nestedServerDefault(a, child, component, f); err != nil {
-			return nil, fmt.Errorf("%s: %w", f.Name, err)
+			return nil, nil, fmt.Errorf("%s: %w", f.Name, err)
 		}
 		field := b.modelField(component, f.Name, ftype, f.Behavior, only, f.Attrs.Computed)
 		field.TFName = tfName
 		if group != "" {
 			if err := groups.add(group, f, a, field); err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 			a, field, ok, err := groups.first(group)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 			if ok {
 				attrs = append(attrs, a)
@@ -1820,7 +1846,7 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 	}
 	distributed, distributedFields, err := b.distributedAttributes(p, t)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	oneOfs := t.Groups
 	if t.Kind == model.OneOf {
@@ -1831,30 +1857,14 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 		oneOfs = append(oneOfs, group)
 	}
 	if err := groups.addValidators(attrs, b.policy.WithDefaultArms(t.Schema, oneOfs)); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if err := groups.check(attrs); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	b.keptArmConflicts(t, attrs)
 	attrs, fields = append(attrs, distributed...), append(fields, distributedFields...)
-	name := typeModelName(t)
-	if err := b.claimModel(name, "the component "+t.Schema); err != nil {
-		return nil, err
-	}
-	if !b.seen[name] {
-		b.seen[name] = true
-		b.models = append(b.models, &tfModel{Name: name, Fields: fields})
-		return attrs, nil
-	}
-	// One model struct serves every place of the component. A computed
-	// object is a types.Object, so it must be computed in every place.
-	for _, m := range b.models {
-		if m.Name == name && !slices.Equal(m.Fields, fields) {
-			return nil, fmt.Errorf("component %s needs another model struct in each place: %s", t.Schema, modelFieldDifference(m.Fields, fields))
-		}
-	}
-	return attrs, nil
+	return attrs, fields, nil
 }
 
 // keptArmConflicts makes the fields of an inlined oneOf arm conflict with the arms that stay beside

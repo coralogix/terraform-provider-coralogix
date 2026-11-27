@@ -46,15 +46,37 @@ func mapsKeys[V any](m map[string]V) func(yield func(string) bool) {
 	}
 }
 
-// typedArms are the arms of the oneOf t, without its discriminator.
+// typedArms are the arms of the oneOf t, without its discriminator. An object with one oneOf group
+// that does not hold every field has the arms of the group, and its other fields are typedSiblings.
 func typedArms(t *model.Type) []*model.Field {
-	var arms []*model.Field
-	for _, f := range t.Fields {
-		if f.Name != t.Discriminator {
-			arms = append(arms, f)
+	arms, _ := typedArmFields(t)
+	return arms
+}
+
+// typedSiblings are the fields of the typedArms object t that are no arms: plain attributes next to
+// the type and the merged fields.
+func typedSiblings(t *model.Type) []*model.Field {
+	_, siblings := typedArmFields(t)
+	return siblings
+}
+
+func typedArmFields(t *model.Type) (arms, siblings []*model.Field) {
+	inGroup := map[string]bool{}
+	if t.Kind == model.Object && len(t.Groups) == 1 {
+		for _, arm := range t.Groups[0].Arms {
+			inGroup[arm] = true
 		}
 	}
-	return arms
+	for _, f := range t.Fields {
+		switch {
+		case f.Name == t.Discriminator:
+		case len(inGroup) == 0 || inGroup[f.Name]:
+			arms = append(arms, f)
+		default:
+			siblings = append(siblings, f)
+		}
+	}
+	return arms, siblings
 }
 
 // typedAttributes are the attributes of the oneOf t with a typedArms line: the required type
@@ -110,6 +132,11 @@ func (b *tfBuilder) typedAttributes(p attrPath, t *model.Type, line *overrides.T
 	attrs[0].Typed = &typedInfo{Has: has, Required: required, Checked: checked, Rules: m.rules, Attrs: attrs[1:]}
 	attrs[0].Validators = append(attrs[0].Validators, typedValidator(attrs, arms, values, has, required, checked, m.rules))
 	attrs[0].GroupValidators = append(attrs[0].GroupValidators, attrs[0].Validators[len(attrs[0].Validators)-1])
+	siblings, siblingFields, err := b.typedSiblingAttributes(p, t)
+	if err != nil {
+		return nil, err
+	}
+	attrs, fields = append(attrs, siblings...), append(fields, siblingFields...)
 	name := typeModelName(t)
 	if err := b.claimModel(name, "the component "+t.Schema); err != nil {
 		return nil, err
@@ -119,6 +146,18 @@ func (b *tfBuilder) typedAttributes(p attrPath, t *model.Type, line *overrides.T
 		b.models = append(b.models, &tfModel{Name: name, Fields: fields})
 	}
 	return attrs, nil
+}
+
+// typedSiblingAttributes are the attributes and the model fields of the fields of the typedArms
+// object t that are no arms. Each is an attribute of its own, next to the type and the merged fields.
+func (b *tfBuilder) typedSiblingAttributes(p attrPath, t *model.Type) ([]*tfAttr, []tfModelField, error) {
+	siblings := typedSiblings(t)
+	if len(siblings) == 0 {
+		return nil, nil, nil
+	}
+	plain := *t
+	plain.Kind, plain.Fields, plain.Groups, plain.Discriminator = model.Object, siblings, nil, ""
+	return b.plainAttributes(p, &plain)
 }
 
 // typedInfo is what each arm of a typedArms object has. Every map is keyed by the value of the type.
@@ -439,7 +478,9 @@ type convTyped struct {
 	Pkg       string // the name of the SDK package
 	TypeField *convField
 	Arms      []*typedArm
-	Allowed   string // the values of the type attribute, for an error text
+	// Siblings are the fields of the object that are no arms: they convert as plain fields.
+	Siblings []*convField
+	Allowed  string // the values of the type attribute, for an error text
 	// Infer: an omitted type is picked from the fields that are set (typedArms infer).
 	// InferArms is the Go literal of the arms, and InferFields the merged fields, by Terraform name.
 	Infer       bool
@@ -556,8 +597,27 @@ func (b *convBuilder) typed(obj *convObject, t *model.Type) error {
 		typed.Infer, typed.InferFields = true, merged[1:]
 		typed.InferArms = inferArmsLiteral(typed.Arms)
 	}
-	obj.Fields, obj.Typed = merged, typed
+	siblings, err := typedSiblingFields(obj, t)
+	if err != nil {
+		return err
+	}
+	typed.Siblings = siblings
+	obj.Fields, obj.Typed = append(merged, siblings...), typed
 	return nil
+}
+
+// typedSiblingFields returns the conversions of the fields of the typedArms object t that are no
+// arms. They convert as plain fields.
+func typedSiblingFields(obj *convObject, t *model.Type) ([]*convField, error) {
+	var out []*convField
+	for _, f := range typedSiblings(t) {
+		cf := fieldByModel(obj.Fields, camelize(f.Name))
+		if cf == nil {
+			return nil, fmt.Errorf("%s: no conversion of the field %s", t.Schema, f.Name)
+		}
+		out = append(out, cf)
+	}
+	return out, nil
 }
 
 // typedArmOf returns the arm of the field cf, and the fields that it adds to the merged fields.

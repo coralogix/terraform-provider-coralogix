@@ -143,7 +143,7 @@ func TestInlineOfATypedObjectIsChecked(t *testing.T) {
 		},
 		"another field beside the object": {
 			spec: [2]string{spanValue, spanValue + "        other: {type: string, x-coralogix-presence: true}\n"},
-			want: "the fields of an object with a typedArms line are arms in TypedSpanValue, but TypedSpanValue has other fields",
+			want: "SDK field TypedSpanValue.Other: not found",
 		},
 		"two objects with a typedArms line": {
 			spec:      [2]string{spanValue, spanValue + "        notSelection: {$ref: '#/components/schemas/TypedNotSelection'}\n"},
