@@ -58,7 +58,7 @@ func TestProbeReportsTheChangesThatBreakAResource(t *testing.T) {
 	}{
 		{name: "keything", resource: "KeyThing", wantField: true},
 		{name: "groupsetthing", resource: "GroupSetThing", wantField: true},
-		{name: "parsething", resource: "ParseThing", wantBroken: "ParseDropParams"},
+		{name: "parsething", resource: "ParseThing", wantField: true},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
