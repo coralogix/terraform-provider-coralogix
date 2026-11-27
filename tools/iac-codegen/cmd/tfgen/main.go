@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/coralogix/coralogix-management-sdk/iac/model"
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/generator"
@@ -31,6 +32,8 @@ func run(args []string) int {
 		return runGenerate(args[1:])
 	case "check":
 		return runCheck(args[1:])
+	case "probe":
+		return runProbe(args[1:])
 	default:
 		printUsage()
 		return 2
@@ -108,6 +111,50 @@ type operationFlags struct {
 	delete *string
 }
 
+// runProbe tries typical future changes of the contract on one resource. It prints one line for each
+// change: "<change>\tok", or "<change>\tFAIL\t<component>\t<first issue>". It exits 1 when a change
+// fails. See generator.Probe.
+func runProbe(args []string) int {
+	set := flag.NewFlagSet("tfgen probe", flag.ContinueOnError)
+	set.SetOutput(os.Stderr)
+	resource := set.String("resource", "", "OpenAPI component name of the complete resource")
+	openAPI := set.String("openapi", "", "local OpenAPI file")
+	overridesFile := set.String("overrides", "", "behavior-overrides file of a resource that users already have")
+	acceptanceFile := set.String("acceptance", "", "acceptance file")
+	operations := addOperationFlags(set)
+	if err := set.Parse(args); err != nil {
+		return 2
+	}
+	if set.NArg() != 0 {
+		fmt.Fprintf(os.Stderr, "tfgen: unexpected arguments: %v\n", set.Args())
+		return 2
+	}
+	results, err := generator.Probe(generator.ProbeOptions{
+		Resource:       *resource,
+		OpenAPIPath:    *openAPI,
+		OperationIDs:   operations.ids(),
+		OverridesPath:  *overridesFile,
+		AcceptancePath: *acceptanceFile,
+	})
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "tfgen: %s\n", err)
+		return 1
+	}
+	failed := false
+	for _, result := range results {
+		if result.Passed {
+			fmt.Printf("%s\tok\n", result.Change)
+			continue
+		}
+		failed = true
+		fmt.Printf("%s\tFAIL\t%s\t%s\n", result.Change, result.Component, strings.ReplaceAll(result.Problem, "\n", " "))
+	}
+	if failed {
+		return 1
+	}
+	return 0
+}
+
 func addOperationFlags(set *flag.FlagSet) operationFlags {
 	return operationFlags{
 		create: set.String("create-operation", "", "exact Create operationId when discovery is ambiguous"),
@@ -124,5 +171,6 @@ func (f operationFlags) ids() model.OperationIDs {
 func printUsage() {
 	fmt.Fprintln(os.Stderr, "usage: tfgen generate --resource <resource_name> --out <generated_output_directory> [--sdk-dir <local_sdk_root>] [--overrides <file>] [--acceptance <file>]")
 	fmt.Fprintln(os.Stderr, "       tfgen check --resource <resource_name> --openapi <candidate_openapi_file> [--overrides <file>]")
+	fmt.Fprintln(os.Stderr, "       tfgen probe --resource <resource_name> --openapi <openapi_file> [--overrides <file>] [--acceptance <file>]")
 	fmt.Fprintln(os.Stderr, "       tfgen --version")
 }

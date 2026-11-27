@@ -48,7 +48,19 @@ func exclusiveBoundsExact(data []byte) ([]byte, error) {
 	if !changed {
 		return data, nil
 	}
+	// A JSON contract is a tree of flow-style nodes. The inserted bound is a plain node, so the
+	// written text would be "{"a": 1, minimum: 2}": it starts like JSON and has an unquoted key,
+	// and the loader reads it as JSON and fails. Block style is valid for every input format.
+	clearFlowStyle(&root)
 	return yaml.Marshal(&root)
+}
+
+// clearFlowStyle gives n and every node under it block style.
+func clearFlowStyle(n *yaml.Node) {
+	n.Style &^= yaml.FlowStyle
+	for _, child := range n.Content {
+		clearFlowStyle(child)
+	}
 }
 
 // rewriteExclusiveBounds replaces the exclusive bounds of the schema m that have an exact

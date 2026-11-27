@@ -106,12 +106,9 @@ func planEquality(data *tfResource, files map[string]string) error {
 	if data.PlanKeepsState && data.SetServerDefaults {
 		return fmt.Errorf("keepUnsetComputedState and the server default of an attribute inside a set of objects in one resource are not supported")
 	}
-	if (data.Conv.UsesFieldEquality() || len(data.EnumAliases) != 0) && data.HasServerDefaults {
-		// ModifyPlan keeps the state in place of every unknown that the configuration does
-		// not set. A server default plans unknown on purpose, and would be lost. The step of
-		// keepUnsetComputedState skips the attributes with a server default instead.
-		return fmt.Errorf("equality or an enum alias and a server default in one resource are not supported; in existing mode, a default line in %s replaces the server default", overrides.FileName)
-	}
+	// ModifyPlan keeps the state in place of every unknown that the configuration does not set. A
+	// server default plans unknown on purpose, so onlyUnsetUnknowns skips the attributes with a
+	// server default (resetsToDefault) and the change that resets them stays.
 	files["equality.go"] = "equality.go.tmpl"
 	return nil
 }

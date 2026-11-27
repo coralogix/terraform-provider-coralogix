@@ -1,0 +1,12 @@
+# Gaps that tools/iac-codegen/scripts/check-future-changes.sh knows. One line for each:
+# <generated package> <TAB> <change> <TAB> <message that breaks the resource>
+# Only fix a gap and delete its line. Never add a line for a new gap: fix the generator or the contract.
+dashboard	bool-field	EventRecurrenceSource.Strategy.Duration
+dashboard	integer-field	EventRecurrenceSource.Strategy.Duration
+dashboard	string-field	EventRecurrenceSource.Strategy.Duration
+events2metric	bool-field	E2MPermutations
+events2metric	integer-field	E2MPermutations
+events2metric	string-field	E2MPermutations
+parsingrules	bool-field	AllowParameters
+parsingrules	integer-field	AllowParameters
+parsingrules	string-field	AllowParameters
