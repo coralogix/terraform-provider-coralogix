@@ -16,7 +16,3 @@ dashboard	untested	layout.sections[].rows[].widgets[].definition.line_chart.quer
 dashboard	untested	layout.sections[].rows[].widgets[].definition.pie_chart.query.logs.aggregation.observation_field
 dashboard	untested	variables_v2[].source.query.logs_query.type.field_name
 dashboard	untested	variables_v2[].source.query.spans_query.type.field_name
-events2metric	bool-field	E2MPermutations
-events2metric	integer-field	E2MPermutations
-events2metric	object-field	E2MPermutations
-events2metric	string-field	E2MPermutations

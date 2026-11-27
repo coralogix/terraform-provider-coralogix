@@ -119,7 +119,7 @@ func TestEchoedContractNeedsEachLine(t *testing.T) {
 		without              string // the line without the key, when the line has other keys
 	}{
 		"createAs folds the flat Create field":                      {"      quota: {createAs: {limit: limitValue}, computed: true}\n", "FIELD_LIFECYCLE_UNSUPPORTED", "EchoThing.quota", "      quota: {computed: true}\n"},
-		"readOnly on a server flag of a shared component":           {"      exceeded: {readOnly: true, name: has_exceeded}\n", "FIELD_LIFECYCLE_UNSUPPORTED", "quota.exceeded", "      exceeded: {name: has_exceeded}\n"},
+		"readOnly on a server flag of a shared component":           {"      exceeded: {readOnly: true, name: has_exceeded}\n", "REQUIRED_SCALAR_PRESENCE_UNKNOWN", "quota.update.exceeded", "      exceeded: {name: has_exceeded}\n"},
 		"computed keeps a value Update requires":                    {"      limit: {computed: true, useStateForUnknown: true, validators: [{atLeast: 0}]}\n", "FIELD_REQUIREDNESS_UNSUPPORTED", "quota.limit", "      limit: {useStateForUnknown: true, validators: [{atLeast: 0}]}\n"},
 		"useStateForUnknown keeps the value in the plan for Update": {"      limit: {computed: true, useStateForUnknown: true, validators: [{atLeast: 0}]}\n", "FIELD_REQUIREDNESS_UNSUPPORTED", "quota.limit", "      limit: {computed: true, validators: [{atLeast: 0}]}\n"},
 		"optional relaxes a required list that may be empty":        {"      values: {optional: true, collection: set, name: tags}\n", "REQUIRED_VALUE_CAN_BE_EMPTY", "values", "      values: {collection: set, name: tags}\n"},
