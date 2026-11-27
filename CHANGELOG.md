@@ -1,5 +1,7 @@
 # Unreleased
 
+# Release 3.30.0
+
 #### resource/coralogix_webhook
 
 - FEAT: Add `url_wo` and `url_wo_version` to the `custom`, `slack`, `microsoft_teams`, `opsgenie`, and `demisto` blocks. Use `url_wo` when the URL holds a credential: Terraform sends it to Coralogix and never writes it to state. In `opsgenie` and `demisto`, `url` is now optional, and exactly one of `url` and `url_wo` is required. Existing configurations stay valid.
