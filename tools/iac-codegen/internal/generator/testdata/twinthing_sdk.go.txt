@@ -1,0 +1,162 @@
+package parse_things_service
+
+import (
+	"context"
+	"net/http"
+)
+
+type ParseLimits struct {
+	Max *int64
+}
+
+type ParseExtra struct {
+	Detail *string
+}
+
+type ParseKeepParams struct {
+	Rule     *string
+	KeepLogs *bool
+	Label    *string
+	Limits   *ParseLimits
+}
+
+type ParseDropParams struct {
+	Rule      *string
+	KeepLogs  *bool
+	Reason    *string
+	Threshold *int64
+	Extra     *ParseExtra
+}
+
+type ParseCopyParams struct {
+	Target *string
+}
+
+type ParseParams struct {
+	KeepParams *ParseKeepParams
+	DropParams *ParseDropParams
+	CopyParams *ParseCopyParams
+}
+
+type CreateParseStep struct {
+	Name   *string
+	Params *ParseParams
+}
+
+type ParseStep struct {
+	Id     *string
+	Name   *string
+	Params *ParseParams
+}
+
+type ParseThing struct {
+	Id    *string
+	Name  *string
+	Steps []ParseStep
+}
+
+// The Create and Replace bodies are the same inline object.
+type CreateParseThingBody struct {
+	Name  *string
+	Steps []CreateParseStep
+}
+
+type ReplaceParseThingBody struct {
+	Name  *string
+	Steps []CreateParseStep
+}
+
+type CreateParseThingResponse struct {
+	Thing *ParseThing
+}
+
+type ReplaceParseThingResponse struct {
+	Thing *ParseThing
+}
+
+type GetParseThingResponse struct {
+	Thing *ParseThing
+}
+
+type ParseThingsServiceAPIService struct{}
+
+type ApiParseThingsServiceCreateParseThingRequest struct {
+	body CreateParseThingBody
+}
+type ApiParseThingsServiceGetParseThingRequest struct {
+	id string
+}
+type ApiParseThingsServiceReplaceParseThingRequest struct {
+	id   string
+	body ReplaceParseThingBody
+}
+type ApiParseThingsServiceDeleteParseThingRequest struct{}
+
+// Created and Replaced list the bodies that the calls received. Stored is the thing that Get
+// returns: the API stores the body and gives each step an id.
+var (
+	Created  []CreateParseThingBody
+	Replaced []ReplaceParseThingBody
+	Stored   ParseThing
+)
+
+func (*ParseThingsServiceAPIService) ParseThingsServiceCreateParseThing(ctx context.Context) ApiParseThingsServiceCreateParseThingRequest {
+	_ = ctx
+	return ApiParseThingsServiceCreateParseThingRequest{}
+}
+
+func (*ParseThingsServiceAPIService) ParseThingsServiceGetParseThing(ctx context.Context, thingId string) ApiParseThingsServiceGetParseThingRequest {
+	_ = ctx
+	return ApiParseThingsServiceGetParseThingRequest{id: thingId}
+}
+
+func (*ParseThingsServiceAPIService) ParseThingsServiceReplaceParseThing(ctx context.Context, thingId string) ApiParseThingsServiceReplaceParseThingRequest {
+	_ = ctx
+	return ApiParseThingsServiceReplaceParseThingRequest{id: thingId}
+}
+
+func (*ParseThingsServiceAPIService) ParseThingsServiceDeleteParseThing(ctx context.Context, thingId string) ApiParseThingsServiceDeleteParseThingRequest {
+	_, _ = ctx, thingId
+	return ApiParseThingsServiceDeleteParseThingRequest{}
+}
+
+func (r ApiParseThingsServiceCreateParseThingRequest) CreateParseThingBody(createParseThingBody CreateParseThingBody) ApiParseThingsServiceCreateParseThingRequest {
+	r.body = createParseThingBody
+	return r
+}
+
+func (r ApiParseThingsServiceReplaceParseThingRequest) ReplaceParseThingBody(replaceParseThingBody ReplaceParseThingBody) ApiParseThingsServiceReplaceParseThingRequest {
+	r.body = replaceParseThingBody
+	return r
+}
+
+func store(name *string, steps []CreateParseStep) *ParseThing {
+	id := "thing-1"
+	stored := ParseThing{Id: &id, Name: name}
+	for i, s := range steps {
+		sid := "step-" + string(rune('a'+i))
+		stored.Steps = append(stored.Steps, ParseStep{Id: &sid, Name: s.Name, Params: s.Params})
+	}
+	Stored = stored
+	out := Stored
+	return &out
+}
+
+func (r ApiParseThingsServiceCreateParseThingRequest) Execute() (*CreateParseThingResponse, *http.Response, error) {
+	Created = append(Created, r.body)
+	return &CreateParseThingResponse{Thing: store(r.body.Name, r.body.Steps)}, nil, nil
+}
+
+func (r ApiParseThingsServiceGetParseThingRequest) Execute() (*GetParseThingResponse, *http.Response, error) {
+	stored := Stored
+	return &GetParseThingResponse{Thing: &stored}, nil, nil
+}
+
+func (r ApiParseThingsServiceReplaceParseThingRequest) Execute() (*ReplaceParseThingResponse, *http.Response, error) {
+	Replaced = append(Replaced, r.body)
+	return &ReplaceParseThingResponse{Thing: store(r.body.Name, r.body.Steps)}, nil, nil
+}
+
+func (ApiParseThingsServiceDeleteParseThingRequest) Execute() (map[string]interface{}, *http.Response, error) {
+	return nil, nil, nil
+}

@@ -1973,7 +1973,7 @@ func (b *tfBuilder) carryArm(p attrPath, t *model.Type, carry, arm *model.Field,
 		b.carried[sibling] = t.Schema
 		held.Fields = append(held.Fields, sibling)
 	}
-	held.Fields = append(held.Fields, arm.Type.Fields...)
+	held.Fields = append(held.Fields, b.armFieldsWithFolds(carry, arm, c)...)
 	for _, folded := range sortedFoldsInto(c, arm.Name) {
 		flag := &model.Field{Name: folded.Flag, Type: &model.Type{Kind: model.Bool}, Behavior: model.Normal}
 		b.flags[flag] = folded
@@ -1984,8 +1984,8 @@ func (b *tfBuilder) carryArm(p attrPath, t *model.Type, carry, arm *model.Field,
 	byTF, byGo := map[string]string{}, map[string]string{}
 	for _, f := range held.Fields {
 		owner := arm.Type.Schema
-		if _, sibling := b.carried[f]; sibling && !slices.Contains(arm.Type.Fields, f) {
-			owner = t.Schema
+		if o, carried := b.carried[f]; carried && !slices.Contains(arm.Type.Fields, f) {
+			owner = o
 		}
 		tf := terraformName(b.policy, owner, f.Name)
 		if _, flag := b.flags[f]; flag {
@@ -2012,7 +2012,8 @@ func (b *tfBuilder) carryArm(p attrPath, t *model.Type, carry, arm *model.Field,
 
 // checkCarry reports a carrySiblings line that names an arm or a sibling that t does not have, a
 // fixed value for the carried field itself or for a field that the requests do not send, and a
-// fold into an arm with other fields or into an arm that another fold uses.
+// fold of arms that are no twins (a field with two types, or no common field) or into an arm that
+// another fold uses.
 func checkCarry(t *model.Type, carry *model.Field, c *overrides.Carry, arms map[string]*model.Field) error {
 	siblings := map[string]*model.Field{}
 	for _, f := range t.Fields {
@@ -2048,7 +2049,7 @@ func checkCarry(t *model.Type, carry *model.Field, c *overrides.Carry, arms map[
 		if _, folded := c.Fold[target.Name]; folded {
 			return fmt.Errorf("%s: carrySiblings.fold.%s folds into %s, which is folded itself", t.Schema, arm, target.Name)
 		}
-		if !sameFieldNames(arms[arm].Type, target.Type) {
+		if !foldable(arms[arm].Type, target.Type) {
 			return fmt.Errorf("%s: carrySiblings.fold.%s: the arms %s and %s need the same fields", t.Schema, arm, arm, target.Name)
 		}
 		if !maps.Equal(c.RequestValues[arm], c.RequestValues[target.Name]) {
@@ -2056,20 +2057,6 @@ func checkCarry(t *model.Type, carry *model.Field, c *overrides.Carry, arms map[
 		}
 	}
 	return nil
-}
-
-// sameFieldNames reports whether two objects have fields of the same names and types, in order: a
-// fold copies each field of one SDK struct into the other.
-func sameFieldNames(a, b *model.Type) bool {
-	if a == nil || b == nil || len(a.Fields) != len(b.Fields) {
-		return false
-	}
-	for i := range a.Fields {
-		if a.Fields[i].Name != b.Fields[i].Name || !sameWireType(a.Fields[i].Type, b.Fields[i].Type) {
-			return false
-		}
-	}
-	return true
 }
 
 // sameWireType reports whether two field types have the same SDK type: the same kind, format,

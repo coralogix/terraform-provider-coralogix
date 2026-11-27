@@ -3055,12 +3055,35 @@ func expand{{.Func}}(ctx context.Context, p path.Path, m *{{.Model}}, diags *dia
 {{- end}}
 		oneOf := &{{$carry.Pkg}}.{{$carry.Field.Object.SDK}}{}
 {{- range .Folds}}
+{{- $fold := .}}
 		if flag := m.{{.Flag}}; !flag.IsNull() && !flag.IsUnknown() && !flag.ValueBool() {
 			// false selects the arm that Terraform shows in this one.
 			kept := expand{{$arm.Object.Func}}(ctx, p, m, diags)
 			oneOf.{{.SDK}} = &{{.SDKType}}{ {{- range $i, $f := .Fields}}{{if $i}}, {{end}}{{$f}}: kept.{{$f}}{{end -}} }
+{{- if .FoldedOnly}}
+			{
+				// The fields that only the folded arm has.
+				out := oneOf.{{.SDK}}
+				_ = out
+{{- range .FoldedOnly}}
+{{- template "expandField" .}}
+{{- end}}
+			}
+{{- end}}
+{{- range .TargetOnly}}
+			if {{.SetIn "m"}} {
+				diags.AddAttributeError(p.AtName({{printf "%q" .TFName}}), "Attribute does not fit the flag", {{printf "%q" (printf "%s applies only when %s is true." .TFName $fold.FlagTF)}})
+			}
+{{- end}}
 		} else {
 			oneOf.{{$arm.SDK}} = expand{{$arm.Object.Func}}(ctx, p, m, diags)
+{{- range .FoldedOnly}}
+{{- if .Shown}}
+			if {{.SetIn "m"}} {
+				diags.AddAttributeError(p.AtName({{printf "%q" .TFName}}), "Attribute does not fit the flag", {{printf "%q" (printf "%s applies only when %s is false." .TFName $fold.FlagTF)}})
+			}
+{{- end}}
+{{- end}}
 		}
 {{- else}}
 		oneOf.{{.SDK}} = expand{{.Object.Func}}(ctx, p, m, diags)
@@ -3123,6 +3146,27 @@ func flatten{{.Func}}(ctx context.Context, p path.Path, v *{{$carry.Pkg}}.{{.SDK
 			arm.{{.Flag}} = types.BoolValue(true)
 {{- end}}
 		}
+{{- range .Folds}}
+{{- if .FoldedOnly}}
+		if arm != nil {
+			// The fields that only the folded arm has. Another arm reads them from an empty struct: null.
+			v := oneOf.{{.SDK}}
+			if v == nil {
+				v = &{{.SDKType}}{}
+			}
+			out := arm
+			p := p.AtName({{printf "%q" $arm.TFName}})
+			_, _ = out, p
+{{- if $obj.NeedsPrior}}
+			prior := priorArm
+			_ = prior
+{{- end}}
+{{- range .FoldedOnly}}
+{{- template "flattenField" .}}
+{{- end}}
+		}
+{{- end}}
+{{- end}}
 		if arm != nil {
 			out := arm
 {{- if $obj.NeedsPrior}}
