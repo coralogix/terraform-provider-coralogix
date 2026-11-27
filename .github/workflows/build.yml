@@ -90,6 +90,8 @@ jobs:
         run: bash tools/iac-codegen/scripts/check-generated-resources_test.sh
       - name: Test existing tests unchanged check
         run: bash tools/iac-codegen/scripts/check-tests-unchanged_test.sh
+      - name: Test future-change probe check
+        run: bash tools/iac-codegen/scripts/check-future-changes_test.sh
       - name: Test changelog entry script
         run: bash tools/iac-codegen/scripts/add-changelog-entry_test.sh
       - name: Test SDK ref resolution
@@ -105,3 +107,6 @@ jobs:
       - name: Require existing tests unchanged
         if: github.event_name == 'pull_request'
         run: bash tools/iac-codegen/scripts/check-tests-unchanged.sh '${{ github.event.pull_request.base.sha }}'
+      - name: Require generated resources to take future API changes
+        if: github.event_name == 'pull_request'
+        run: bash tools/iac-codegen/scripts/check-future-changes.sh
