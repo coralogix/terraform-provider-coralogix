@@ -1,0 +1,3 @@
+# Lines of existing tests that a change may remove, as <path> TAB <line without leading whitespace>.
+# Add a line only when a gap of probe-baseline.txt closes and its test must say so.
+tools/iac-codegen/internal/generator/probe_test.go	{name: "parsething", resource: "ParseThing", wantBroken: "ParseDropParams"},
