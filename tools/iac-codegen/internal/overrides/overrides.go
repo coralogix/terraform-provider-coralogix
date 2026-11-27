@@ -33,6 +33,11 @@ const ModeExisting = "existing"
 
 // File is the content of behavior-overrides.yaml.
 type File struct {
+	// PlainNewValues makes FillEnum name a new enum value that no single style of the names entries
+	// names by the plain rule (the value in lower case), where it would stop with UndecidedNames.
+	// The tfgen commands set it, so an API that adds a value needs no edit of this file. It is not
+	// a key of the file.
+	PlainNewValues bool `yaml:"-"`
 	// AfterFlatten gives a released resource a hook that can project API fields into
 	// Terraform attributes after the generated conversion. The data source runs it too.
 	AfterFlatten bool `yaml:"afterFlatten"`
@@ -1697,7 +1702,7 @@ func (f *File) FillEnum(name string, contract []string) error {
 		}
 		e.Values = append(e.Values, v)
 	}
-	if err := e.styleNewValues(name); err != nil {
+	if err := e.styleNewValues(name, f.PlainNewValues); err != nil {
 		return err
 	}
 	if err := checkEnum(name, e); err != nil {
@@ -1712,7 +1717,10 @@ func (f *File) FillEnum(name string, contract []string) error {
 // prefix, in lower case). A line that has names entries and no trimPrefix has the style of the
 // entries: its names are the style, so the generator finds the one style (lower, UPPER, or Title,
 // after the prefix of the enum name) that reproduces every entry, and names the value with it.
-func (e *Enum) styleNewValues(name string) error {
+//
+// When plain is set, a value that no single style names keeps the plain rule instead of an error:
+// the API can add a value with no edit of the file.
+func (e *Enum) styleNewValues(name string, plain bool) error {
 	if len(e.Names) == 0 || e.TrimPrefix != "" || e.Verbatim {
 		return nil
 	}
@@ -1726,6 +1734,34 @@ func (e *Enum) styleNewValues(name string) error {
 		return nil
 	}
 	prefix := enumNamePrefix(name, e.Values)
+	fit := e.fittingStyles(prefix)
+	if len(fit) == 0 {
+		if plain {
+			return nil
+		}
+		return &UndecidedNames{Enum: name, Values: unnamed, Reason: "the names entries follow no single style (lower, UPPER, or Title), so the generator cannot guess the name"}
+	}
+	e.Styled = map[string]string{}
+	for _, v := range unnamed {
+		named := map[string]bool{}
+		for _, style := range fit {
+			named[style(strings.TrimPrefix(v, prefix))] = true
+		}
+		if len(named) != 1 {
+			if plain {
+				continue
+			}
+			return &UndecidedNames{Enum: name, Values: []string{v}, Reason: "more than one style fits the names entries, and they name this value in different ways"}
+		}
+		for n := range named {
+			e.Styled[v] = n
+		}
+	}
+	return nil
+}
+
+// fittingStyles returns the styles that reproduce every names entry of an accepted value.
+func (e *Enum) fittingStyles(prefix string) []func(string) string {
 	var fit []func(string) string
 	for _, style := range enumStyles {
 		ok := true
@@ -1738,23 +1774,7 @@ func (e *Enum) styleNewValues(name string) error {
 			fit = append(fit, style)
 		}
 	}
-	if len(fit) == 0 {
-		return &UndecidedNames{Enum: name, Values: unnamed, Reason: "the names entries follow no single style (lower, UPPER, or Title), so the generator cannot guess the name"}
-	}
-	e.Styled = map[string]string{}
-	for _, v := range unnamed {
-		named := map[string]bool{}
-		for _, style := range fit {
-			named[style(strings.TrimPrefix(v, prefix))] = true
-		}
-		if len(named) != 1 {
-			return &UndecidedNames{Enum: name, Values: []string{v}, Reason: "more than one style fits the names entries, and they name this value in different ways"}
-		}
-		for n := range named {
-			e.Styled[v] = n
-		}
-	}
-	return nil
+	return fit
 }
 
 var enumStyles = []func(string) string{

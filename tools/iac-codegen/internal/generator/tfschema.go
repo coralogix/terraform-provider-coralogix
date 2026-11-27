@@ -2110,22 +2110,21 @@ func (b *tfBuilder) nestedServerDefault(a *tfAttr, p attrPath, component string,
 	if !f.Attrs.Required && (f.Attrs.Default == nil || *f.Attrs.Default != d) {
 		return nil
 	}
-	if sets := countSetItems(p); sets > 1 {
-		// The modifier asks whether the configuration sets the set that holds the field, and can
-		// address only the outermost set: the key of a set element is a planned value.
-		return fmt.Errorf("%s: a nested server default inside a set within another set is unsupported", p.dotted())
-	}
-	if slices.Contains(p, anySetItem) && !f.Attrs.Required {
-		// Flatten cannot match a set element that the API returns without the default to the
-		// configured element, so it could not keep the configured default. A response that
-		// requires the field always returns the stored value, so the element needs no match.
-		return fmt.Errorf("%s: a nested server default inside a set is unsupported unless the response requires it", p.dotted())
+	if err := checkSetItemDefault(p, f); err != nil {
+		return err
 	}
 	value, err := serverDefaultValueFor(f.Type, d, b.file, component, f.Name)
 	if err != nil {
 		return fmt.Errorf("server default: %w", err)
 	}
 	a.Computed = true
+	if countSetItems(p) > 1 {
+		// No modifier can address the item of a set within a set. The attribute is Optional and
+		// Computed: the request leaves an unknown value out, so the server stores the zero value,
+		// and the read returns it.
+		b.addDefaultPath(a, p, value, true)
+		return nil
+	}
 	modifier := "serverDefaultModifier{value: " + value + "}"
 	if slices.Contains(p, anySetItem) {
 		// The framework gives a plan modifier inside a set item the state of the item at the same
@@ -2135,9 +2134,34 @@ func (b *tfBuilder) nestedServerDefault(a *tfAttr, p attrPath, component string,
 		b.setDefaults = true
 	}
 	a.Modifiers = append(a.Modifiers, modifier)
-	b.defaultPaths = append(b.defaultPaths, defaultPath{Path: p.dotted(), Value: value, Implicit: f.Type.ImplicitDefault})
+	b.addDefaultPath(a, p, value, f.Type.ImplicitDefault)
+	return nil
+}
+
+// addDefaultPath records the nested attribute a at p as one with a server default.
+func (b *tfBuilder) addDefaultPath(a *tfAttr, p attrPath, value string, implicit bool) {
+	b.defaultPaths = append(b.defaultPaths, defaultPath{Path: p.dotted(), Value: value, Implicit: implicit})
 	if !containsString(b.defaultKinds, a.ValueKind) {
 		b.defaultKinds = append(b.defaultKinds, a.ValueKind)
+	}
+}
+
+// checkSetItemDefault rejects a server default that the plan modifier cannot keep inside a set.
+func checkSetItemDefault(p attrPath, f *model.Field) error {
+	implicit := f.Type.ImplicitDefault && !f.Attrs.Required
+	if countSetItems(p) > 1 && !implicit {
+		// The modifier asks whether the configuration sets the set that holds the field, and can
+		// address only the outermost set: the key of a set element is a planned value. A scalar
+		// without presence that the contract gives no default has no modifier (see nestedServerDefault).
+		return fmt.Errorf("%s: a nested server default inside a set within another set is unsupported", p.dotted())
+	}
+	if slices.Contains(p, anySetItem) && !f.Attrs.Required && !f.Type.ImplicitDefault {
+		// Flatten cannot match a set element that the API returns without the default to the
+		// configured element, so it could not keep the configured default. A response that
+		// requires the field always returns the stored value, so the element needs no match. A
+		// scalar without presence that the contract gives no default is read back as its zero
+		// value, which is the default, so the element needs no match either.
+		return fmt.Errorf("%s: a nested server default inside a set is unsupported unless the response requires it", p.dotted())
 	}
 	return nil
 }

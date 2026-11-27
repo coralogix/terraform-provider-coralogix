@@ -49,7 +49,7 @@ func TestProbeMutateAddsAnEnumValueWithThePrefixOfTheOthers(t *testing.T) {
 }
 
 // A resource whose contract takes every change passes, and one that cannot take a new optional field
-// in the item of an unordered set is reported with the message that breaks it.
+// (a fold of two arms that need the same fields) is reported with the message that breaks it.
 func TestProbeReportsTheChangesThatBreakAResource(t *testing.T) {
 	cases := []struct {
 		name, resource string
@@ -57,7 +57,8 @@ func TestProbeReportsTheChangesThatBreakAResource(t *testing.T) {
 		wantBroken     string // the message that a new field breaks, when it does not pass
 	}{
 		{name: "keything", resource: "KeyThing", wantField: true},
-		{name: "groupsetthing", resource: "GroupSetThing", wantBroken: "InGroupThing"},
+		{name: "groupsetthing", resource: "GroupSetThing", wantField: true},
+		{name: "parsething", resource: "ParseThing", wantBroken: "ParseDropParams"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

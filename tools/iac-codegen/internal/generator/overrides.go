@@ -82,6 +82,8 @@ func readOverrides(path string) (*overrides.File, error) {
 	if err != nil {
 		return nil, fmt.Errorf("overrides %s: %w", path, err)
 	}
+	// A value that the API adds to an enum is named without an edit of the file.
+	file.PlainNewValues = true
 	return file, nil
 }
 
