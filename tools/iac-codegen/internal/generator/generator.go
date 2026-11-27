@@ -391,6 +391,7 @@ func validateContract(c *contract, resourceName string, operationIDs model.Opera
 	var err error
 	spec := c.data // the contract that doc reads
 	data := c.data
+	skipListArmFields(doc, file)
 	policy, report := filledPolicy(doc, file)
 	if len(report) != 0 {
 		return nil, &EligibilityError{Report: report}
