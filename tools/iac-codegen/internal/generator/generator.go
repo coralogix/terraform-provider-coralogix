@@ -434,6 +434,7 @@ func validateContract(c *contract, resourceName string, operationIDs model.Opera
 		return nil, fmt.Errorf("build validated resource: %w", err)
 	}
 	readDigitStrings(resource, policy)
+	extendGroupArms(resource, file)
 	if report := readBackIssues(resource, file); len(report) != 0 {
 		return nil, &EligibilityError{Report: report}
 	}
