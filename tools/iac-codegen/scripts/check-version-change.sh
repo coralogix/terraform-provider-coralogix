@@ -119,8 +119,10 @@ components() {
 # A binary with `check --all` reads the spec once and checks every component in one process. A base
 # commit from before that flag still needs one process for each component.
 check_components() {
-  local side=$1 binary=$2
-  if "$binary" check -h 2>&1 | grep -q -- '-all'; then
+  local side=$1 binary=$2 help
+  # The help text of tfgen comes with exit status 2, which pipefail would turn into "no flag".
+  help=$("$binary" check -h 2>&1 || true)
+  if grep -q -- '-all' <<<"$help"; then
     "$binary" check --all --openapi "$spec" --out-dir "$work/$side-out/components"
     return
   fi

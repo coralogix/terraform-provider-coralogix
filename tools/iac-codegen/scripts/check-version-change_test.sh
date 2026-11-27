@@ -31,8 +31,8 @@ case "\$1" in
   generate) mkdir -p "\$5" && printf '%s %s\n' "$text" "\$3" >"\$5/resource.go" ;;
   check)
     case "\$2" in
-      -h) echo '  -all' >&2 ;;
-      --all) for component in Thing Other; do printf 'check %s %s\n' "$text" "\$component" >"\$6/\$component.txt"; done ;;
+      -h) echo '  -all' >&2; exit 2 ;;
+      --all) : >"\$0.used"; for component in Thing Other; do printf 'check %s %s\n' "$text" "\$component" >"\$6/\$component.txt"; done ;;
       *) printf 'check %s %s\n' "$text" "\$3" ;;
     esac ;;
 esac
@@ -102,6 +102,8 @@ passes "same output" "$repo" "$base" "$work/tfgen-a" "$work/tfgen-a"
 # A base without `check --all` is compared with a HEAD that has it, and two that have it.
 passes "base without check --all" "$repo" "$base" "$work/tfgen-a" "$work/tfgen-a-all"
 passes "both with check --all" "$repo" "$base" "$work/tfgen-a-all" "$work/tfgen-a-all"
+# The batch path must run: a fake that fails its help text with status 2 must still be seen.
+[[ -f "$work/tfgen-a-all.used" ]] || { echo "check --all was not used" >&2; exit 1; }
 fails "changed component check with check --all" "$repo" "$base" "$work/tfgen-a-all" "$work/tfgen-b-all" "produce different output"
 
 # A change of output needs a new version.
