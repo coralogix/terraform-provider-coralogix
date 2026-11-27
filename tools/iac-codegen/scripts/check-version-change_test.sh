@@ -20,6 +20,27 @@ EOF
 }
 fake_tfgen "$work/tfgen-a" a
 fake_tfgen "$work/tfgen-b" b
+
+# fake_tfgen_all is fake_tfgen of a generator that has `check --all`: one process writes the file
+# of each component of the test spec, with the text that fake_tfgen prints for it.
+fake_tfgen_all() {
+  local path=$1 text=$2
+  cat >"$path" <<EOF
+#!/usr/bin/env bash
+case "\$1" in
+  generate) mkdir -p "\$5" && printf '%s %s\n' "$text" "\$3" >"\$5/resource.go" ;;
+  check)
+    case "\$2" in
+      -h) echo '  -all' >&2 ;;
+      --all) for component in Thing Other; do printf 'check %s %s\n' "$text" "\$component" >"\$6/\$component.txt"; done ;;
+      *) printf 'check %s %s\n' "$text" "\$3" ;;
+    esac ;;
+esac
+EOF
+  chmod +x "$path"
+}
+fake_tfgen_all "$work/tfgen-a-all" a
+fake_tfgen_all "$work/tfgen-b-all" b
 printf 'openapi: 3.1.0\ncomponents:\n  schemas:\n    Thing:\n      type: object\n    Other:\n      type: object\n' >"$work/spec.yaml"
 export SPEC=$work/spec.yaml
 
@@ -77,6 +98,11 @@ base=$(git -C "$repo" rev-parse HEAD)
 printf 'package generator\n\n// refactor\n' >"$repo/tools/iac-codegen/internal/generator/generator.go"
 commit_all "$repo" refactor
 passes "same output" "$repo" "$base" "$work/tfgen-a" "$work/tfgen-a"
+
+# A base without `check --all` is compared with a HEAD that has it, and two that have it.
+passes "base without check --all" "$repo" "$base" "$work/tfgen-a" "$work/tfgen-a-all"
+passes "both with check --all" "$repo" "$base" "$work/tfgen-a-all" "$work/tfgen-a-all"
+fails "changed component check with check --all" "$repo" "$base" "$work/tfgen-a-all" "$work/tfgen-b-all" "produce different output"
 
 # A change of output needs a new version.
 fails "changed output" "$repo" "$base" "$work/tfgen-a" "$work/tfgen-b" "produce different output"

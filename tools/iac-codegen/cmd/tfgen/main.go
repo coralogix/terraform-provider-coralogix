@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/coralogix/coralogix-management-sdk/iac/model"
@@ -83,6 +84,8 @@ func runCheck(args []string) int {
 	openAPI := set.String("openapi", "", "local candidate OpenAPI file")
 	overridesFile := set.String("overrides", "", "behavior-overrides file of a resource that users already have")
 	acceptanceFile := set.String("acceptance", "", "acceptance file; with it the check also builds the acceptance test")
+	all := set.Bool("all", false, "check every component of the OpenAPI file; needs --out-dir and no --resource")
+	outDir := set.String("out-dir", "", "with --all: the directory that gets one <component>.txt file of each result")
 	operations := addOperationFlags(set)
 	if err := set.Parse(args); err != nil {
 		return 2
@@ -91,6 +94,15 @@ func runCheck(args []string) int {
 		fmt.Fprintf(os.Stderr, "tfgen: unexpected arguments: %v\n", set.Args())
 		return 2
 	}
+	if *all {
+		return runCheckAll(generator.CheckOptions{
+			OpenAPIPath:    *openAPI,
+			Resource:       *resource,
+			OperationIDs:   operations.ids(),
+			OverridesPath:  *overridesFile,
+			AcceptancePath: *acceptanceFile,
+		}, *outDir)
+	}
 	if err := generator.Check(generator.CheckOptions{
 		Resource:       *resource,
 		OpenAPIPath:    *openAPI,
@@ -98,6 +110,39 @@ func runCheck(args []string) int {
 		OverridesPath:  *overridesFile,
 		AcceptancePath: *acceptanceFile,
 	}); err != nil {
+		fmt.Fprintf(os.Stderr, "tfgen: %s\n", err)
+		return 1
+	}
+	return 0
+}
+
+// runCheckAll is `tfgen check` for every component of the OpenAPI file, in one process. A component
+// gets the file that `tfgen check --resource <component>` would print: empty when it passes, else
+// the error and the "exit 1" line. The name of the file is the component with "/" as "_".
+func runCheckAll(options generator.CheckOptions, outDir string) int {
+	if outDir == "" {
+		fmt.Fprintln(os.Stderr, "tfgen: --all needs --out-dir")
+		return 2
+	}
+	if err := os.MkdirAll(outDir, 0o755); err != nil {
+		fmt.Fprintf(os.Stderr, "tfgen: %s\n", err)
+		return 1
+	}
+	var writeErr error
+	err := generator.CheckEach(options, func(component string, err error) {
+		text := ""
+		if err != nil {
+			text = fmt.Sprintf("tfgen: %s\nexit 1\n", err)
+		}
+		name := strings.ReplaceAll(component, "/", "_") + ".txt"
+		if werr := os.WriteFile(filepath.Join(outDir, name), []byte(text), 0o644); werr != nil && writeErr == nil {
+			writeErr = werr
+		}
+	})
+	if err == nil {
+		err = writeErr
+	}
+	if err != nil {
 		fmt.Fprintf(os.Stderr, "tfgen: %s\n", err)
 		return 1
 	}
@@ -171,6 +216,7 @@ func (f operationFlags) ids() model.OperationIDs {
 func printUsage() {
 	fmt.Fprintln(os.Stderr, "usage: tfgen generate --resource <resource_name> --out <generated_output_directory> [--sdk-dir <local_sdk_root>] [--overrides <file>] [--acceptance <file>]")
 	fmt.Fprintln(os.Stderr, "       tfgen check --resource <resource_name> --openapi <candidate_openapi_file> [--overrides <file>]")
+	fmt.Fprintln(os.Stderr, "       tfgen check --all --openapi <candidate_openapi_file> --out-dir <directory>")
 	fmt.Fprintln(os.Stderr, "       tfgen probe --resource <resource_name> --openapi <openapi_file> [--overrides <file>] [--acceptance <file>]")
 	fmt.Fprintln(os.Stderr, "       tfgen --version")
 }

@@ -1764,12 +1764,18 @@ func (s *accSynth) fileValue(key string) (value, line string, ok bool) {
 	if v, found := s.file.Values[key]; found {
 		return v, key, true
 	}
-	for _, l := range s.file.ValuePaths() {
-		if rest, wild := strings.CutPrefix(l, "**."); wild && (key == rest || strings.HasSuffix(key, "."+rest)) {
-			return s.file.Values[l], l, true
+	// Of the lines that match, the first in sorted order wins. The walk calls this for every
+	// attribute, so it scans the map and keeps the smallest match, and does not sort the paths.
+	best := ""
+	for l := range s.file.Values {
+		if rest, wild := strings.CutPrefix(l, "**."); wild && (key == rest || strings.HasSuffix(key, "."+rest)) && (best == "" || l < best) {
+			best = l
 		}
 	}
-	return "", "", false
+	if best == "" {
+		return "", "", false
+	}
+	return s.file.Values[best], best, true
 }
 
 // apiFieldPair is one line of the apiFields map of the generated test.

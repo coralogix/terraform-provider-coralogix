@@ -8,6 +8,7 @@ import (
 	"slices"
 	"sort"
 	"strings"
+	"sync"
 
 	"github.com/coralogix/coralogix-management-sdk/iac/model"
 	"go.yaml.in/yaml/v4"
@@ -78,34 +79,48 @@ func Probe(options ProbeOptions) ([]ProbeResult, error) {
 		return nil, err
 	}
 	defer os.RemoveAll(dir)
+	// A change has its own candidate file, so the changes run at once. The dashboard needs most of
+	// the time, and its changes are what the others wait for.
 	tryChange := func(change string, groups [][]string) error {
 		mutated, err := probeMutate(data, change, groups)
 		if err != nil {
 			return err
 		}
-		path := filepath.Join(dir, "candidate.yaml")
+		path := filepath.Join(dir, change+".yaml")
 		if err := os.WriteFile(path, mutated, 0o600); err != nil {
 			return err
 		}
 		return Check(checkOptionsOf(options, path))
 	}
 
-	var results []ProbeResult
-	for _, change := range ProbeChanges {
+	results := make([]ProbeResult, len(ProbeChanges))
+	var wg sync.WaitGroup
+	for i, change := range ProbeChanges {
 		groups := fieldGroups
 		if change == ProbeEnumValue {
 			groups = enums
 		}
-		result := ProbeResult{Change: change, Passed: true}
-		if len(groups) != 0 {
-			if err := tryChange(change, groups); err != nil {
-				culprit, problem := probeCulprit(groups, err, func(sub [][]string) error { return tryChange(change, sub) })
-				result = ProbeResult{Change: change, Component: culprit, Problem: problem}
-			}
-		}
-		results = append(results, result)
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			results[i] = probeChange(change, groups, tryChange)
+		}()
 	}
+	wg.Wait()
 	return results, nil
+}
+
+// probeChange tries one change on every group, and narrows a failure to one group.
+func probeChange(change string, groups [][]string, try func(string, [][]string) error) ProbeResult {
+	if len(groups) == 0 {
+		return ProbeResult{Change: change, Passed: true}
+	}
+	err := try(change, groups)
+	if err == nil {
+		return ProbeResult{Change: change, Passed: true}
+	}
+	culprit, problem := probeCulprit(groups, err, func(sub [][]string) error { return try(change, sub) })
+	return ProbeResult{Change: change, Component: culprit, Problem: problem}
 }
 
 func checkOptionsOf(options ProbeOptions, openAPIPath string) CheckOptions {
