@@ -123,3 +123,17 @@ func optionalField(f *model.Field) *model.Field {
 	}
 	return &c
 }
+
+// ZeroWhenAbsent reports whether flattening the field from an empty SDK struct gives a known value
+// (the SDK holds a required scalar by value) where Terraform needs null. The fold template then
+// resets the model field of an arm that the response does not have.
+func (f *convField) ZeroWhenAbsent() bool {
+	if !f.DirectValue() {
+		return false
+	}
+	switch f.Conv {
+	case convString, convBool, convFloat64, convFloat32, convUint64, convInt64Wire, convInt64, convInt32, convTime, convRFC3339, convEnum:
+		return true
+	}
+	return false
+}

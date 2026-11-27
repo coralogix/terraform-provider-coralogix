@@ -3138,6 +3138,12 @@ func flatten{{.Func}}(ctx context.Context, p path.Path, v *{{$carry.Pkg}}.{{.SDK
 			kept := &{{$carry.Pkg}}.{{$arm.Object.SDK}}{ {{- range $i, $f := .Fields}}{{if $i}}, {{end}}{{$f}}: oneOf.{{$fold.SDK}}.{{$f}}{{end -}} }
 			arm = flatten{{$arm.Object.Func}}(ctx, p.AtName({{printf "%q" $arm.TFName}}), kept, {{if $arm.Object.NeedsPrior}}priorArm, {{end}}diags)
 			arm.{{.Flag}} = types.BoolValue(false)
+{{- range .TargetOnly}}
+{{- if .ZeroWhenAbsent}}
+			// The folded arm lacks this field: a value held by the SDK is no read value, so it is null.
+			reflect.ValueOf(&arm.{{.Model}}).Elem().SetZero()
+{{- end}}
+{{- end}}
 		}
 {{- end}}
 		if oneOf.{{.SDK}} != nil {
@@ -3164,6 +3170,14 @@ func flatten{{.Func}}(ctx context.Context, p path.Path, v *{{$carry.Pkg}}.{{.SDK
 {{- range .FoldedOnly}}
 {{- template "flattenField" .}}
 {{- end}}
+			if oneOf.{{.SDK}} == nil {
+{{- range .FoldedOnly}}
+{{- if .ZeroWhenAbsent}}
+				// The folded arm is absent: a value held by the SDK is no read value, so it is null.
+				reflect.ValueOf(&out.{{.Model}}).Elem().SetZero()
+{{- end}}
+{{- end}}
+			}
 		}
 {{- end}}
 {{- end}}

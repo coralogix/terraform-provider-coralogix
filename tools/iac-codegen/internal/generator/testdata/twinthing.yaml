@@ -122,17 +122,21 @@ components:
         copyParams: {$ref: '#/components/schemas/ParseCopyParams'}
     ParseKeepParams:
       type: object
+      required: [strict]
       properties:
         rule: {type: string, x-coralogix-presence: true}
         keepLogs: {type: boolean, x-coralogix-presence: true}
         label: {type: string, x-coralogix-presence: true}
+        strict: {type: string, minLength: 1}
         limits: {$ref: '#/components/schemas/ParseLimits'}
     ParseDropParams:
       type: object
+      required: [hard]
       properties:
         rule: {type: string, x-coralogix-presence: true}
         keepLogs: {type: boolean, x-coralogix-presence: true}
         reason: {type: string, x-coralogix-presence: true}
+        hard: {type: string, minLength: 1}
         threshold: {type: integer, format: int64, x-coralogix-presence: true}
         extra: {$ref: '#/components/schemas/ParseExtra'}
     ParseLimits:

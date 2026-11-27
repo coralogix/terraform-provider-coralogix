@@ -104,8 +104,8 @@ func TestFoldReadFillsTheFieldsOfTheArmThatTheResponseHas(t *testing.T) {
 	if k == nil || k.KeepMatching.ValueBool() || k.Rule.ValueString() != "x" || k.Reason.ValueString() != "r" || k.Threshold.ValueInt64() != 7 || k.Extra == nil || k.Extra.Detail.ValueString() != "d" {
 		t.Fatalf("drop read = %+v", k)
 	}
-	if !k.Label.IsNull() || k.Limits != nil {
-		t.Fatalf("the fields of the shown arm are %+v %+v, want null", k.Label, k.Limits)
+	if !k.Label.IsNull() || k.Limits != nil || !k.Strict.IsNull() {
+		t.Fatalf("the fields of the shown arm are %+v %+v %+v, want null", k.Label, k.Limits, k.Strict)
 	}
 
 	kept, diags := flattenStep(&parse_things_service.ParseStep{Params: &parse_things_service.ParseParams{KeepParams: &parse_things_service.ParseKeepParams{
@@ -118,8 +118,8 @@ func TestFoldReadFillsTheFieldsOfTheArmThatTheResponseHas(t *testing.T) {
 	if k == nil || !k.KeepMatching.ValueBool() || k.Label.ValueString() != "l" || k.Limits == nil || k.Limits.Max.ValueInt64() != 3 {
 		t.Fatalf("keep read = %+v", k)
 	}
-	if !k.Reason.IsNull() || !k.Threshold.IsNull() || k.Extra != nil {
-		t.Fatalf("the fields of the folded arm are %+v %+v %+v, want null", k.Reason, k.Threshold, k.Extra)
+	if !k.Reason.IsNull() || !k.Threshold.IsNull() || k.Extra != nil || !k.Hard.IsNull() {
+		t.Fatalf("the fields of the folded arm are %+v %+v %+v %+v, want null", k.Reason, k.Threshold, k.Extra, k.Hard)
 	}
 }
 

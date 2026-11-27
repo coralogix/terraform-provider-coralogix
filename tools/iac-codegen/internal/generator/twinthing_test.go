@@ -68,7 +68,7 @@ func TestTwinThingFoldShowsTheUnionOfTheFields(t *testing.T) {
 func TestTwinThingFoldRefusesArmsThatAreNoTwins(t *testing.T) {
 	cases := map[string]func(string) string{
 		"a field with two types": func(spec string) string {
-			return strings.Replace(spec, "    ParseDropParams:\n      type: object\n      properties:\n        rule: {type: string,", "    ParseDropParams:\n      type: object\n      properties:\n        rule: {type: string, format: byte,", 1)
+			return strings.Replace(spec, "    ParseDropParams:\n      type: object\n      required: [hard]\n      properties:\n        rule: {type: string,", "    ParseDropParams:\n      type: object\n      required: [hard]\n      properties:\n        rule: {type: string, format: byte,", 1)
 		},
 		"no common field": func(spec string) string {
 			spec = strings.Replace(spec, "        rule: {type: string, x-coralogix-presence: true}\n        keepLogs: {type: boolean, x-coralogix-presence: true}\n        reason:", "        reason:", 1)
@@ -90,8 +90,8 @@ func TestTwinThingFoldRefusesArmsThatAreNoTwins(t *testing.T) {
 // select the twin that lacks it.
 func TestTwinThingFoldMakesAFieldOfOneTwinOptional(t *testing.T) {
 	input, loadDir := twinThingInput(t, func(spec string) string {
-		spec = strings.Replace(spec, "    ParseKeepParams:\n      type: object\n", "    ParseKeepParams:\n      type: object\n      required: [label]\n", 1)
-		spec = strings.Replace(spec, "    ParseDropParams:\n      type: object\n", "    ParseDropParams:\n      type: object\n      required: [reason]\n", 1)
+		spec = strings.Replace(spec, "    ParseKeepParams:\n      type: object\n      required: [strict]\n", "    ParseKeepParams:\n      type: object\n      required: [strict, label]\n", 1)
+		spec = strings.Replace(spec, "    ParseDropParams:\n      type: object\n      required: [hard]\n", "    ParseDropParams:\n      type: object\n      required: [hard, reason]\n", 1)
 		spec = strings.Replace(spec, "label: {type: string,", "label: {type: string, minLength: 1,", 1)
 		return strings.Replace(spec, "reason: {type: string,", "reason: {type: string, minLength: 1,", 1)
 	})

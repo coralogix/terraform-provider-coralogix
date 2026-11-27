@@ -17,6 +17,7 @@ type ParseKeepParams struct {
 	Rule     *string
 	KeepLogs *bool
 	Label    *string
+	Strict   string
 	Limits   *ParseLimits
 }
 
@@ -24,6 +25,7 @@ type ParseDropParams struct {
 	Rule      *string
 	KeepLogs  *bool
 	Reason    *string
+	Hard      string
 	Threshold *int64
 	Extra     *ParseExtra
 }
