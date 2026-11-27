@@ -3305,6 +3305,15 @@ func flatten{{.Func}}(ctx context.Context, p path.Path, v *{{$typed.Pkg}}.{{.SDK
 {{- end}}
 	}
 {{- end}}
+{{- range .InnerScalars}}
+	{
+		v := &{{$typed.Pkg}}.{{.SDK}}{}
+{{- range .Parents}}
+		v.{{.SDK}} = &{{.Type}}{}
+{{- end}}
+{{- template "flattenField" .Scalar}}
+	}
+{{- end}}
 {{- if .InitScalar}}
 	{
 		v := &{{$typed.Pkg}}.{{$obj.SDK}}{}

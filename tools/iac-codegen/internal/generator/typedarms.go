@@ -455,6 +455,14 @@ type typedPair struct {
 	Merged string // the Go field of the model of the typedArms object
 }
 
+// typedInnerScalar reads the merged field of a scalar arm of an inner object from an empty value of
+// the inner SDK type.
+type typedInnerScalar struct {
+	SDK     string       // the Go type of the inner object in the SDK package
+	Parents []convParent // the SDK pointers that hold the inlined fields of the inner object
+	Scalar  *convField   // the conversion of the field, with the Go name of the merged field
+}
+
 // typedInit reads the Fields of Object from an empty value of its SDK type.
 type typedInit struct {
 	Object *convObject
@@ -484,6 +492,9 @@ type typedArm struct {
 	outer      []*convField // the conversions of the other fields of an inline arm
 	// InitScalar: this arm is the first with the scalar value attribute.
 	InitScalar bool
+	// InnerScalars are the scalar arms of the inner object of an inline arm whose merged field no
+	// earlier arm has: flatten reads each from an empty value of the inner object first.
+	InnerScalars []*typedInnerScalar
 	// Fields are the Terraform names of the fields that the arm has, in order.
 	Fields []string
 }
@@ -756,8 +767,12 @@ func typedInits(a *typedArm, fresh, freshOuter []typedPair) error {
 		}
 	case a.Inner != nil:
 		for _, ia := range a.Inner.Typed.Arms {
-			if ia.Scalar != nil || ia.Inner != nil {
-				return errors.New("typedArms: an arm that holds a typedArms object with scalar or nested arms is not supported")
+			if ia.Inner != nil {
+				return errors.New("typedArms: an arm that holds a typedArms object with nested arms is not supported")
+			}
+			if ia.Scalar != nil {
+				a.addInnerScalar(ia, fresh)
+				continue
 			}
 			var fields []typedPair
 			for _, init := range ia.Inits {
@@ -779,6 +794,21 @@ func typedInits(a *typedArm, fresh, freshOuter []typedPair) error {
 		a.Inits = append(a.Inits, typedInit{Object: a.Object, Fields: fresh})
 	}
 	return nil
+}
+
+// addInnerScalar adds the read of the scalar arm ia of the inner object, when the merged field of
+// the arm is fresh: no earlier arm of the outer object has it.
+func (a *typedArm) addInnerScalar(ia *typedArm, fresh []typedPair) {
+	if !ia.InitScalar {
+		return
+	}
+	i := slices.IndexFunc(fresh, func(p typedPair) bool { return p.Arm == ia.Scalar.Model })
+	if i < 0 {
+		return
+	}
+	scalar := *ia.Scalar
+	scalar.Model = fresh[i].Merged
+	a.InnerScalars = append(a.InnerScalars, &typedInnerScalar{SDK: a.Inner.SDK, Parents: a.Inner.FlattenParents, Scalar: &scalar})
 }
 
 // typedArmNeedsPrior reports whether an arm of a typedArms object needs the prior value to read. The
