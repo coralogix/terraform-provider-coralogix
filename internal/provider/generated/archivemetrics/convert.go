@@ -29,6 +29,7 @@ var createFields = []struct {
 	attr          string
 	serverDefault bool
 }{
+	{attr: "gcs", serverDefault: false},
 	{attr: "ibm", serverDefault: false},
 	{attr: "retention_policy", serverDefault: false},
 	{attr: "s3", serverDefault: false},
@@ -73,10 +74,6 @@ func flatten(ctx context.Context, v *metrics_data_archive_service.TenantConfigV2
 		diags.AddError("Missing resource", "The API response has no TenantConfigV2.")
 		return nil, diags
 	}
-	if v.Gcs != nil && !unsupportedAllowed(ctx) {
-		diags.AddError("Error reading coralogix_archive_metrics", "the tenant configuration uses an unsupported storage backend; only IBM and S3 are supported")
-		return nil, diags
-	}
 	out := flattenTenantConfigV2(ctx, path.Empty(), v, &diags)
 	return out, diags
 }
@@ -87,6 +84,7 @@ func flatten(ctx context.Context, v *metrics_data_archive_service.TenantConfigV2
 var oneOfArms = map[string]bool{
 	"ibm": true,
 	"s3":  true,
+	"gcs": true,
 }
 
 // computedAttrs are the paths of the computed attributes, with list and map
@@ -99,6 +97,7 @@ var computedAttrs = map[string]bool{
 
 // requiredAttrs are the paths of the required attributes, in the form of computedAttrs.
 var requiredAttrs = map[string]bool{
+	"gcs.bucket":   true,
 	"ibm.crn":      true,
 	"ibm.endpoint": true,
 	"retention_policy.five_minutes_resolution": true,
@@ -341,9 +340,28 @@ func expandConfigureTenantRequest(ctx context.Context, p path.Path, m *TenantCon
 		return nil
 	}
 	out := &metrics_data_archive_service.ConfigureTenantRequest{}
+	out.Gcs = expandGcsConfig(ctx, p.AtName("gcs"), m.Gcs, diags)
 	out.Ibm = expandIbmConfigV2(ctx, p.AtName("ibm"), m.Ibm, diags)
 	out.RetentionPolicy = expandRetentionPolicyRequest(ctx, p.AtName("retention_policy"), m.RetentionPolicy, diags)
 	out.S3 = expandS3Config(ctx, p.AtName("s3"), m.S3, diags)
+	return out
+}
+
+func expandGcsConfig(ctx context.Context, p path.Path, m *GcsConfigModel, diags *diag.Diagnostics) *metrics_data_archive_service.GcsConfig {
+	if m == nil {
+		return nil
+	}
+	out := &metrics_data_archive_service.GcsConfig{}
+	out.Bucket = expandString(m.Bucket)
+	return out
+}
+
+func flattenGcsConfig(ctx context.Context, p path.Path, v *metrics_data_archive_service.GcsConfig, diags *diag.Diagnostics) *GcsConfigModel {
+	if v == nil {
+		return nil
+	}
+	out := &GcsConfigModel{}
+	out.Bucket = types.StringPointerValue(v.Bucket)
 	return out
 }
 
@@ -414,6 +432,7 @@ func flattenTenantConfigV2(ctx context.Context, p path.Path, v *metrics_data_arc
 		return nil
 	}
 	out := &TenantConfigV2Model{}
+	out.Gcs = flattenGcsConfig(ctx, p.AtName("gcs"), v.Gcs, diags)
 	out.Ibm = flattenIbmConfigV2(ctx, p.AtName("ibm"), v.Ibm, diags)
 	out.Prefix = types.StringPointerValue(v.Prefix)
 	out.RetentionPolicy = flattenRetentionPolicyRequest(ctx, p.AtName("retention_policy"), v.RetentionPolicy, diags)
@@ -641,17 +660,4 @@ func expandInt64(v types.Int64) *int64 {
 	}
 	n := v.ValueInt64()
 	return &n
-}
-
-type unsupportedAllowedKey struct{}
-
-// withUnsupportedAllowed returns a context in which flatten does not report the unsupported fields
-// and arms of the resource (the AllowUnsupported hook).
-func withUnsupportedAllowed(ctx context.Context) context.Context {
-	return context.WithValue(ctx, unsupportedAllowedKey{}, true)
-}
-
-func unsupportedAllowed(ctx context.Context) bool {
-	allowed, _ := ctx.Value(unsupportedAllowedKey{}).(bool)
-	return allowed
 }

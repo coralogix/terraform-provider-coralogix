@@ -173,6 +173,12 @@
 #### provider
 - FIX: Validation of a config of `coralogix_slo_v2` and `coralogix_tco_policies_logs`, `_rum` and `_traces` is faster. The rules are the same. The error text of an invalid config names the object that holds the attributes, for example `These attributes cannot be configured together: `dpxl_expression` and `severities`.`
 
+#### resource/coralogix_archive_metrics
+- FEAT: Add a `gcs` block with `bucket` to archive metrics into Google Cloud Storage. Set exactly one of `s3`, `ibm` or `gcs`. A tenant that already archives into GCS no longer fails to read. Before, a refresh returned "unsupported storage backend". The API models only the bucket for GCS, so the resource has no region or credentials attribute. Only GCP environments (US3) accept `gcs`, and they do not accept `s3`.
+
+#### resource/coralogix_archive_logs
+- DOCS: Describe how to archive logs into Google Cloud Storage in a GCP environment (US3): set `bucket` to the GCS bucket and `region` to its location, for example `us-central1`. The API stores a GCS bucket in the same fields as an S3 bucket, so the schema is unchanged.
+
 #### resource/coralogix_ai_custom_evaluation
 - CHORE: The resource is generated from the API contract. The schema, the import, and the state are the same, except as listed below. A new field of the custom evaluation in the API contract is a new attribute without a hand edit. A field that the API adds to an example of `criteria` makes the read fail, because the resource shows the conversation and the score only.
 - FIX: A destroy no longer treats every 404 as success: a 404 of a route that does not exist is an error, and only a 404 for the custom evaluation itself is a custom evaluation that is gone already.

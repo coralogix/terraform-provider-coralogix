@@ -6,7 +6,7 @@ resource: v2.Target
 mode: existing
 typeName: archive_logs
 
-markdownDescription: "Coralogix archive-logs. Configures the S3 bucket Coralogix archives logs and traces into. For more info please review - https://coralogix.com/docs/user-guides/data-flow/s3-archive/connect-s3-archive/."
+markdownDescription: "Coralogix archive-logs. Configures the S3 bucket Coralogix archives logs and traces into. In a GCP environment (US3), the bucket is a Google Cloud Storage bucket and `region` is its location, for example `us-central1`; see https://coralogix.com/docs/user-guides/data-flow/gcs-archive/. For more info please review - https://coralogix.com/docs/user-guides/data-flow/s3-archive/connect-s3-archive/."
 
 schema:
   version: 0
@@ -41,11 +41,11 @@ types:
       ibmCos:
         skip: true
       bucket:
-        markdownDescription: "The bucket name to store the archived logs in."
+        markdownDescription: "The bucket name to store the archived logs in. In a GCP environment (US3) this is a Google Cloud Storage bucket."
       region:
         computed: true # the API stores its own region when the request has none
         useStateForUnknown: true
-        markdownDescription: "The bucket region. see - https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.RegionsAndAvailabilityZones.html#Concepts.RegionsAndAvailabilityZones.Regions"
+        markdownDescription: "The bucket region. see - https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.RegionsAndAvailabilityZones.html#Concepts.RegionsAndAvailabilityZones.Regions. In a GCP environment (US3) it is the location of the Google Cloud Storage bucket, for example `us-central1`."
       isActive:
         name: active
         optional: true # the contract requires it, and the released attribute has a default

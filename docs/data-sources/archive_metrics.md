@@ -3,12 +3,12 @@
 page_title: "coralogix_archive_metrics Data Source - terraform-provider-coralogix"
 subcategory: ""
 description: |-
-  Coralogix archive-metrics. Configures the S3/IBM bucket Coralogix archives metrics into. For more info please review - https://coralogix.com/docs/user-guides/data-flow/s3-archive/connect-s3-archive/.
+  Coralogix archive-metrics. Configures the S3, IBM or GCS bucket Coralogix archives metrics into. For more info please review - https://coralogix.com/docs/user-guides/data-flow/s3-archive/connect-s3-archive/.
 ---
 
 # coralogix_archive_metrics (Data Source)
 
-Coralogix archive-metrics. Configures the S3/IBM bucket Coralogix archives metrics into. For more info please review - https://coralogix.com/docs/user-guides/data-flow/s3-archive/connect-s3-archive/.
+Coralogix archive-metrics. Configures the S3, IBM or GCS bucket Coralogix archives metrics into. For more info please review - https://coralogix.com/docs/user-guides/data-flow/s3-archive/connect-s3-archive/.
 
 
 
@@ -17,12 +17,21 @@ Coralogix archive-metrics. Configures the S3/IBM bucket Coralogix archives metri
 
 ### Read-Only
 
+- `gcs` (Attributes) Google Cloud Storage bucket to archive the metrics into. Set exactly one of `s3`, `ibm` or `gcs`. Only GCP environments (US3) accept `gcs`, and they do not accept `s3`; other regions reject `gcs`. The bucket must be in the location of your Coralogix domain (`us-central1` for US3), and the Coralogix archive service account needs Storage Object Admin on it; see https://coralogix.com/docs/user-guides/data-flow/gcs-archive/. (see [below for nested schema](#nestedatt--gcs))
 - `ibm` (Attributes) (see [below for nested schema](#nestedatt--ibm))
 - `id` (String) The fixed id of this singleton: there is one per company.
 - `prefix` (String)
 - `retention_policy` (Attributes) The retention policy (in days) for the archived metrics. Leave it out to keep no retention policy: a configuration without it clears one that was set outside Terraform. (see [below for nested schema](#nestedatt--retention_policy))
 - `s3` (Attributes) (see [below for nested schema](#nestedatt--s3))
 - `tenant_id` (Number)
+
+<a id="nestedatt--gcs"></a>
+### Nested Schema for `gcs`
+
+Read-Only:
+
+- `bucket` (String) The name of the Google Cloud Storage bucket to store the archived metrics in.
+
 
 <a id="nestedatt--ibm"></a>
 ### Nested Schema for `ibm`

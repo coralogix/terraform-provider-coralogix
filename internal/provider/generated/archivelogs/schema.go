@@ -44,7 +44,7 @@ func Schema() schema.Schema {
 			},
 			"bucket": schema.StringAttribute{
 				Required:            true,
-				MarkdownDescription: "The bucket name to store the archived logs in.",
+				MarkdownDescription: "The bucket name to store the archived logs in. In a GCP environment (US3) this is a Google Cloud Storage bucket.",
 			},
 			"region": schema.StringAttribute{
 				Optional: true,
@@ -52,10 +52,10 @@ func Schema() schema.Schema {
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
-				MarkdownDescription: "The bucket region. see - https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.RegionsAndAvailabilityZones.html#Concepts.RegionsAndAvailabilityZones.Regions",
+				MarkdownDescription: "The bucket region. see - https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.RegionsAndAvailabilityZones.html#Concepts.RegionsAndAvailabilityZones.Regions. In a GCP environment (US3) it is the location of the Google Cloud Storage bucket, for example `us-central1`.",
 			},
 		},
-		MarkdownDescription: "Coralogix archive-logs. Configures the S3 bucket Coralogix archives logs and traces into. For more info please review - https://coralogix.com/docs/user-guides/data-flow/s3-archive/connect-s3-archive/.",
+		MarkdownDescription: "Coralogix archive-logs. Configures the S3 bucket Coralogix archives logs and traces into. In a GCP environment (US3), the bucket is a Google Cloud Storage bucket and `region` is its location, for example `us-central1`; see https://coralogix.com/docs/user-guides/data-flow/gcs-archive/. For more info please review - https://coralogix.com/docs/user-guides/data-flow/s3-archive/connect-s3-archive/.",
 	}
 }
 

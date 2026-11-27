@@ -6,7 +6,7 @@ resource: TenantConfigV2
 mode: existing
 typeName: archive_metrics
 
-markdownDescription: "Coralogix archive-metrics. Configures the S3/IBM bucket Coralogix archives metrics into. For more info please review - https://coralogix.com/docs/user-guides/data-flow/s3-archive/connect-s3-archive/."
+markdownDescription: "Coralogix archive-metrics. Configures the S3, IBM or GCS bucket Coralogix archives metrics into. For more info please review - https://coralogix.com/docs/user-guides/data-flow/s3-archive/connect-s3-archive/."
 
 schema:
   version: 0
@@ -31,10 +31,6 @@ dataSource: {}
 
 types:
   TenantConfigV2:
-    # The released resource configures S3 and IBM only.
-    unsupportedArms: [gcs]
-    unsupportedSummary: "Error reading coralogix_archive_metrics"
-    unsupportedDetail: "the tenant configuration uses an unsupported storage backend; only IBM and S3 are supported"
     fields:
       # Set by the enable and disable calls, which the resource does not make.
       disabled:
@@ -45,6 +41,9 @@ types:
       ibm:
         requireOne: true
         markdownDescription: ""
+      gcs:
+        requireOne: true
+        markdownDescription: "Google Cloud Storage bucket to archive the metrics into. Set exactly one of `s3`, `ibm` or `gcs`. Only GCP environments (US3) accept `gcs`, and they do not accept `s3`; other regions reject `gcs`. The bucket must be in the location of your Coralogix domain (`us-central1` for US3), and the Coralogix archive service account needs Storage Object Admin on it; see https://coralogix.com/docs/user-guides/data-flow/gcs-archive/."
       prefix:
         useStateForUnknown: true
         markdownDescription: ""
@@ -61,6 +60,11 @@ types:
       region:
         required: true
         markdownDescription: "The bucket region. see - https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.RegionsAndAvailabilityZones.html#Concepts.RegionsAndAvailabilityZones.Regions"
+  GcsConfig:
+    fields:
+      bucket:
+        required: true
+        markdownDescription: "The name of the Google Cloud Storage bucket to store the archived metrics in."
   IbmConfigV2:
     fields:
       crn:
