@@ -174,7 +174,7 @@ func runProbe(args []string) int {
 		fmt.Fprintf(os.Stderr, "tfgen: unexpected arguments: %v\n", set.Args())
 		return 2
 	}
-	results, err := generator.Probe(generator.ProbeOptions{
+	results, err := generator.ProbeAll(generator.ProbeOptions{
 		Resource:       *resource,
 		OpenAPIPath:    *openAPI,
 		OperationIDs:   operations.ids(),

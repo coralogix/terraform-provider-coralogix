@@ -2,8 +2,8 @@
 # Fails when a generated resource cannot take a typical API change without a hand edit.
 #
 # `tfgen probe` changes the contract of each generated resource the way an API team does: a new
-# optional field (string, bool, integer) on every message that the resource uses, and a new value on
-# every enum that it uses. It keeps the overrides, the hooks, and the acceptance file as they are and
+# optional field (string, bool, integer, or a new message) on every message that the resource uses,
+# a new arm on every oneOf that it uses, and a new value on every enum that it uses. It keeps the overrides, the hooks, and the acceptance file as they are and
 # runs the check of `tfgen check`. A change that the check rejects is a gap: the generator or the
 # contract needs a fix, and not an edit of an override.
 #

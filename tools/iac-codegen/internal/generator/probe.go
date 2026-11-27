@@ -29,7 +29,15 @@ const (
 	ProbeBoolField    = "bool-field"
 	ProbeIntegerField = "integer-field"
 	ProbeEnumValue    = "enum-value"
+	// ProbeObjectField adds an optional field that holds a new message with one string field.
+	ProbeObjectField = "object-field"
+	// ProbeOneOfArm adds a new arm, a new message, to every oneOf that a message has.
+	ProbeOneOfArm = "oneof-arm"
 )
+
+// ProbeShapeChanges are the changes that add a new message: a nested object and a oneOf arm. ProbeAll
+// tries them after ProbeChanges.
+var ProbeShapeChanges = []string{ProbeObjectField, ProbeOneOfArm}
 
 // ProbeChanges are the changes that Probe tries.
 var ProbeChanges = []string{ProbeStringField, ProbeBoolField, ProbeIntegerField, ProbeEnumValue}
@@ -57,6 +65,15 @@ type ProbeResult struct {
 // Probe tries every change in ProbeChanges on the contract of the resource. It returns an error when
 // the resource does not pass the check before any change: there is nothing to compare with.
 func Probe(options ProbeOptions) ([]ProbeResult, error) {
+	return probeChanges(options, ProbeChanges)
+}
+
+// ProbeAll is Probe with the changes of ProbeShapeChanges after those of ProbeChanges.
+func ProbeAll(options ProbeOptions) ([]ProbeResult, error) {
+	return probeChanges(options, slices.Concat(ProbeChanges, ProbeShapeChanges))
+}
+
+func probeChanges(options ProbeOptions, changes []string) ([]ProbeResult, error) {
 	data, err := os.ReadFile(options.OpenAPIPath)
 	if err != nil {
 		return nil, fmt.Errorf("read OpenAPI %s: %w", options.OpenAPIPath, err)
@@ -93,9 +110,9 @@ func Probe(options ProbeOptions) ([]ProbeResult, error) {
 		return Check(checkOptionsOf(options, path))
 	}
 
-	results := make([]ProbeResult, len(ProbeChanges))
+	results := make([]ProbeResult, len(changes))
 	var wg sync.WaitGroup
-	for i, change := range ProbeChanges {
+	for i, change := range changes {
 		groups := fieldGroups
 		if change == ProbeEnumValue {
 			groups = enums
@@ -263,6 +280,10 @@ func probeMutate(data []byte, change string, groups [][]string) ([]byte, error) 
 			switch change {
 			case ProbeEnumValue:
 				probeAddEnumValue(component, index)
+			case ProbeObjectField:
+				probeAddObjectField(schemas, component, index)
+			case ProbeOneOfArm:
+				probeAddOneOfArm(schemas, component, index)
 			default:
 				probeAddField(component, change, fmt.Sprintf("zzProbe%d", index))
 			}
@@ -314,4 +335,66 @@ func probeAddEnumValue(component *yaml.Node, index int) {
 		prefix = ""
 	}
 	values.Content = append(values.Content, &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: fmt.Sprintf("%sZZ_PROBE_%d", prefix, index)})
+}
+
+// probeNested returns the name of the new message of the group at index. A message holds one string
+// field. It is added to the schemas once, and every message of the group refers to it, as the
+// messages of one API change refer to one new message.
+func probeNested(schemas *yaml.Node, index int) string {
+	name := fmt.Sprintf("ZzProbeMessage%d", index)
+	if mapValue(schemas, name) == nil {
+		schemas.Content = append(schemas.Content, probeScalar(name), probeNode("{type: object, properties: {zzProbeValue: {type: string}}}"))
+	}
+	return name
+}
+
+func probeScalar(text string) *yaml.Node {
+	return &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: text}
+}
+
+// probeNode reads a snippet of YAML. It returns nil for a snippet that is not valid.
+func probeNode(text string) *yaml.Node {
+	var value yaml.Node
+	if err := yaml.Unmarshal([]byte(text), &value); err != nil || len(value.Content) == 0 {
+		return nil
+	}
+	return value.Content[0]
+}
+
+// probeRef is the property of a field that holds the message, in the form of the contract.
+func probeRef(message string) *yaml.Node {
+	return probeNode(fmt.Sprintf("{allOf: [{$ref: '#/components/schemas/%s'}], description: Added by the probe.}", message))
+}
+
+func probeAddObjectField(schemas, component *yaml.Node, index int) {
+	properties := mapValue(component, "properties")
+	if properties == nil || properties.Kind != yaml.MappingNode {
+		return
+	}
+	properties.Content = append(properties.Content, probeScalar(fmt.Sprintf("zzProbeObject%d", index)), probeRef(probeNested(schemas, index)))
+}
+
+// probeAddOneOfArm adds an arm to the oneOf of the message. The oneOf is a list of arms that each
+// require one property, and, when the oneOf is optional, a last entry that allows none of them. A
+// message without such a list is left as it is.
+func probeAddOneOfArm(schemas, component *yaml.Node, index int) {
+	properties, oneOf := mapValue(component, "properties"), mapValue(component, "oneOf")
+	if properties == nil || properties.Kind != yaml.MappingNode || oneOf == nil || oneOf.Kind != yaml.SequenceNode {
+		return
+	}
+	name := fmt.Sprintf("zzProbeArm%d", index)
+	arm := func() *yaml.Node { return probeNode(fmt.Sprintf("{required: [%s], type: object}", name)) }
+	at := len(oneOf.Content)
+	for i, entry := range oneOf.Content {
+		if not := mapValue(entry, "not"); not != nil {
+			at = i
+			if anyOf := mapValue(not, "anyOf"); anyOf != nil && anyOf.Kind == yaml.SequenceNode {
+				anyOf.Content = append(anyOf.Content, arm())
+			}
+		}
+	}
+	entries := append([]*yaml.Node{}, oneOf.Content[:at]...)
+	entries = append(entries, arm())
+	oneOf.Content = append(entries, oneOf.Content[at:]...)
+	properties.Content = append(properties.Content, probeScalar(name), probeRef(probeNested(schemas, index)))
 }
