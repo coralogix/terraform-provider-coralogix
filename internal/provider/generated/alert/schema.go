@@ -274,8 +274,8 @@ func Schema() schema.Schema {
 							"use_rows_as_permutations": schema.BoolAttribute{
 								Optional:            true,
 								Computed:            true,
-								DeprecationMessage:  "The Coralogix API derives this value from the DataPrime query: true when the query groups its results (for example with groupby), false otherwise. Leave it out. The provider keeps a configured value in state and ignores the value that the API returns.",
-								MarkdownDescription: "Whether each result row is treated as a separate permutation. When omitted, the Coralogix API derives it from the DataPrime query: true when the query has group-by keys, and every update of the alert derives it again. A configured value is kept in state and is not compared with the value that the API returns.",
+								DeprecationMessage:  "The Coralogix API derives this value from the DataPrime query: true when the query groups its results (for example with groupby), false otherwise. Leave it out. The provider does not send a configured value: it keeps the value in state and ignores the value that the API returns.",
+								MarkdownDescription: "Whether each result row is treated as a separate permutation. When omitted, the Coralogix API derives it from the DataPrime query: true when the query has group-by keys, and every update of the alert derives it again. A configured value is not sent to the API: it is kept in state and is not compared with the value that the API returns.",
 							},
 						},
 						MarkdownDescription: "Analytics threshold alert type definition (preview) — fires when a numeric column in the DataPrime result violates a per-priority threshold. Per-row fan-out is expressed with `use_rows_as_permutations`.",

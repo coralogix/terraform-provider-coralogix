@@ -249,11 +249,12 @@ types:
       timeframeMinutes: {required: true, validators: [{atLeast: 1}]}
       # The API derives the value from the query when the request leaves it out: true when the query has
       # group-by keys. The plan hook (planRowsAsPermutations) plans it unknown on every update, and the read hook
-      # (keepConfiguredRowsAsPermutations) keeps a configured value that the API derives differently.
+      # (keepConfiguredRowsAsPermutations) keeps a configured value that the API derives differently. The write hook
+      # (omitRowsAsPermutations) leaves it out of the request.
       useRowsAsPermutations:
         computed: true
-        deprecation: "The Coralogix API derives this value from the DataPrime query: true when the query groups its results (for example with groupby), false otherwise. Leave it out. The provider keeps a configured value in state and ignores the value that the API returns."
-        markdownDescription: "Whether each result row is treated as a separate permutation. When omitted, the Coralogix API derives it from the DataPrime query: true when the query has group-by keys, and every update of the alert derives it again. A configured value is kept in state and is not compared with the value that the API returns."
+        deprecation: "The Coralogix API derives this value from the DataPrime query: true when the query groups its results (for example with groupby), false otherwise. Leave it out. The provider does not send a configured value: it keeps the value in state and ignores the value that the API returns."
+        markdownDescription: "Whether each result row is treated as a separate permutation. When omitted, the Coralogix API derives it from the DataPrime query: true when the query has group-by keys, and every update of the alert derives it again. A configured value is not sent to the API: it is kept in state and is not compared with the value that the API returns."
   AnalyticsThresholdRule:
     fields:
       condition: {required: true}

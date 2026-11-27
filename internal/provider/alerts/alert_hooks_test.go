@@ -118,6 +118,29 @@ func TestBeforeWriteWithoutScheduleSendsNone(t *testing.T) {
 	}
 }
 
+// The API derives use_rows_as_permutations from the DataPrime query, so neither Create nor Replace sends a
+// configured value.
+func TestBeforeWriteOmitsRowsAsPermutations(t *testing.T) {
+	ctx := context.Background()
+	properties := func() *alertapi.AlertDefProperties {
+		rows := true
+		return &alertapi.AlertDefProperties{AnalyticsThreshold: &alertapi.AnalyticsThresholdType{UseRowsAsPermutations: &rows}}
+	}
+	create := &alertapi.CreateAlertDefinitionRequest{AlertDefProperties: properties()}
+	update := &alertapi.ReplaceAlertDefinitionRequest{AlertDefProperties: properties()}
+	for name, body := range map[string]any{"create": create, "update": update} {
+		if diags := beforeWriteAlert(ctx, alertConfig(ctx, nil), alertPlan(ctx, nil), nil, body); diags.HasError() {
+			t.Fatalf("%s: beforeWriteAlert: %v", name, diags)
+		}
+	}
+	if got := create.AlertDefProperties.AnalyticsThreshold.UseRowsAsPermutations; got != nil {
+		t.Errorf("create sends use_rows_as_permutations %v, want none", *got)
+	}
+	if got := update.AlertDefProperties.AnalyticsThreshold.UseRowsAsPermutations; got != nil {
+		t.Errorf("update sends use_rows_as_permutations %v, want none", *got)
+	}
+}
+
 func TestBeforeWriteAccessPolicy(t *testing.T) {
 	ctx := context.Background()
 	config := func(policy string) tfsdk.Config {

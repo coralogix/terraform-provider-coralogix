@@ -311,6 +311,9 @@ jobs:
           # The generated ai_evaluation test uses the last of the 20 AI applications of the prepared team.
           AI_EVALUATION_APPLICATION: ${{ secrets.CI_PREP_AI_APPLICATION_PREFIX }}-20
           AI_EVALUATION_SUBSYSTEM: ci-acceptance
+          # The CI team has analytics (DataPrime) alerts: the ungated analytics tests create them. This
+          # runs the gated ones in the alerts shard, the only shard that selects them.
+          CORALOGIX_ALERTS_DATAPRIME_ENABLED: ${{ matrix.shard == 'alerts-and-scheduler' && 'true' || '' }}
           RUN_PATTERN: ${{ matrix.pattern }}
           ACC_SKIP_PATTERN: ${{ matrix.skip }}
         run: &non_dashboard_shard_run |

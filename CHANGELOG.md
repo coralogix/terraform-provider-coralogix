@@ -12,6 +12,10 @@
 
 - FEAT: Add `config_overrides_templates_wo` and `config_overrides_templates_wo_versions`. Use `config_overrides_templates_wo` when a config override template holds a credential. The key is `<entity_type>.<field_name>`. Terraform sends the template to Coralogix and never writes it to state.
 
+#### resource/coralogix_alert
+
+- FIX: `analytics_threshold.use_rows_as_permutations` is no longer sent to the API. The Coralogix API derives it from the DataPrime query and overrides a value that disagrees. A configured value stays in state as before.
+
 #### provider
 
 - DOCS: The guide "Keeping Secrets Out of Terraform State" lists the new write-only attributes.
