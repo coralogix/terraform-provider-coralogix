@@ -202,6 +202,25 @@ func TestExclusiveBoundsExactLeavesOtherContractsAlone(t *testing.T) {
 	}
 }
 
+// A JSON contract keeps the flow style of its nodes when the tree is written back. The result
+// then starts with "{" and has unquoted keys, so the loader reads it as JSON and fails with
+// "invalid character 'm' looking for beginning of object key string". The rewritten contract must
+// load, whatever format it came in. The committed apidocs.swagger.json of cx-management-apis is JSON.
+func TestExclusiveBoundsExactOfAJSONContractStaysLoadable(t *testing.T) {
+	data := []byte(`{"openapi":"3.1.0","info":{"title":"t","version":"1"},"paths":{},` +
+		`"components":{"schemas":{"Gauge":{"type":"number","multipleOf":0.001,"exclusiveMinimum":0}}}}`)
+	out, err := exclusiveBoundsExact(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bytes.Contains(out, []byte("exclusiveMinimum")) || !bytes.Contains(out, []byte("minimum")) {
+		t.Fatalf("the exclusive bound was not rewritten:\n%s", out)
+	}
+	if _, err := model.Load(out); err != nil {
+		t.Fatalf("the rewritten JSON contract does not load: %v\n%s", err, out)
+	}
+}
+
 // The model refuses an exclusive bound and accepts the inclusive form that has the same values,
 // and the Terraform schema gets plain AtLeast and AtMost validators.
 func TestExclusiveBoundsGenerateInclusiveValidators(t *testing.T) {
