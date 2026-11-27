@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/coralogix/coralogix-management-sdk/iac/issue"
 	"github.com/coralogix/coralogix-management-sdk/iac/model"
 	"go.yaml.in/yaml/v4"
 )
@@ -107,7 +108,13 @@ func probeChanges(options ProbeOptions, changes []string) ([]ProbeResult, error)
 		if err := os.WriteFile(path, mutated, 0o600); err != nil {
 			return err
 		}
-		return Check(checkOptionsOf(options, path))
+		var untested []string
+		check := checkOptionsOf(options, path)
+		check.OnUntested = func(paths []string) { untested = paths }
+		if err := Check(check); err != nil {
+			return err
+		}
+		return probeUntested(untested)
 	}
 
 	results := make([]ProbeResult, len(changes))
@@ -397,4 +404,24 @@ func probeAddOneOfArm(schemas, component *yaml.Node, index int) {
 	entries = append(entries, arm())
 	oneOf.Content = append(entries, oneOf.Content[at:]...)
 	properties.Content = append(properties.Content, probeScalar(name), probeRef(probeNested(schemas, index)))
+}
+
+// probeUntested fails when a field that the probe added is one that no config of the acceptance test
+// sets. The field would ship untested: the test that a person has to extend is the gap.
+func probeUntested(paths []string) error {
+	var probe []string
+	for _, path := range paths {
+		if strings.Contains(path, "zz_probe") {
+			probe = append(probe, path)
+		}
+	}
+	if len(probe) == 0 {
+		return nil
+	}
+	return &EligibilityError{Report: issue.Report{{
+		Code:        "FIELD_UNTESTED",
+		Location:    "acceptance",
+		Message:     "No config of the acceptance test sets " + strings.Join(probe, ", ") + ".",
+		Remediation: "Make the generated test set the new field, with no line in the acceptance file.",
+	}}}
 }

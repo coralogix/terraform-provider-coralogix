@@ -9,7 +9,9 @@
 #
 # The gaps that exist are in tools/iac-codegen/probe-baseline.txt, one line for each:
 #   <generated package> <TAB> <change> <TAB> <message that breaks the resource>
-# A new line fails the check. A line that no longer fails also fails the check: delete it, so the
+# A line with the change "untested" names an attribute that no config of the acceptance test sets. A
+# new field of the API must not join them: the generated test has to set it with no line in the
+# acceptance file. A new line fails the check. A line that no longer fails also fails the check: delete it, so the
 # baseline only shrinks.
 #
 # usage: check-future-changes.sh [--update-baseline]
@@ -53,6 +55,9 @@ probe_one() {
     return
   fi
   awk -F'\t' -v out="$out" '$2 == "FAIL" { print out "\t" $1 "\t" $3 }' <<<"$result" >"$work/out/$out.txt"
+  # The first check of the probe warns about an attribute that no config of a released resource sets.
+  awk -v out="$out" '/no config sets [0-9]+ attributes/ { on = 1; next }
+    on && /^  / { sub(/^  /, ""); print out "\tuntested\t" $0; next } { on = 0 }' "$work/out/$out.err" >>"$work/out/$out.txt"
 }
 export -f probe_one
 export binary spec work

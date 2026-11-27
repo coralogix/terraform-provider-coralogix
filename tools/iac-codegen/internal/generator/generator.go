@@ -47,6 +47,9 @@ type CheckOptions struct {
 	// AcceptancePath is the acceptance file. With it, Check also builds and renders the
 	// acceptance test, as Generate does.
 	AcceptancePath string
+	// OnUntested, when it is set, takes the attributes of a released resource that no config of
+	// its acceptance test sets, in place of the warning on standard error.
+	OnUntested func(paths []string)
 }
 
 type validatedResource struct {
@@ -210,6 +213,7 @@ func checkContract(c *contract, options CheckOptions) error {
 	if acc == nil {
 		return nil
 	}
+	acc.OnUntested = options.OnUntested
 	var prior *acceptance.UpgradeAttributes
 	if options.AcceptancePath != "" {
 		// Without a file, the default has no upgrade test.

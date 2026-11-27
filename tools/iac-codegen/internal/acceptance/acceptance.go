@@ -59,6 +59,10 @@ type File struct {
 	// differ between the upgrade test and the other tests, such as a value that is unique across
 	// resources: CI runs them in parallel jobs.
 	UpgradeValues map[string]string `yaml:"upgradeValues"`
+	// OnUntested, when it is set, takes the attributes that no config of a released resource sets,
+	// in place of the warning that the generator prints. The probe reads them. It is not part of
+	// the file.
+	OnUntested func(paths []string) `yaml:"-"`
 	// Skip lists the fields that the test configs leave out, for example a deprecated field that
 	// the API refuses next to its replacement. A path has the same form as in values.
 	Skip []string `yaml:"skip"`

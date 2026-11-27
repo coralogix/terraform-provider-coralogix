@@ -1751,6 +1751,10 @@ func (s *accSynth) checkAllSet(res *tfResource) error {
 		// A released resource has tests that a tenant validated. A change of the sweep can break them,
 		// so the generator names the gap and leaves the test as it is. A person lists a value in the
 		// acceptance file (values) for each attribute, and checks it against a tenant.
+		if s.file.OnUntested != nil {
+			s.file.OnUntested(missing)
+			return nil
+		}
 		fmt.Fprintf(os.Stderr, "tfgen: warning: %s: %s\n", res.CRUD.TypeName, message)
 		return nil
 	}
