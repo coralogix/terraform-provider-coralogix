@@ -237,7 +237,7 @@ func buildTFResource(r *model.Resource, pkg string) (*tfResource, error) {
 // buildTFResourceWith is buildTFResource for a resource with a behavior-overrides file
 // (nil for a new resource).
 func buildTFResourceWith(r *model.Resource, pkg string, file *overrides.File) (*tfResource, error) {
-	b := &tfBuilder{seen: map[string]bool{}, sent: sentFields(r, file), file: file, policy: r.Policy, replace: r.Replace, owners: map[string]string{}, itemModified: map[string]bool{}}
+	b := &tfBuilder{seen: map[string]bool{}, sent: sentFields(r, file), objectValues: objectValueFields(r, file), file: file, policy: r.Policy, replace: r.Replace, owners: map[string]string{}, itemModified: map[string]bool{}}
 	out := &tfResource{Package: pkg, VersionHeader: version.Header, Model: modelTypeName(r.Name)}
 	if file != nil {
 		out.AfterFlatten = file.AfterFlatten
@@ -1332,6 +1332,7 @@ type tfBuilder struct {
 	models       []*tfModel
 	seen         map[string]bool // model structs already added
 	sent         sentSet         // component fields that a request sends in some place
+	objectValues objectValueSet  // object fields that every place of a component holds as a types.Object
 	validators   []string        // resource config validators
 	replaceKinds []string        // RequestReplaceKinds
 	defaultKinds []string        // ServerDefaultKinds of nested attributes
@@ -2397,7 +2398,7 @@ func (b *tfBuilder) modelField(component, name string, t *model.Type, behavior m
 			goType = "types.List"
 		} else if shown := b.scalarOneOf(component, name); shown != "" {
 			goType = shown
-		} else if behavior == model.Computed || computed {
+		} else if behavior == model.Computed || computed || b.objectValues.has(component, name) {
 			goType = "types.Object"
 		} else {
 			goType = "*" + typeModelName(t)

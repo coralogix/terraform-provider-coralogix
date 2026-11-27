@@ -882,7 +882,7 @@ func buildConvWith(r *model.Resource, refs []sdkcheck.Ref, file *overrides.File)
 	if err != nil {
 		return nil, err
 	}
-	b := &convBuilder{ix: ix, bySchema: map[string]*convObject{}, dists: map[string]*convDistribution{}, file: file, resource: r, sent: sentFields(r, file)}
+	b := &convBuilder{ix: ix, bySchema: map[string]*convObject{}, dists: map[string]*convDistribution{}, file: file, resource: r, sent: sentFields(r, file), objectValues: objectValueFields(r, file)}
 	out := &convData{SDKPkg: ix.pkg.Pkg, SDKName: ix.pkg.Name, AcceptUnknown: acceptUnknown(r, file), AlwaysExists: r.AlwaysExists}
 	// A batch write sends the body item of one resource inside the array the API takes.
 	out.UpdateSliceBody = r.Update.BodyItems
@@ -1608,7 +1608,8 @@ type convBuilder struct {
 	listed       []*convObject // objects that a list holds
 	file         *overrides.File
 	resource     *model.Resource
-	sent         sentSet // component fields that a request sends in some place
+	sent         sentSet        // component fields that a request sends in some place
+	objectValues objectValueSet // object fields that every place of a component holds as a types.Object
 	enumMaps     []*enumMap
 	wraps        []*wrapHelper
 	projections  []*itemProjection
@@ -3778,7 +3779,7 @@ func (b *convBuilder) addMissingFields(obj *convObject, sdkPath, component strin
 				return fmt.Errorf("%s: %w", f.Name, err)
 			}
 		}
-		if (f.Behavior == model.Computed || f.Attrs.Computed) && (f.Type.Kind == model.Object || f.Type.Kind == model.OneOf) {
+		if (f.Behavior == model.Computed || f.Attrs.Computed || b.objectValues.has(component, f.Name)) && (f.Type.Kind == model.Object || f.Type.Kind == model.OneOf) {
 			// The model holds a computed object as a types.Object, which can
 			// be unknown while its parent is known.
 			cf.ObjectValue = true

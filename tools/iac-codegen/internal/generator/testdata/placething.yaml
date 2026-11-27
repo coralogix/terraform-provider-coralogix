@@ -1,0 +1,152 @@
+# A component that two places of one resource use. The raw family sends a request component and
+# reads the response component, so the response field `stamp` is read-only there. The preset family
+# only has the response, so the same field has no behavior of its own. A nested object field of the
+# component is computed in one place and writable in the other.
+openapi: 3.1.0
+info: {title: place, version: 1.0.0}
+paths:
+  /place/v1/things:
+    post:
+      tags: [Place Things Service]
+      operationId: PlaceThingsService_CreatePlaceThing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              title: Create Place Thing Request
+              type: object
+              required: [name, family]
+              properties:
+                name: {type: string, minLength: 1}
+                family: {$ref: '#/components/schemas/PlaceFamilyCreate'}
+                direct: {$ref: '#/components/schemas/PlaceSelectorResponse'}
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/PlaceThing'}
+  /place/v1/things/{id}:
+    parameters:
+      - {name: id, in: path, required: true, schema: {type: string}}
+    get:
+      tags: [Place Things Service]
+      operationId: PlaceThingsService_GetPlaceThing
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/PlaceThing'}
+    put:
+      tags: [Place Things Service]
+      operationId: PlaceThingsService_ReplacePlaceThing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              title: Replace Place Thing Request
+              type: object
+              required: [name, family]
+              properties:
+                name: {type: string, minLength: 1}
+                family: {$ref: '#/components/schemas/PlaceFamilyCreate'}
+                direct: {$ref: '#/components/schemas/PlaceSelectorResponse'}
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/PlaceThing'}
+    delete:
+      tags: [Place Things Service]
+      operationId: PlaceThingsService_DeletePlaceThing
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/DeletePlaceThingResponse'}
+components:
+  schemas:
+    DeletePlaceThingResponse:
+      type: object
+      required: []
+    PlaceThing:
+      type: object
+      required: [id, name, family]
+      properties:
+        id: {type: string, readOnly: true}
+        name: {type: string, minLength: 1}
+        family: {$ref: '#/components/schemas/PlaceFamily'}
+        direct: {$ref: '#/components/schemas/PlaceSelectorResponse'}
+    PlaceFamily:
+      type: object
+      oneOf:
+        - {required: [raw], type: object}
+        - {required: [preset], type: object}
+        - {type: object, not: {anyOf: [{required: [raw], type: object}, {required: [preset], type: object}]}}
+      properties:
+        raw: {$ref: '#/components/schemas/PlaceRaw'}
+        preset: {$ref: '#/components/schemas/PlacePreset'}
+    PlaceFamilyCreate:
+      type: object
+      oneOf:
+        - {required: [raw], type: object}
+        - {required: [preset], type: object}
+        - {type: object, not: {anyOf: [{required: [raw], type: object}, {required: [preset], type: object}]}}
+      properties:
+        raw: {$ref: '#/components/schemas/PlaceRawCreate'}
+        preset: {$ref: '#/components/schemas/PlacePresetCreate'}
+    PlaceRaw:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          minItems: 1
+          items: {$ref: '#/components/schemas/PlaceItem'}
+    PlaceRawCreate:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          minItems: 1
+          items: {$ref: '#/components/schemas/PlaceItemCreate'}
+    PlacePresetCreate:
+      type: object
+      required: [chart]
+      properties:
+        chart: {type: string, minLength: 1}
+    PlacePreset:
+      type: object
+      required: [chart, items]
+      properties:
+        chart: {type: string, minLength: 1}
+        items:
+          type: array
+          items: {$ref: '#/components/schemas/PlaceItem'}
+    PlaceItem:
+      type: object
+      properties:
+        selector: {$ref: '#/components/schemas/PlaceSelectorResponse'}
+    PlaceItemCreate:
+      type: object
+      properties:
+        selector: {$ref: '#/components/schemas/PlaceSelectorRequest'}
+    PlaceSelectorRequest:
+      type: object
+      properties:
+        match: {type: string}
+    PlaceSelectorResponse:
+      type: object
+      properties:
+        match: {type: string}
+        stamp: {$ref: '#/components/schemas/PlaceStamp'}
+    PlaceStamp:
+      type: object
+      properties:
+        by: {type: string}
