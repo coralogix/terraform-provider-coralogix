@@ -947,7 +947,7 @@ func (s *accSynth) attrs(attrs []*tfAttr, tfPath, key string, mode accMode, top 
 			s.setPaths[attrKey] = true
 		}
 		if a.Typed != nil {
-			arm = newTypedArmSet(a.Typed, value)
+			arm = newTypedArmSet(a.Typed, value, arm, a.TypedArm)
 		}
 	}
 	return strings.Join(lines, "\n"), checks, nil
@@ -996,11 +996,12 @@ func (s *accSynth) requiredArms(attrs []*tfAttr, key string, mode accMode, top b
 func (s *accSynth) included(a *tfAttr, attrKey string, arm *typedArmSet, mode accMode, top bool) (*tfAttr, bool) {
 	force := false
 	if a.TypedArm && arm != nil {
-		if !arm.fields[a.Name] {
+		if !arm.allows(a.Name) {
 			return nil, false
 		}
-		force = slices.Contains(arm.info.Required[arm.value], a.Name) && !slices.Contains(s.file.Skip, attrKey)
-		a = withChecks(a, arm.info.Checked[arm.value][a.Name])
+		rule := arm.ruling(a.Name)
+		force = slices.Contains(rule.info.Required[rule.value], a.Name) && !slices.Contains(s.file.Skip, attrKey)
+		a = withChecks(a, rule.info.Checked[rule.value][a.Name])
 	}
 	return a, s.include(a, attrKey, mode, top) || force
 }
@@ -1026,20 +1027,42 @@ func refused(a *tfAttr) bool {
 	return slices.ContainsFunc(a.Validators, func(v string) bool { return strings.HasPrefix(v, "unsupported") })
 }
 
-// typedArmSet is the arm that the type of a typedArms object names, in a config.
+// typedArmSet is the arm that the type of a typedArms object names, in a config. An arm that holds
+// another typedArms object (an inlined one) has the attributes of both: outer is the set of the
+// object that holds this one. Each attribute follows the set that has its rules.
 type typedArmSet struct {
 	info   *typedInfo
 	value  string
 	fields map[string]bool
+	outer  *typedArmSet
 }
 
 // newTypedArmSet reads the type value from its HCL. It returns nil when the HCL is no plain string.
-func newTypedArmSet(info *typedInfo, hcl string) *typedArmSet {
+// outer is the set that holds this one, when nested says that the type is an attribute of it.
+func newTypedArmSet(info *typedInfo, hcl string, outer *typedArmSet, nested bool) *typedArmSet {
 	value, err := strconv.Unquote(hcl)
 	if err != nil {
 		return nil
 	}
-	return &typedArmSet{info: info, value: value, fields: info.fields(value)}
+	set := &typedArmSet{info: info, value: value, fields: info.fields(value)}
+	if nested {
+		set.outer = outer
+	}
+	return set
+}
+
+// ruling returns the set that has the rules of the attribute: this one when its object merged the
+// attribute, else the set that holds it.
+func (t *typedArmSet) ruling(name string) *typedArmSet {
+	if t.outer != nil && !slices.ContainsFunc(t.info.Attrs, func(a *tfAttr) bool { return a.Name == name }) {
+		return t.outer.ruling(name)
+	}
+	return t
+}
+
+// allows reports whether the arm has the attribute.
+func (t *typedArmSet) allows(name string) bool {
+	return t.ruling(name).fields[name]
 }
 
 // typedFirst puts the type attribute of a typedArms object first: the fields of the arm depend on its

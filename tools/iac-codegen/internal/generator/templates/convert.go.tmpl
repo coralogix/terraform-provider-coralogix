@@ -3232,6 +3232,9 @@ func expand{{.Func}}(ctx context.Context, p path.Path, m *{{.Model}}, diags *dia
 				{{.Arm}}: m.{{.Merged}},
 {{- end}}
 			},
+{{- range .OuterPairs}}
+			{{.Arm}}: m.{{.Merged}},
+{{- end}}
 		}, diags)
 {{- else if .Object}}
 		out.{{.SDK}} = expand{{.Object.Func}}(ctx, p, &{{.Object.Model}}{
@@ -3314,14 +3317,30 @@ func flatten{{.Func}}(ctx context.Context, p path.Path, v *{{$typed.Pkg}}.{{.SDK
 					{{.Arm}}: prior.{{.Merged}},
 {{- end}}
 				},
+{{- range .OuterPairs}}
+				{{.Arm}}: prior.{{.Merged}},
+{{- end}}
 			}
 		}
 {{- end}}
+{{- if .OuterPairs}}
+		if arm := flatten{{.Object.Func}}(ctx, p, v.{{.SDK}}, {{if .Object.NeedsPrior}}{{if $obj.NeedsPrior}}priorArm{{else}}nil{{end}}, {{end}}diags); arm != nil {
+			if arm.{{.Inline.Model}} != nil {
+{{- range .Pairs}}
+				out.{{.Merged}} = arm.{{$arm.Inline.Model}}.{{.Arm}}
+{{- end}}
+			}
+{{- range .OuterPairs}}
+			out.{{.Merged}} = arm.{{.Arm}}
+{{- end}}
+		}
+{{- else}}
 		if arm := flatten{{.Object.Func}}(ctx, p, v.{{.SDK}}, {{if .Object.NeedsPrior}}{{if $obj.NeedsPrior}}priorArm{{else}}nil{{end}}, {{end}}diags); arm != nil && arm.{{.Inline.Model}} != nil {
 {{- range .Pairs}}
 			out.{{.Merged}} = arm.{{$arm.Inline.Model}}.{{.Arm}}
 {{- end}}
 		}
+{{- end}}
 {{- else if .Object}}
 {{- if and $obj.NeedsPrior .Object.NeedsPrior}}
 		// The prior of the arm is the prior object, when it had this type.
