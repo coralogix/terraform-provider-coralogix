@@ -36,6 +36,9 @@ const (
 	ProbeOneOfArm = "oneof-arm"
 )
 
+// defaultProbeParallel is the number of checks that run at once when the options do not say.
+const defaultProbeParallel = 1
+
 // ProbeShapeChanges are the changes that add a new message: a nested object and a oneOf arm. ProbeAll
 // tries them after ProbeChanges.
 var ProbeShapeChanges = []string{ProbeObjectField, ProbeOneOfArm}
@@ -50,6 +53,9 @@ type ProbeOptions struct {
 	OperationIDs   model.OperationIDs
 	OverridesPath  string
 	AcceptancePath string
+	// Parallel is the number of checks that run at once. A changed dashboard needs up to 4 GB for a
+	// check, so the default is 1. A value below 1 is the default.
+	Parallel int
 }
 
 // ProbeResult is the outcome of one change.
@@ -99,7 +105,14 @@ func probeChanges(options ProbeOptions, changes []string) ([]ProbeResult, error)
 	defer os.RemoveAll(dir)
 	// A change has its own candidate file, so the changes run at once. The dashboard needs most of
 	// the time, and its changes are what the others wait for.
+	parallel := options.Parallel
+	if parallel < 1 {
+		parallel = defaultProbeParallel
+	}
+	slots := make(chan struct{}, parallel)
 	tryChange := func(change string, groups [][]string) error {
+		slots <- struct{}{}
+		defer func() { <-slots }()
 		mutated, err := probeMutate(data, change, groups)
 		if err != nil {
 			return err

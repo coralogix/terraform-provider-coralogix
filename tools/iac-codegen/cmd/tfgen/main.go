@@ -166,6 +166,7 @@ func runProbe(args []string) int {
 	openAPI := set.String("openapi", "", "local OpenAPI file")
 	overridesFile := set.String("overrides", "", "behavior-overrides file of a resource that users already have")
 	acceptanceFile := set.String("acceptance", "", "acceptance file")
+	parallel := set.Int("parallel", 0, "checks that run at once (default 1): a changed dashboard needs up to 4 GB for one check")
 	operations := addOperationFlags(set)
 	if err := set.Parse(args); err != nil {
 		return 2
@@ -175,6 +176,7 @@ func runProbe(args []string) int {
 		return 2
 	}
 	results, err := generator.ProbeAll(generator.ProbeOptions{
+		Parallel:       *parallel,
 		Resource:       *resource,
 		OpenAPIPath:    *openAPI,
 		OperationIDs:   operations.ids(),

@@ -15,8 +15,10 @@
 # baseline only shrinks.
 #
 # usage: check-future-changes.sh [--update-baseline]
-# TFGEN names a prebuilt binary, SPEC names the OpenAPI file instead of the pinned SDK's, and JOBS
-# sets the number of resources that run at once (default 6).
+# TFGEN names a prebuilt binary, SPEC names the OpenAPI file instead of the pinned SDK's, JOBS sets
+# the number of resources that run at once (default 3), and PARALLEL the number of checks that run at
+# once inside one resource (default 1). A changed dashboard needs up to 4 GB for one check: more at
+# once ran a CI runner out of memory.
 set -euo pipefail
 
 scripts=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
@@ -45,7 +47,7 @@ fi
 mkdir -p "$work/out"
 probe_one() {
   local resource=$1 out=$2 dir=internal/provider/generated/$2
-  local args=(--resource "$resource" --openapi "$spec")
+  local args=(--resource "$resource" --openapi "$spec" --parallel "${PARALLEL:-1}")
   [[ -f $dir/behavior-overrides.yaml ]] && args+=(--overrides "$dir/behavior-overrides.yaml")
   [[ -f $dir/acceptance.yaml ]] && args+=(--acceptance "$dir/acceptance.yaml")
   local result
@@ -62,7 +64,7 @@ probe_one() {
 export -f probe_one
 export binary spec work
 
-"$scripts/codegen-list.sh" | xargs -P "${JOBS:-6}" -L1 bash -c 'probe_one "$0" "$1"'
+"$scripts/codegen-list.sh" | xargs -P "${JOBS:-3}" -L1 bash -c 'probe_one "$0" "$1"'
 cat "$work"/out/*.txt | sort -u >"$work/current"
 
 if $update; then
