@@ -1,6 +1,7 @@
 package generator
 
 import (
+	"fmt"
 	"maps"
 	"slices"
 
@@ -148,4 +149,22 @@ func (f *convField) ZeroWhenAbsent() bool {
 		return true
 	}
 	return false
+}
+
+// addFoldSideModifiers gives each computed attribute that only one twin of a fold has the plan
+// modifier that nulls it while the flag selects the other twin: a value that state or a server
+// default keeps would reach the expand as a set field of the twin that the request does not send. It
+// goes last, so that it follows the modifiers that keep the state. It returns the value kinds of the
+// attributes that it changed, added to kinds.
+func addFoldSideModifiers(attrs []*tfAttr, kinds []string) []string {
+	for _, a := range attrs {
+		if a.FoldSide != nil && a.Computed {
+			a.Modifiers = append(a.Modifiers, fmt.Sprintf("foldSideModifier{flag: %q, when: %t}", a.FoldSide.Flag, a.FoldSide.When))
+			if !slices.Contains(kinds, a.ValueKind) {
+				kinds = append(kinds, a.ValueKind)
+			}
+		}
+		kinds = addFoldSideModifiers(a.Attributes, kinds)
+	}
+	return kinds
 }

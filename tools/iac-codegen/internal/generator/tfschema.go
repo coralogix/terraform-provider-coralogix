@@ -44,6 +44,10 @@ type tfResource struct {
 	// its modifier takes the state item that the planned item matches.
 	SetItemState       bool
 	ServerDefaultKinds []string // Terraform scalar kinds that need reset planning
+	// FoldSideKinds are the Terraform value kinds of the computed attributes that only one twin of a
+	// carrySiblings fold has. They take foldSideModifier, which plans them null while the flag
+	// selects the other twin.
+	FoldSideKinds []string
 	// RequestReplaceKinds are the Terraform value kinds of the immutable
 	// attributes that hold values that the server sets. They use
 	// requestReplaceModifier instead of RequiresReplace.
@@ -305,6 +309,7 @@ func buildTFResourceWith(r *model.Resource, pkg string, file *overrides.File) (*
 			}
 		}
 	}
+	out.FoldSideKinds = addFoldSideModifiers(out.Attributes, nil)
 	addArmValidators(out.Attributes)
 	out.PlanModifierPkgs = planModifierPackages(out.Attributes)
 	out.DefaultPkgs = defaultPackages(out.Attributes)
