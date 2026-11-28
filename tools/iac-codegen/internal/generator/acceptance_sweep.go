@@ -203,7 +203,7 @@ func (s *accSynth) gain(a *tfAttr, key string) int {
 			g += sweepArmWeight // an arm below that no config has set outweighs the enum values
 		}
 	}
-	return g
+	return g + s.foldGain(a.Attributes, below)
 }
 
 // armToSweep reports whether the sweep sets the attribute as an arm of a oneOf group: it is an arm

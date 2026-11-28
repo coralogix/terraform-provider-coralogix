@@ -191,6 +191,11 @@ type tfAttr struct {
 	// Uint64: the attribute is a 64-bit number that the API sends as a string, signed or not,
 	// shown as Int64.
 	Uint64 bool
+	// FoldSide is set on a field that only one twin of a carrySiblings fold has: the flag that
+	// selects the twin, and the value that allows the field. FoldFlag marks the flag itself. The
+	// acceptance test sets a field only when its twin is the one that the flag selects.
+	FoldSide *foldSide
+	FoldFlag bool
 	// Extra: the attribute is from types.<Type>.extraAttributes, not the API. The generated
 	// acceptance test leaves it out unless values or an upgrade case supplies the map: a made-up
 	// map key is not a valid API field.
@@ -1350,6 +1355,8 @@ type tfBuilder struct {
 	// take. flags are the fold flags that an arm holds.
 	carried map[*model.Field]string
 	flags   map[*model.Field]overrides.Fold
+	// sides are the fields that only one twin of a fold has, with the flag value that allows them.
+	sides map[*model.Field]foldSide
 }
 
 // claimModel records that owner makes the model struct name. Two owners of one name would share
@@ -1781,7 +1788,7 @@ func (b *tfBuilder) plainAttributes(p attrPath, t *model.Type) ([]*tfAttr, []tfM
 		if fold, ok := b.flags[f]; ok {
 			// The flag of a folded arm: true selects this arm, false the folded one.
 			attrs = append(attrs, &tfAttr{Name: fold.Flag, Kind: "Bool", ValueKind: "Bool", Optional: true, Computed: true,
-				Default: "booldefault.StaticBool(true)", Description: fold.MarkdownDescription})
+				Default: "booldefault.StaticBool(true)", Description: fold.MarkdownDescription, FoldFlag: true})
 			fields = append(fields, tfModelField{Name: camelize(fold.Flag), Type: "types.Bool", TFName: fold.Flag})
 			continue
 		}
@@ -1811,6 +1818,7 @@ func (b *tfBuilder) plainAttributes(p attrPath, t *model.Type) ([]*tfAttr, []tfM
 			return nil, nil, fmt.Errorf("%s: %w", f.Name, err)
 		}
 		a.Name = tfName
+		b.markFoldSide(a, f)
 		if f.Attrs.Computed && !a.Required {
 			// A computed line, or an attribute of a keyedBy object, which the API can fill.
 			a.Computed = true
@@ -1933,6 +1941,7 @@ func (b *tfBuilder) carryAttributes(p attrPath, t *model.Type, carry *model.Fiel
 	oneOf := carry.Type
 	if b.carried == nil {
 		b.carried, b.flags = map[*model.Field]string{}, map[*model.Field]overrides.Fold{}
+		b.sides = map[*model.Field]foldSide{}
 	}
 	armComponent := model.ComponentOf(oneOf)
 	arms := map[string]*model.Field{}

@@ -263,6 +263,9 @@ type accSynth struct {
 	// the number of the sweep step being made, from 1.
 	prevFixed map[int]bool
 	stepNo    int
+	// folds are the sides that the configs set in objects with a carrySiblings fold, by the path of
+	// the object (acceptance_fold.go).
+	folds map[string]*foldChoice
 }
 
 var quoted = regexp.MustCompile(`"([^"]*)"`)
@@ -911,6 +914,7 @@ func (s *accSynth) attrs(attrs []*tfAttr, tfPath, key string, mode accMode, top 
 	var checks []accCheck
 	armTaken := s.requiredArms(attrs, key, mode, top) // the oneOf groups that already have an arm
 	picks := s.armPicks(attrs, key, mode, top)
+	fold := s.chooseFold(attrs, key, mode)                        // the twin of a carrySiblings fold that this object sets
 	var arm *typedArmSet                                          // the arm of a typedArms object that the type names
 	selected := s.emittedAttrs(attrs, key, mode, top, nil, picks) // what the config sets, before conflicts and requires
 	losers := s.conflictLosers(attrs, key, mode, top, selected)
@@ -929,7 +933,7 @@ func (s *accSynth) attrs(attrs []*tfAttr, tfPath, key string, mode accMode, top 
 		s.noteAttr(a, attrKey, top)
 		need, isForced := forced[a]
 		a, ok := s.included(a, attrKey, arm, mode, top)
-		forcedIn := isForced && !slices.Contains(s.file.Skip, attrKey) && s.inRelease(attrKey) && !a.Extra // an included field requires it
+		forcedIn := s.forcedIn(a, attrKey, isForced)
 		if !forcedIn && (!ok || losers[a]) {
 			continue
 		}
@@ -937,7 +941,7 @@ func (s *accSynth) attrs(attrs []*tfAttr, tfPath, key string, mode accMode, top 
 			continue
 		}
 		s.noteFixedArm(a)
-		value, c, err := s.valueOrRequired(a, joinPath(tfPath, a.Name), attrKey, mode, need, isForced)
+		value, c, err := s.attrValue(a, joinPath(tfPath, a.Name), attrKey, mode, need, isForced, fold)
 		if err != nil {
 			return "", nil, fmt.Errorf("%s: %w", attrKey, err)
 		}
@@ -994,6 +998,9 @@ func (s *accSynth) requiredArms(attrs []*tfAttr, key string, mode accMode, top b
 // attribute of another arm of a typedArms object is left out, and one that the arm needs is kept
 // also in the minimal config, with the validators that run for the arm.
 func (s *accSynth) included(a *tfAttr, attrKey string, arm *typedArmSet, mode accMode, top bool) (*tfAttr, bool) {
+	if s.sideOff(a, attrKey) {
+		return a, false
+	}
 	force := false
 	if a.TypedArm && arm != nil {
 		if !arm.allows(a.Name) {

@@ -89,18 +89,30 @@ func (b *tfBuilder) armFieldsWithFolds(carry, arm *model.Field, c *overrides.Car
 	for _, name := range foldedArms(c, arm.Name) {
 		from := typeFieldNamed(carry.Type, name)
 		split := splitFold(arm.Type, from.Type)
+		flag := c.Fold[name].Flag
 		for i, f := range fields {
 			if slices.Contains(split.TargetOnly, f) {
-				fields[i] = optionalField(f)
+				copied := *optionalField(f)
+				b.sides[&copied] = foldSide{Flag: flag, When: true}
+				fields[i] = &copied
 			}
 		}
 		for _, f := range split.FoldedOnly {
 			copied := *optionalField(f)
 			b.carried[&copied] = from.Type.Schema
+			b.sides[&copied] = foldSide{Flag: flag, When: false}
 			fields = append(fields, &copied)
 		}
 	}
 	return fields
+}
+
+// markFoldSide records on the attribute of f the flag value that allows it, when only one twin of a
+// fold has the field.
+func (b *tfBuilder) markFoldSide(a *tfAttr, f *model.Field) {
+	if side, ok := b.sides[f]; ok {
+		a.FoldSide = &side
+	}
 }
 
 // optionalField returns f as an optional field. A field that one twin only has cannot be required:
