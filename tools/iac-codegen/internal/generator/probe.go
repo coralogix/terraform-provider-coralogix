@@ -8,7 +8,9 @@ import (
 	"slices"
 	"sort"
 	"strings"
+	"sync"
 
+	"github.com/coralogix/coralogix-management-sdk/iac/issue"
 	"github.com/coralogix/coralogix-management-sdk/iac/model"
 	"go.yaml.in/yaml/v4"
 )
@@ -28,7 +30,18 @@ const (
 	ProbeBoolField    = "bool-field"
 	ProbeIntegerField = "integer-field"
 	ProbeEnumValue    = "enum-value"
+	// ProbeObjectField adds an optional field that holds a new message with one string field.
+	ProbeObjectField = "object-field"
+	// ProbeOneOfArm adds a new arm, a new message, to every oneOf that a message has.
+	ProbeOneOfArm = "oneof-arm"
 )
+
+// defaultProbeParallel is the number of checks that run at once when the options do not say.
+const defaultProbeParallel = 1
+
+// ProbeShapeChanges are the changes that add a new message: a nested object and a oneOf arm. ProbeAll
+// tries them after ProbeChanges.
+var ProbeShapeChanges = []string{ProbeObjectField, ProbeOneOfArm}
 
 // ProbeChanges are the changes that Probe tries.
 var ProbeChanges = []string{ProbeStringField, ProbeBoolField, ProbeIntegerField, ProbeEnumValue}
@@ -40,6 +53,9 @@ type ProbeOptions struct {
 	OperationIDs   model.OperationIDs
 	OverridesPath  string
 	AcceptancePath string
+	// Parallel is the number of checks that run at once. A changed dashboard needs up to 4 GB for a
+	// check, so the default is 1. A value below 1 is the default.
+	Parallel int
 }
 
 // ProbeResult is the outcome of one change.
@@ -56,6 +72,15 @@ type ProbeResult struct {
 // Probe tries every change in ProbeChanges on the contract of the resource. It returns an error when
 // the resource does not pass the check before any change: there is nothing to compare with.
 func Probe(options ProbeOptions) ([]ProbeResult, error) {
+	return probeChanges(options, ProbeChanges)
+}
+
+// ProbeAll is Probe with the changes of ProbeShapeChanges after those of ProbeChanges.
+func ProbeAll(options ProbeOptions) ([]ProbeResult, error) {
+	return probeChanges(options, slices.Concat(ProbeChanges, ProbeShapeChanges))
+}
+
+func probeChanges(options ProbeOptions, changes []string) ([]ProbeResult, error) {
 	data, err := os.ReadFile(options.OpenAPIPath)
 	if err != nil {
 		return nil, fmt.Errorf("read OpenAPI %s: %w", options.OpenAPIPath, err)
@@ -78,34 +103,61 @@ func Probe(options ProbeOptions) ([]ProbeResult, error) {
 		return nil, err
 	}
 	defer os.RemoveAll(dir)
+	// A change has its own candidate file, so the changes run at once. The dashboard needs most of
+	// the time, and its changes are what the others wait for.
+	parallel := options.Parallel
+	if parallel < 1 {
+		parallel = defaultProbeParallel
+	}
+	slots := make(chan struct{}, parallel)
 	tryChange := func(change string, groups [][]string) error {
+		slots <- struct{}{}
+		defer func() { <-slots }()
 		mutated, err := probeMutate(data, change, groups)
 		if err != nil {
 			return err
 		}
-		path := filepath.Join(dir, "candidate.yaml")
+		path := filepath.Join(dir, change+".yaml")
 		if err := os.WriteFile(path, mutated, 0o600); err != nil {
 			return err
 		}
-		return Check(checkOptionsOf(options, path))
+		var untested []string
+		check := checkOptionsOf(options, path)
+		check.OnUntested = func(paths []string) { untested = paths }
+		if err := Check(check); err != nil {
+			return err
+		}
+		return probeUntested(untested)
 	}
 
-	var results []ProbeResult
-	for _, change := range ProbeChanges {
+	results := make([]ProbeResult, len(changes))
+	var wg sync.WaitGroup
+	for i, change := range changes {
 		groups := fieldGroups
 		if change == ProbeEnumValue {
 			groups = enums
 		}
-		result := ProbeResult{Change: change, Passed: true}
-		if len(groups) != 0 {
-			if err := tryChange(change, groups); err != nil {
-				culprit, problem := probeCulprit(groups, err, func(sub [][]string) error { return tryChange(change, sub) })
-				result = ProbeResult{Change: change, Component: culprit, Problem: problem}
-			}
-		}
-		results = append(results, result)
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			results[i] = probeChange(change, groups, tryChange)
+		}()
 	}
+	wg.Wait()
 	return results, nil
+}
+
+// probeChange tries one change on every group, and narrows a failure to one group.
+func probeChange(change string, groups [][]string, try func(string, [][]string) error) ProbeResult {
+	if len(groups) == 0 {
+		return ProbeResult{Change: change, Passed: true}
+	}
+	err := try(change, groups)
+	if err == nil {
+		return ProbeResult{Change: change, Passed: true}
+	}
+	culprit, problem := probeCulprit(groups, err, func(sub [][]string) error { return try(change, sub) })
+	return ProbeResult{Change: change, Component: culprit, Problem: problem}
 }
 
 func checkOptionsOf(options ProbeOptions, openAPIPath string) CheckOptions {
@@ -248,6 +300,10 @@ func probeMutate(data []byte, change string, groups [][]string) ([]byte, error) 
 			switch change {
 			case ProbeEnumValue:
 				probeAddEnumValue(component, index)
+			case ProbeObjectField:
+				probeAddObjectField(schemas, component, index)
+			case ProbeOneOfArm:
+				probeAddOneOfArm(schemas, component, index)
 			default:
 				probeAddField(component, change, fmt.Sprintf("zzProbe%d", index))
 			}
@@ -299,4 +355,86 @@ func probeAddEnumValue(component *yaml.Node, index int) {
 		prefix = ""
 	}
 	values.Content = append(values.Content, &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: fmt.Sprintf("%sZZ_PROBE_%d", prefix, index)})
+}
+
+// probeNested returns the name of the new message of the group at index. A message holds one string
+// field. It is added to the schemas once, and every message of the group refers to it, as the
+// messages of one API change refer to one new message.
+func probeNested(schemas *yaml.Node, index int) string {
+	name := fmt.Sprintf("ZzProbeMessage%d", index)
+	if mapValue(schemas, name) == nil {
+		schemas.Content = append(schemas.Content, probeScalar(name), probeNode("{type: object, properties: {zzProbeValue: {type: string}}}"))
+	}
+	return name
+}
+
+func probeScalar(text string) *yaml.Node {
+	return &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: text}
+}
+
+// probeNode reads a snippet of YAML. It returns nil for a snippet that is not valid.
+func probeNode(text string) *yaml.Node {
+	var value yaml.Node
+	if err := yaml.Unmarshal([]byte(text), &value); err != nil || len(value.Content) == 0 {
+		return nil
+	}
+	return value.Content[0]
+}
+
+// probeRef is the property of a field that holds the message, in the form of the contract.
+func probeRef(message string) *yaml.Node {
+	return probeNode(fmt.Sprintf("{allOf: [{$ref: '#/components/schemas/%s'}], description: Added by the probe.}", message))
+}
+
+func probeAddObjectField(schemas, component *yaml.Node, index int) {
+	properties := mapValue(component, "properties")
+	if properties == nil || properties.Kind != yaml.MappingNode {
+		return
+	}
+	properties.Content = append(properties.Content, probeScalar(fmt.Sprintf("zzProbeObject%d", index)), probeRef(probeNested(schemas, index)))
+}
+
+// probeAddOneOfArm adds an arm to the oneOf of the message. The oneOf is a list of arms that each
+// require one property, and, when the oneOf is optional, a last entry that allows none of them. A
+// message without such a list is left as it is.
+func probeAddOneOfArm(schemas, component *yaml.Node, index int) {
+	properties, oneOf := mapValue(component, "properties"), mapValue(component, "oneOf")
+	if properties == nil || properties.Kind != yaml.MappingNode || oneOf == nil || oneOf.Kind != yaml.SequenceNode {
+		return
+	}
+	name := fmt.Sprintf("zzProbeArm%d", index)
+	arm := func() *yaml.Node { return probeNode(fmt.Sprintf("{required: [%s], type: object}", name)) }
+	at := len(oneOf.Content)
+	for i, entry := range oneOf.Content {
+		if not := mapValue(entry, "not"); not != nil {
+			at = i
+			if anyOf := mapValue(not, "anyOf"); anyOf != nil && anyOf.Kind == yaml.SequenceNode {
+				anyOf.Content = append(anyOf.Content, arm())
+			}
+		}
+	}
+	entries := append([]*yaml.Node{}, oneOf.Content[:at]...)
+	entries = append(entries, arm())
+	oneOf.Content = append(entries, oneOf.Content[at:]...)
+	properties.Content = append(properties.Content, probeScalar(name), probeRef(probeNested(schemas, index)))
+}
+
+// probeUntested fails when a field that the probe added is one that no config of the acceptance test
+// sets. The field would ship untested: the test that a person has to extend is the gap.
+func probeUntested(paths []string) error {
+	var probe []string
+	for _, path := range paths {
+		if strings.Contains(path, "zz_probe") {
+			probe = append(probe, path)
+		}
+	}
+	if len(probe) == 0 {
+		return nil
+	}
+	return &EligibilityError{Report: issue.Report{{
+		Code:        "FIELD_UNTESTED",
+		Location:    "acceptance",
+		Message:     "No config of the acceptance test sets " + strings.Join(probe, ", ") + ".",
+		Remediation: "Make the generated test set the new field, with no line in the acceptance file.",
+	}}}
 }

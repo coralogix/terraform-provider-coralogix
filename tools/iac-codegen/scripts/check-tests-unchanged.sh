@@ -33,9 +33,21 @@ fi
 bad=""
 
 # A test file: a deleted file, or a file with a removed or changed line.
+# A removed line is allowed only when test-edits-allowed.txt names it: a test that asserts a gap of
+# the future-change probe must change when the gap closes. Each line of the file is
+# <path> <TAB> <the removed line, without its leading whitespace>, so a reviewer sees every edit.
+allowed="$(dirname "${BASH_SOURCE[0]}")/test-edits-allowed.txt"
+removed_lines_allowed() {
+  local path=$1 line
+  while IFS= read -r line; do
+    line=${line#-}
+    line=${line#"${line%%[![:space:]]*}"}
+    grep -qxF "$path"$'\t'"$line" <(grep -v '^#' "$allowed" 2>/dev/null || true) || return 1
+  done < <(git diff -U0 --no-renames "$base"...HEAD -- "$path" | grep -E '^-' | grep -vE '^---')
+}
 while IFS=$'\t' read -r added removed path; do
   [[ -z "$path" ]] && continue
-  if [[ "$removed" != "0" ]]; then
+  if [[ "$removed" != "0" ]] && ! removed_lines_allowed "$path"; then
     bad+="  edited   $path (${removed} line(s) removed or changed)"$'\n'
   fi
 done < <(git diff --numstat --no-renames "$base"...HEAD -- ':(glob)**/*_test.go')

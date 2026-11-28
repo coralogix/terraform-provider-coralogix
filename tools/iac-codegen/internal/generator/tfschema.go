@@ -44,6 +44,10 @@ type tfResource struct {
 	// its modifier takes the state item that the planned item matches.
 	SetItemState       bool
 	ServerDefaultKinds []string // Terraform scalar kinds that need reset planning
+	// FoldSideKinds are the Terraform value kinds of the computed attributes that only one twin of a
+	// carrySiblings fold has. They take foldSideModifier, which plans them null while the flag
+	// selects the other twin.
+	FoldSideKinds []string
 	// RequestReplaceKinds are the Terraform value kinds of the immutable
 	// attributes that hold values that the server sets. They use
 	// requestReplaceModifier instead of RequiresReplace.
@@ -191,6 +195,11 @@ type tfAttr struct {
 	// Uint64: the attribute is a 64-bit number that the API sends as a string, signed or not,
 	// shown as Int64.
 	Uint64 bool
+	// FoldSide is set on a field that only one twin of a carrySiblings fold has: the flag that
+	// selects the twin, and the value that allows the field. FoldFlag marks the flag itself. The
+	// acceptance test sets a field only when its twin is the one that the flag selects.
+	FoldSide *foldSide
+	FoldFlag bool
 	// Extra: the attribute is from types.<Type>.extraAttributes, not the API. The generated
 	// acceptance test leaves it out unless values or an upgrade case supplies the map: a made-up
 	// map key is not a valid API field.
@@ -237,7 +246,7 @@ func buildTFResource(r *model.Resource, pkg string) (*tfResource, error) {
 // buildTFResourceWith is buildTFResource for a resource with a behavior-overrides file
 // (nil for a new resource).
 func buildTFResourceWith(r *model.Resource, pkg string, file *overrides.File) (*tfResource, error) {
-	b := &tfBuilder{seen: map[string]bool{}, sent: sentFields(r, file), file: file, policy: r.Policy, replace: r.Replace, owners: map[string]string{}, itemModified: map[string]bool{}}
+	b := &tfBuilder{seen: map[string]bool{}, sent: sentFields(r, file), objectValues: objectValueFields(r, file), file: file, policy: r.Policy, replace: r.Replace, owners: map[string]string{}, itemModified: map[string]bool{}}
 	out := &tfResource{Package: pkg, VersionHeader: version.Header, Model: modelTypeName(r.Name)}
 	if file != nil {
 		out.AfterFlatten = file.AfterFlatten
@@ -300,6 +309,7 @@ func buildTFResourceWith(r *model.Resource, pkg string, file *overrides.File) (*
 			}
 		}
 	}
+	out.FoldSideKinds = addFoldSideModifiers(out.Attributes, nil)
 	addArmValidators(out.Attributes)
 	out.PlanModifierPkgs = planModifierPackages(out.Attributes)
 	out.DefaultPkgs = defaultPackages(out.Attributes)
@@ -1332,6 +1342,7 @@ type tfBuilder struct {
 	models       []*tfModel
 	seen         map[string]bool // model structs already added
 	sent         sentSet         // component fields that a request sends in some place
+	objectValues objectValueSet  // object fields that every place of a component holds as a types.Object
 	validators   []string        // resource config validators
 	replaceKinds []string        // RequestReplaceKinds
 	defaultKinds []string        // ServerDefaultKinds of nested attributes
@@ -1349,6 +1360,8 @@ type tfBuilder struct {
 	// take. flags are the fold flags that an arm holds.
 	carried map[*model.Field]string
 	flags   map[*model.Field]overrides.Fold
+	// sides are the fields that only one twin of a fold has, with the flag value that allows them.
+	sides map[*model.Field]foldSide
 }
 
 // claimModel records that owner makes the model struct name. Two owners of one name would share
@@ -1744,17 +1757,43 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 	if carry := carryField(b.file, t); carry != nil {
 		return b.carryAttributes(p, t, carry)
 	}
+	attrs, fields, err := b.plainAttributes(p, t)
+	if err != nil {
+		return nil, err
+	}
+	name := typeModelName(t)
+	if err := b.claimModel(name, "the component "+t.Schema); err != nil {
+		return nil, err
+	}
+	if !b.seen[name] {
+		b.seen[name] = true
+		b.models = append(b.models, &tfModel{Name: name, Fields: fields})
+		return attrs, nil
+	}
+	// One model struct serves every place of the component. A computed
+	// object is a types.Object, so it must be computed in every place.
+	for _, m := range b.models {
+		if m.Name == name && !slices.Equal(m.Fields, fields) {
+			return nil, fmt.Errorf("component %s needs another model struct in each place: %s", t.Schema, modelFieldDifference(m.Fields, fields))
+		}
+	}
+	return attrs, nil
+}
+
+// plainAttributes are the attributes and the model fields of the fields of the object t, each
+// shown as itself. The caller makes the model struct.
+func (b *tfBuilder) plainAttributes(p attrPath, t *model.Type) ([]*tfAttr, []tfModelField, error) {
 	var attrs []*tfAttr
 	var fields []tfModelField
 	if err := checkPlaceFields(b.file, t); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	groups := newNestedGroups(b, t.Schema, slices.Contains(p, anySetItem))
 	for _, f := range t.Fields {
 		if fold, ok := b.flags[f]; ok {
 			// The flag of a folded arm: true selects this arm, false the folded one.
 			attrs = append(attrs, &tfAttr{Name: fold.Flag, Kind: "Bool", ValueKind: "Bool", Optional: true, Computed: true,
-				Default: "booldefault.StaticBool(true)", Description: fold.MarkdownDescription})
+				Default: "booldefault.StaticBool(true)", Description: fold.MarkdownDescription, FoldFlag: true})
 			fields = append(fields, tfModelField{Name: camelize(fold.Flag), Type: "types.Bool", TFName: fold.Flag})
 			continue
 		}
@@ -1781,9 +1820,10 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 		only := b.sent.responseOnly(component, f)
 		a, err := b.attribute(child, component, f.Name, f.Description, ftype, nestedAttrs(f), only)
 		if err != nil {
-			return nil, fmt.Errorf("%s: %w", f.Name, err)
+			return nil, nil, fmt.Errorf("%s: %w", f.Name, err)
 		}
 		a.Name = tfName
+		b.markFoldSide(a, f)
 		if f.Attrs.Computed && !a.Required {
 			// A computed line, or an attribute of a keyedBy object, which the API can fill.
 			a.Computed = true
@@ -1796,17 +1836,17 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 			b.requiresReplace(a, child.dotted())
 		}
 		if err := b.nestedServerDefault(a, child, component, f); err != nil {
-			return nil, fmt.Errorf("%s: %w", f.Name, err)
+			return nil, nil, fmt.Errorf("%s: %w", f.Name, err)
 		}
 		field := b.modelField(component, f.Name, ftype, f.Behavior, only, f.Attrs.Computed)
 		field.TFName = tfName
 		if group != "" {
 			if err := groups.add(group, f, a, field); err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 			a, field, ok, err := groups.first(group)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 			if ok {
 				attrs = append(attrs, a)
@@ -1819,7 +1859,7 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 	}
 	distributed, distributedFields, err := b.distributedAttributes(p, t)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	oneOfs := t.Groups
 	if t.Kind == model.OneOf {
@@ -1830,30 +1870,14 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 		oneOfs = append(oneOfs, group)
 	}
 	if err := groups.addValidators(attrs, b.policy.WithDefaultArms(t.Schema, oneOfs)); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if err := groups.check(attrs); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	b.keptArmConflicts(t, attrs)
 	attrs, fields = append(attrs, distributed...), append(fields, distributedFields...)
-	name := typeModelName(t)
-	if err := b.claimModel(name, "the component "+t.Schema); err != nil {
-		return nil, err
-	}
-	if !b.seen[name] {
-		b.seen[name] = true
-		b.models = append(b.models, &tfModel{Name: name, Fields: fields})
-		return attrs, nil
-	}
-	// One model struct serves every place of the component. A computed
-	// object is a types.Object, so it must be computed in every place.
-	for _, m := range b.models {
-		if m.Name == name && !slices.Equal(m.Fields, fields) {
-			return nil, fmt.Errorf("component %s needs another model struct in each place: %s", t.Schema, modelFieldDifference(m.Fields, fields))
-		}
-	}
-	return attrs, nil
+	return attrs, fields, nil
 }
 
 // keptArmConflicts makes the fields of an inlined oneOf arm conflict with the arms that stay beside
@@ -1922,6 +1946,7 @@ func (b *tfBuilder) carryAttributes(p attrPath, t *model.Type, carry *model.Fiel
 	oneOf := carry.Type
 	if b.carried == nil {
 		b.carried, b.flags = map[*model.Field]string{}, map[*model.Field]overrides.Fold{}
+		b.sides = map[*model.Field]foldSide{}
 	}
 	armComponent := model.ComponentOf(oneOf)
 	arms := map[string]*model.Field{}
@@ -1973,7 +1998,7 @@ func (b *tfBuilder) carryArm(p attrPath, t *model.Type, carry, arm *model.Field,
 		b.carried[sibling] = t.Schema
 		held.Fields = append(held.Fields, sibling)
 	}
-	held.Fields = append(held.Fields, arm.Type.Fields...)
+	held.Fields = append(held.Fields, b.armFieldsWithFolds(carry, arm, c)...)
 	for _, folded := range sortedFoldsInto(c, arm.Name) {
 		flag := &model.Field{Name: folded.Flag, Type: &model.Type{Kind: model.Bool}, Behavior: model.Normal}
 		b.flags[flag] = folded
@@ -1984,8 +2009,8 @@ func (b *tfBuilder) carryArm(p attrPath, t *model.Type, carry, arm *model.Field,
 	byTF, byGo := map[string]string{}, map[string]string{}
 	for _, f := range held.Fields {
 		owner := arm.Type.Schema
-		if _, sibling := b.carried[f]; sibling && !slices.Contains(arm.Type.Fields, f) {
-			owner = t.Schema
+		if o, carried := b.carried[f]; carried && !slices.Contains(arm.Type.Fields, f) {
+			owner = o
 		}
 		tf := terraformName(b.policy, owner, f.Name)
 		if _, flag := b.flags[f]; flag {
@@ -2012,7 +2037,8 @@ func (b *tfBuilder) carryArm(p attrPath, t *model.Type, carry, arm *model.Field,
 
 // checkCarry reports a carrySiblings line that names an arm or a sibling that t does not have, a
 // fixed value for the carried field itself or for a field that the requests do not send, and a
-// fold into an arm with other fields or into an arm that another fold uses.
+// fold of arms that are no twins (a field with two types, or no common field) or into an arm that
+// another fold uses.
 func checkCarry(t *model.Type, carry *model.Field, c *overrides.Carry, arms map[string]*model.Field) error {
 	siblings := map[string]*model.Field{}
 	for _, f := range t.Fields {
@@ -2048,7 +2074,7 @@ func checkCarry(t *model.Type, carry *model.Field, c *overrides.Carry, arms map[
 		if _, folded := c.Fold[target.Name]; folded {
 			return fmt.Errorf("%s: carrySiblings.fold.%s folds into %s, which is folded itself", t.Schema, arm, target.Name)
 		}
-		if !sameFieldNames(arms[arm].Type, target.Type) {
+		if !foldable(arms[arm].Type, target.Type) {
 			return fmt.Errorf("%s: carrySiblings.fold.%s: the arms %s and %s need the same fields", t.Schema, arm, arm, target.Name)
 		}
 		if !maps.Equal(c.RequestValues[arm], c.RequestValues[target.Name]) {
@@ -2056,20 +2082,6 @@ func checkCarry(t *model.Type, carry *model.Field, c *overrides.Carry, arms map[
 		}
 	}
 	return nil
-}
-
-// sameFieldNames reports whether two objects have fields of the same names and types, in order: a
-// fold copies each field of one SDK struct into the other.
-func sameFieldNames(a, b *model.Type) bool {
-	if a == nil || b == nil || len(a.Fields) != len(b.Fields) {
-		return false
-	}
-	for i := range a.Fields {
-		if a.Fields[i].Name != b.Fields[i].Name || !sameWireType(a.Fields[i].Type, b.Fields[i].Type) {
-			return false
-		}
-	}
-	return true
 }
 
 // sameWireType reports whether two field types have the same SDK type: the same kind, format,
@@ -2410,7 +2422,7 @@ func (b *tfBuilder) modelField(component, name string, t *model.Type, behavior m
 			goType = "types.List"
 		} else if shown := b.scalarOneOf(component, name); shown != "" {
 			goType = shown
-		} else if behavior == model.Computed || computed {
+		} else if behavior == model.Computed || computed || b.objectValues.has(component, name) {
 			goType = "types.Object"
 		} else {
 			goType = "*" + typeModelName(t)

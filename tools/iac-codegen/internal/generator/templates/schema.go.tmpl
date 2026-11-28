@@ -3,7 +3,7 @@
 package {{.Package}}
 
 import (
-{{- if or .HasServerDefaults .RequestReplaceKinds .HasTypedArms .HasArmValidators .HasSiblingDefaults .SetItemState .HasUnsupportedValidators}}
+{{- if or .HasServerDefaults .RequestReplaceKinds .HasTypedArms .HasArmValidators .HasSiblingDefaults .SetItemState .HasUnsupportedValidators .FoldSideKinds}}
 	"context"
 {{- end}}
 {{- if or .HasTypedArms .HasArmValidators}}
@@ -11,7 +11,7 @@ import (
 	"strings"
 {{- end}}
 	"regexp"
-{{- if or .SetServerDefaults .HasTypedArms .SetItemState}}
+{{- if or .SetServerDefaults .HasTypedArms .SetItemState .FoldSideKinds}}
 	"slices"
 {{- end}}
 
@@ -46,7 +46,7 @@ import (
 {{- end}}
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-{{- if or .SetServerDefaults .SetItemState}}
+{{- if or .SetServerDefaults .SetItemState .FoldSideKinds}}
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 {{- end}}
 )
@@ -223,6 +223,60 @@ func (setItemStateModifier) PlanModifyObject(ctx context.Context, req planmodifi
 		resp.PlanValue = object
 	}
 }
+{{- end}}
+{{- if .FoldSideKinds}}
+{{- if not (or .SetServerDefaults .SetItemState)}}
+
+{{template "setItemHelpers" .}}
+{{- end}}
+
+// foldSideModifier plans an attribute that only one twin of a carrySiblings fold has. While the
+// planned flag selects the other twin, and the configuration leaves the attribute out, the plan is
+// null: a value that the state or a server default keeps would be sent as a field of the twin that
+// the request does not hold. A flag that is not known yet leaves the plan as it is.
+type foldSideModifier struct {
+	flag string // the name of the flag attribute, a sibling of the attribute
+	when bool   // the flag value that selects the twin that has the attribute
+}
+
+func (foldSideModifier) Description(context.Context) string {
+	return "Plans null while the flag selects the other twin of the fold."
+}
+
+func (m foldSideModifier) MarkdownDescription(ctx context.Context) string {
+	return m.Description(ctx)
+}
+
+// off reports whether the plan selects the other twin and the configuration leaves the attribute at p
+// out. The walks go by the steps of the path, which also reach an attribute in a set item.
+func (m foldSideModifier) off(ctx context.Context, plan, config tftypes.Value, p path.Path) bool {
+	if plan.IsNull() {
+		return false
+	}
+	flagValue, ok := configAt(ctx, plan, p.ParentPath().AtName(m.flag).Steps(), false)
+	if !ok || !flagValue.IsKnown() || flagValue.IsNull() {
+		return false
+	}
+	var flag bool
+	if flagValue.As(&flag) != nil || flag == m.when {
+		return false
+	}
+	value, ok := configAt(ctx, config, p.Steps(), false)
+	return ok && value.IsNull()
+}
+{{range .FoldSideKinds}}
+func (m foldSideModifier) PlanModify{{.}}(ctx context.Context, req planmodifier.{{.}}Request, resp *planmodifier.{{.}}Response) {
+	if m.off(ctx, req.Plan.Raw, req.Config.Raw, req.Path) {
+{{- if eq . "Object"}}
+		resp.PlanValue = types.ObjectNull(req.PlanValue.AttributeTypes(ctx))
+{{- else if or (eq . "List") (eq . "Set") (eq . "Map")}}
+		resp.PlanValue = types.{{.}}Null(req.PlanValue.ElementType(ctx))
+{{- else}}
+		resp.PlanValue = types.{{.}}Null()
+{{- end}}
+	}
+}
+{{end}}
 {{- end}}
 
 {{define "attribute" -}}

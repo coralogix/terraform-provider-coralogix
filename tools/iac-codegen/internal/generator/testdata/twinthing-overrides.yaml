@@ -1,0 +1,33 @@
+# A released resource whose step shows twin arms as one object: see twinthing.yaml.
+resource: ParseThing
+mode: existing
+typeName: parse_thing
+
+validators:
+  inferred: false
+
+api:
+  operations:
+    create: ParseThingsService_CreateParseThing
+    get: ParseThingsService_GetParseThing
+    update: ParseThingsService_ReplaceParseThing
+    delete: ParseThingsService_DeleteParseThing
+  idProperty: id
+  serverSetID: true
+
+types:
+  ParseThing:
+    fields:
+      id: {readOnly: true}
+      name: {required: true}
+  ParseStep:
+    fields:
+      params:
+        requireOne: true
+        carrySiblings:
+          fold:
+            dropParams: {into: keepParams, flag: keep_matching, markdownDescription: "true keeps the matching logs, false drops them."}
+  ParseParams:
+    fields:
+      keepParams: {name: keep}
+      copyParams: {name: copy}

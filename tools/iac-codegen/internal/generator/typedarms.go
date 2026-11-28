@@ -46,15 +46,37 @@ func mapsKeys[V any](m map[string]V) func(yield func(string) bool) {
 	}
 }
 
-// typedArms are the arms of the oneOf t, without its discriminator.
+// typedArms are the arms of the oneOf t, without its discriminator. An object with one oneOf group
+// that does not hold every field has the arms of the group, and its other fields are typedSiblings.
 func typedArms(t *model.Type) []*model.Field {
-	var arms []*model.Field
-	for _, f := range t.Fields {
-		if f.Name != t.Discriminator {
-			arms = append(arms, f)
+	arms, _ := typedArmFields(t)
+	return arms
+}
+
+// typedSiblings are the fields of the typedArms object t that are no arms: plain attributes next to
+// the type and the merged fields.
+func typedSiblings(t *model.Type) []*model.Field {
+	_, siblings := typedArmFields(t)
+	return siblings
+}
+
+func typedArmFields(t *model.Type) (arms, siblings []*model.Field) {
+	inGroup := map[string]bool{}
+	if t.Kind == model.Object && len(t.Groups) == 1 {
+		for _, arm := range t.Groups[0].Arms {
+			inGroup[arm] = true
 		}
 	}
-	return arms
+	for _, f := range t.Fields {
+		switch {
+		case f.Name == t.Discriminator:
+		case len(inGroup) == 0 || inGroup[f.Name]:
+			arms = append(arms, f)
+		default:
+			siblings = append(siblings, f)
+		}
+	}
+	return arms, siblings
 }
 
 // typedAttributes are the attributes of the oneOf t with a typedArms line: the required type
@@ -110,6 +132,11 @@ func (b *tfBuilder) typedAttributes(p attrPath, t *model.Type, line *overrides.T
 	attrs[0].Typed = &typedInfo{Has: has, Required: required, Checked: checked, Rules: m.rules, Attrs: attrs[1:]}
 	attrs[0].Validators = append(attrs[0].Validators, typedValidator(attrs, arms, values, has, required, checked, m.rules))
 	attrs[0].GroupValidators = append(attrs[0].GroupValidators, attrs[0].Validators[len(attrs[0].Validators)-1])
+	siblings, siblingFields, err := b.typedSiblingAttributes(p, t)
+	if err != nil {
+		return nil, err
+	}
+	attrs, fields = append(attrs, siblings...), append(fields, siblingFields...)
 	name := typeModelName(t)
 	if err := b.claimModel(name, "the component "+t.Schema); err != nil {
 		return nil, err
@@ -119,6 +146,18 @@ func (b *tfBuilder) typedAttributes(p attrPath, t *model.Type, line *overrides.T
 		b.models = append(b.models, &tfModel{Name: name, Fields: fields})
 	}
 	return attrs, nil
+}
+
+// typedSiblingAttributes are the attributes and the model fields of the fields of the typedArms
+// object t that are no arms. Each is an attribute of its own, next to the type and the merged fields.
+func (b *tfBuilder) typedSiblingAttributes(p attrPath, t *model.Type) ([]*tfAttr, []tfModelField, error) {
+	siblings := typedSiblings(t)
+	if len(siblings) == 0 {
+		return nil, nil, nil
+	}
+	plain := *t
+	plain.Kind, plain.Fields, plain.Groups, plain.Discriminator = model.Object, siblings, nil, ""
+	return b.plainAttributes(p, &plain)
 }
 
 // typedInfo is what each arm of a typedArms object has. Every map is keyed by the value of the type.
@@ -239,14 +278,18 @@ func crossValidator(v overrides.Validator) (string, []string) {
 // names the arm, because the merged field is one copy that every arm shares: a rule over other
 // attributes becomes a rule of the arm, and a validator of a text field becomes a check of the arm.
 func (b *tfBuilder) armRules(part *typedPart) error {
-	if part.arm.Type.Kind != model.Object || part.arm.Type.Schema == "" || inlinedTypedField(b.file, part.arm.Type) != nil {
+	if part.arm.Type.Kind != model.Object || part.arm.Type.Schema == "" {
 		return nil
 	}
+	inlined := inlinedTypedField(b.file, part.arm.Type) != nil
 	has := map[string]bool{}
 	for _, a := range part.attrs {
 		has[a.Name] = true
 	}
 	for _, a := range part.attrs {
+		if inlined && a.Component != part.arm.Type.Schema {
+			continue // the attribute of the inner object: its own object has the rules
+		}
 		for _, v := range b.file.Types[part.arm.Type.Schema].Fields[a.Property].Validators {
 			if kind, names := crossValidator(v); kind != "" {
 				for _, name := range names {
@@ -349,10 +392,7 @@ func (b *tfBuilder) typedArm(p attrPath, t *model.Type, arm *model.Field, line *
 			return nil, nil, nil, err
 		}
 		if inner := inlinedTypedField(b.file, arm.Type); inner != nil {
-			// The arm holds one typedArms object: its attributes are the attributes of this one, and
-			// this arm allows only the values of its type.
-			held := attrs[0].Attributes
-			return held, b.modelFieldsOf(typeModelName(inner.Type)), map[string][]string{held[0].Name: {held[0].GroupValidators[0]}}, nil
+			return b.inlinedArm(arm.Type, inner, attrs)
 		}
 		return attrs, b.modelFieldsOf(typeModelName(arm.Type)), nil, nil
 	case model.String, model.Enum, model.Bool, model.Number, model.Integer:
@@ -374,6 +414,34 @@ func (b *tfBuilder) typedArm(p attrPath, t *model.Type, arm *model.Field, line *
 		return []*tfAttr{a}, []tfModelField{field}, map[string][]string{a.Name: checks}, nil
 	}
 	return nil, nil, nil, fmt.Errorf("typedArms needs arms that are objects or scalars, not a %s", arm.Type.Kind)
+}
+
+// inlinedArm returns the attributes of an arm that holds one typedArms object: the attributes of
+// that object, and this arm allows only the values of its type. The other fields of the arm stay
+// attributes of their own, next to the ones of the object, so a new field of the arm does not
+// change the shape that users already have.
+func (b *tfBuilder) inlinedArm(t *model.Type, inner *model.Field, attrs []*tfAttr) ([]*tfAttr, []tfModelField, map[string][]string, error) {
+	k := 0
+	if len(attrs) > 1 {
+		k = slices.IndexFunc(attrs, func(a *tfAttr) bool { return a.Component == t.Schema && a.Property == inner.Name })
+	}
+	if k < 0 || len(attrs[k].Attributes) == 0 {
+		return nil, nil, nil, fmt.Errorf("%s: the arm has no attribute for the typedArms field %s", t.Schema, inner.Name)
+	}
+	held := attrs[k].Attributes
+	checks := map[string][]string{held[0].Name: {held[0].GroupValidators[0]}}
+	fields := b.modelFieldsOf(typeModelName(inner.Type))
+	if len(attrs) == 1 {
+		return held, fields, checks, nil
+	}
+	out := slices.Concat(attrs[:k], held, attrs[k+1:])
+	fields = slices.Clone(fields)
+	for _, f := range b.modelFieldsOf(typeModelName(t)) {
+		if f.TFName != attrs[k].Name {
+			fields = append(fields, f)
+		}
+	}
+	return out, fields, checks, nil
 }
 
 // scalarArmChecks moves the checks of a scalar arm from its attribute to the typedArmValidator,
@@ -410,7 +478,9 @@ type convTyped struct {
 	Pkg       string // the name of the SDK package
 	TypeField *convField
 	Arms      []*typedArm
-	Allowed   string // the values of the type attribute, for an error text
+	// Siblings are the fields of the object that are no arms: they convert as plain fields.
+	Siblings []*convField
+	Allowed  string // the values of the type attribute, for an error text
 	// Infer: an omitted type is picked from the fields that are set (typedArms infer).
 	// InferArms is the Go literal of the arms, and InferFields the merged fields, by Terraform name.
 	Infer       bool
@@ -424,6 +494,14 @@ type convTyped struct {
 type typedPair struct {
 	Arm    string // the Go field of the model of the arm
 	Merged string // the Go field of the model of the typedArms object
+}
+
+// typedInnerRead reads a merged field of an inner object (a scalar arm, or a field beside the arms)
+// from an empty value of the inner SDK type.
+type typedInnerRead struct {
+	SDK     string       // the Go type of the inner object in the SDK package
+	Parents []convParent // the SDK pointers that hold the inlined fields of the inner object
+	Scalar  *convField   // the conversion of the field, with the Go name of the merged field
 }
 
 // typedInit reads the Fields of Object from an empty value of its SDK type.
@@ -449,8 +527,16 @@ type typedArm struct {
 	// Pairs are the fields that the arm adds to the merged fields: the fields of an object arm that
 	// are not carried, or the fields of the inner object of an inline arm.
 	Pairs []typedPair
+	// OuterPairs are the other fields of an inline arm, next to the inner object: they are fields of
+	// the arm model itself, not of the inner object model.
+	OuterPairs []typedPair
+	outer      []*convField // the conversions of the other fields of an inline arm
 	// InitScalar: this arm is the first with the scalar value attribute.
 	InitScalar bool
+	// InnerScalars are the reads of the scalar arms and of the fields beside the arms of the inner
+	// object of an inline arm whose merged field no earlier arm has: flatten reads each from an
+	// empty value of the inner object first.
+	InnerScalars []*typedInnerRead
 	// Fields are the Terraform names of the fields that the arm has, in order.
 	Fields []string
 }
@@ -483,7 +569,7 @@ func (b *convBuilder) typed(obj *convObject, t *model.Type) error {
 		if err := b.emptyDefaults(obj, cf, arm, fields); err != nil {
 			return fmt.Errorf("%s: %w", arm.Name, err)
 		}
-		var fresh []typedPair
+		var fresh, freshOuter []typedPair
 		for _, f := range fields {
 			isNew := !slices.ContainsFunc(merged, func(o *convField) bool { return o.TFName == f.TFName })
 			var name string
@@ -491,12 +577,17 @@ func (b *convBuilder) typed(obj *convObject, t *model.Type) error {
 				return fmt.Errorf("%s: %w", arm.Name, err)
 			}
 			a.Fields = append(a.Fields, f.TFName)
-			a.Pairs = append(a.Pairs, typedPair{Arm: f.Model, Merged: name})
+			pair := typedPair{Arm: f.Model, Merged: name}
+			pairs, news := &a.Pairs, &fresh
+			if slices.Contains(a.outer, f) {
+				pairs, news = &a.OuterPairs, &freshOuter
+			}
+			*pairs = append(*pairs, pair)
 			if isNew {
-				fresh = append(fresh, typedPair{Arm: f.Model, Merged: name})
+				*news = append(*news, pair)
 			}
 		}
-		if err := typedInits(a, fresh); err != nil {
+		if err := typedInits(a, fresh, freshOuter); err != nil {
 			return fmt.Errorf("%s: %w", arm.Name, err)
 		}
 		typed.Arms = append(typed.Arms, a)
@@ -507,8 +598,27 @@ func (b *convBuilder) typed(obj *convObject, t *model.Type) error {
 		typed.Infer, typed.InferFields = true, merged[1:]
 		typed.InferArms = inferArmsLiteral(typed.Arms)
 	}
-	obj.Fields, obj.Typed = merged, typed
+	siblings, err := typedSiblingFields(obj, t)
+	if err != nil {
+		return err
+	}
+	typed.Siblings = siblings
+	obj.Fields, obj.Typed = append(merged, siblings...), typed
 	return nil
+}
+
+// typedSiblingFields returns the conversions of the fields of the typedArms object t that are no
+// arms. They convert as plain fields.
+func typedSiblingFields(obj *convObject, t *model.Type) ([]*convField, error) {
+	var out []*convField
+	for _, f := range typedSiblings(t) {
+		cf := fieldByModel(obj.Fields, camelize(f.Name))
+		if cf == nil {
+			return nil, fmt.Errorf("%s: no conversion of the field %s", t.Schema, f.Name)
+		}
+		out = append(out, cf)
+	}
+	return out, nil
 }
 
 // typedArmOf returns the arm of the field cf, and the fields that it adds to the merged fields.
@@ -517,14 +627,17 @@ func typedArmOf(cf *convField, value string, line *overrides.TypedArms) (*typedA
 	switch {
 	case cf.Conv == convObj && cf.Object != nil:
 		a.Object = cf.Object
-		if len(cf.Object.Fields) == 1 && cf.Object.Fields[0].Object != nil && cf.Object.Fields[0].Object.Typed != nil {
-			// The arm holds one typedArms object. The merged fields are the fields of that object.
-			a.Inline, a.Inner = cf.Object.Fields[0], cf.Object.Fields[0].Object
-			var fields []*convField
-			for _, f := range a.Inner.Fields {
-				fields = append(fields, f)
+		if inline := inlinedTypedConv(cf.Object); inline != nil {
+			// The arm holds one typedArms object. The merged fields are the fields of that object,
+			// and then the other fields of the arm.
+			a.Inline, a.Inner = inline, inline.Object
+			fields := slices.Clone(a.Inner.Fields)
+			for _, f := range cf.Object.Fields {
+				if f != inline && !f.Carried {
+					a.outer = append(a.outer, f)
+				}
 			}
-			return a, fields
+			return a, append(fields, a.outer...)
 		}
 		var fields []*convField
 		for _, f := range cf.Object.Fields {
@@ -541,6 +654,23 @@ func typedArmOf(cf *convField, value string, line *overrides.TypedArms) (*typedA
 	scalar.TFName, scalar.Model = line.ValueField(), camelize(line.ValueField())
 	a.Scalar = &scalar
 	return a, []*convField{&scalar}
+}
+
+// inlinedTypedConv returns the field of the arm object obj that holds a typedArms object, when it is
+// the only such field. The schema shows an arm like that as the attributes of the inner object
+// (inlinedTypedField).
+func inlinedTypedConv(obj *convObject) *convField {
+	var found *convField
+	for _, f := range obj.Fields {
+		if f.Conv != convObj || f.Object == nil || f.Object.Typed == nil {
+			continue
+		}
+		if found != nil {
+			return nil
+		}
+		found = f
+	}
+	return found
 }
 
 // mergeTyped adds a copy of f to the merged fields, and returns the Go name that the merged object
@@ -670,19 +800,27 @@ func inferArmsLiteral(arms []*typedArm) string {
 	return "[]typedInferArm{" + strings.Join(out, ", ") + "}"
 }
 
-// inlinedTypedField returns the only field of the object t when its type has a typedArms line, or
-// nil. A typedArms arm like that is shown as the attributes of the inner object: the arm {selection:
-// <oneOf>} of an operator is the type and the fields of the selection.
+// inlinedTypedField returns the field of the object t whose type has a typedArms line, when it is
+// the only such field, or nil. A typedArms arm like that is shown as the attributes of the inner
+// object: the arm {selection: <oneOf>} of an operator is the type and the fields of the selection.
+// The other fields of the arm are attributes next to them.
 func inlinedTypedField(file *overrides.File, t *model.Type) *model.Field {
-	if len(t.Fields) != 1 || file.TypedArmsOf(t.Fields[0].Type.Schema) == nil {
-		return nil
+	var found *model.Field
+	for _, f := range t.Fields {
+		if line := file.TypedArmsOf(f.Type.Schema); line == nil || line.AsList {
+			continue
+		}
+		if found != nil {
+			return nil
+		}
+		found = f
 	}
-	return t.Fields[0]
+	return found
 }
 
 // typedInits sets how flatten reads the fresh fields (the merged fields that no earlier arm has) of
 // the arm from an empty value, so a field that the selected arm lacks reads as an absent value.
-func typedInits(a *typedArm, fresh []typedPair) error {
+func typedInits(a *typedArm, fresh, freshOuter []typedPair) error {
 	switch {
 	case a.Scalar != nil:
 		if len(fresh) > 0 {
@@ -690,8 +828,12 @@ func typedInits(a *typedArm, fresh []typedPair) error {
 		}
 	case a.Inner != nil:
 		for _, ia := range a.Inner.Typed.Arms {
-			if ia.Scalar != nil || ia.Inner != nil {
-				return errors.New("typedArms: an arm that holds a typedArms object with scalar or nested arms is not supported")
+			if ia.Inner != nil {
+				return errors.New("typedArms: an arm that holds a typedArms object with nested arms is not supported")
+			}
+			if ia.Scalar != nil {
+				a.addInnerScalar(ia, fresh)
+				continue
 			}
 			var fields []typedPair
 			for _, init := range ia.Inits {
@@ -706,10 +848,45 @@ func typedInits(a *typedArm, fresh []typedPair) error {
 				a.Inits = append(a.Inits, typedInit{Object: ia.Object, Fields: fields})
 			}
 		}
+		a.addInnerSiblings(fresh)
+		if len(freshOuter) > 0 {
+			a.Inits = append(a.Inits, typedInit{Object: a.Object, Fields: freshOuter})
+		}
 	case len(fresh) > 0 && a.Object != nil:
 		a.Inits = append(a.Inits, typedInit{Object: a.Object, Fields: fresh})
 	}
 	return nil
+}
+
+// addInnerSiblings adds the read of each field beside the arms of the inner object whose merged
+// field is fresh. An arm that lacks the field reads it as a null of its own type, which a collection
+// needs: a zero value has no element type.
+func (a *typedArm) addInnerSiblings(fresh []typedPair) {
+	for _, sibling := range a.Inner.Typed.Siblings {
+		if i := slices.IndexFunc(fresh, func(p typedPair) bool { return p.Arm == sibling.Model }); i >= 0 {
+			a.addInnerRead(sibling, fresh[i].Merged)
+		}
+	}
+}
+
+// addInnerRead adds the read of the field of the inner object that the merged field copies.
+func (a *typedArm) addInnerRead(field *convField, merged string) {
+	read := *field
+	read.Model = merged
+	a.InnerScalars = append(a.InnerScalars, &typedInnerRead{SDK: a.Inner.SDK, Parents: a.Inner.FlattenParents, Scalar: &read})
+}
+
+// addInnerScalar adds the read of the scalar arm ia of the inner object, when the merged field of
+// the arm is fresh: no earlier arm of the outer object has it.
+func (a *typedArm) addInnerScalar(ia *typedArm, fresh []typedPair) {
+	if !ia.InitScalar {
+		return
+	}
+	i := slices.IndexFunc(fresh, func(p typedPair) bool { return p.Arm == ia.Scalar.Model })
+	if i < 0 {
+		return
+	}
+	a.addInnerRead(ia.Scalar, fresh[i].Merged)
 }
 
 // typedArmNeedsPrior reports whether an arm of a typedArms object needs the prior value to read. The

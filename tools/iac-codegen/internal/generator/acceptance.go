@@ -263,6 +263,9 @@ type accSynth struct {
 	// the number of the sweep step being made, from 1.
 	prevFixed map[int]bool
 	stepNo    int
+	// folds are the sides that the configs set in objects with a carrySiblings fold, by the path of
+	// the object (acceptance_fold.go).
+	folds map[string]*foldChoice
 }
 
 var quoted = regexp.MustCompile(`"([^"]*)"`)
@@ -911,6 +914,7 @@ func (s *accSynth) attrs(attrs []*tfAttr, tfPath, key string, mode accMode, top 
 	var checks []accCheck
 	armTaken := s.requiredArms(attrs, key, mode, top) // the oneOf groups that already have an arm
 	picks := s.armPicks(attrs, key, mode, top)
+	fold := s.chooseFold(attrs, key, mode)                        // the twin of a carrySiblings fold that this object sets
 	var arm *typedArmSet                                          // the arm of a typedArms object that the type names
 	selected := s.emittedAttrs(attrs, key, mode, top, nil, picks) // what the config sets, before conflicts and requires
 	losers := s.conflictLosers(attrs, key, mode, top, selected)
@@ -929,7 +933,7 @@ func (s *accSynth) attrs(attrs []*tfAttr, tfPath, key string, mode accMode, top 
 		s.noteAttr(a, attrKey, top)
 		need, isForced := forced[a]
 		a, ok := s.included(a, attrKey, arm, mode, top)
-		forcedIn := isForced && !slices.Contains(s.file.Skip, attrKey) && s.inRelease(attrKey) && !a.Extra // an included field requires it
+		forcedIn := s.forcedIn(a, attrKey, isForced)
 		if !forcedIn && (!ok || losers[a]) {
 			continue
 		}
@@ -937,7 +941,7 @@ func (s *accSynth) attrs(attrs []*tfAttr, tfPath, key string, mode accMode, top 
 			continue
 		}
 		s.noteFixedArm(a)
-		value, c, err := s.valueOrRequired(a, joinPath(tfPath, a.Name), attrKey, mode, need, isForced)
+		value, c, err := s.attrValue(a, joinPath(tfPath, a.Name), attrKey, mode, need, isForced, fold)
 		if err != nil {
 			return "", nil, fmt.Errorf("%s: %w", attrKey, err)
 		}
@@ -947,7 +951,7 @@ func (s *accSynth) attrs(attrs []*tfAttr, tfPath, key string, mode accMode, top 
 			s.setPaths[attrKey] = true
 		}
 		if a.Typed != nil {
-			arm = newTypedArmSet(a.Typed, value)
+			arm = newTypedArmSet(a.Typed, value, arm, a.TypedArm)
 		}
 	}
 	return strings.Join(lines, "\n"), checks, nil
@@ -994,13 +998,17 @@ func (s *accSynth) requiredArms(attrs []*tfAttr, key string, mode accMode, top b
 // attribute of another arm of a typedArms object is left out, and one that the arm needs is kept
 // also in the minimal config, with the validators that run for the arm.
 func (s *accSynth) included(a *tfAttr, attrKey string, arm *typedArmSet, mode accMode, top bool) (*tfAttr, bool) {
+	if s.sideOff(a, attrKey) {
+		return a, false
+	}
 	force := false
 	if a.TypedArm && arm != nil {
-		if !arm.fields[a.Name] {
+		if !arm.allows(a.Name) {
 			return nil, false
 		}
-		force = slices.Contains(arm.info.Required[arm.value], a.Name) && !slices.Contains(s.file.Skip, attrKey)
-		a = withChecks(a, arm.info.Checked[arm.value][a.Name])
+		rule := arm.ruling(a.Name)
+		force = slices.Contains(rule.info.Required[rule.value], a.Name) && !slices.Contains(s.file.Skip, attrKey)
+		a = withChecks(a, rule.info.Checked[rule.value][a.Name])
 	}
 	return a, s.include(a, attrKey, mode, top) || force
 }
@@ -1026,20 +1034,42 @@ func refused(a *tfAttr) bool {
 	return slices.ContainsFunc(a.Validators, func(v string) bool { return strings.HasPrefix(v, "unsupported") })
 }
 
-// typedArmSet is the arm that the type of a typedArms object names, in a config.
+// typedArmSet is the arm that the type of a typedArms object names, in a config. An arm that holds
+// another typedArms object (an inlined one) has the attributes of both: outer is the set of the
+// object that holds this one. Each attribute follows the set that has its rules.
 type typedArmSet struct {
 	info   *typedInfo
 	value  string
 	fields map[string]bool
+	outer  *typedArmSet
 }
 
 // newTypedArmSet reads the type value from its HCL. It returns nil when the HCL is no plain string.
-func newTypedArmSet(info *typedInfo, hcl string) *typedArmSet {
+// outer is the set that holds this one, when nested says that the type is an attribute of it.
+func newTypedArmSet(info *typedInfo, hcl string, outer *typedArmSet, nested bool) *typedArmSet {
 	value, err := strconv.Unquote(hcl)
 	if err != nil {
 		return nil
 	}
-	return &typedArmSet{info: info, value: value, fields: info.fields(value)}
+	set := &typedArmSet{info: info, value: value, fields: info.fields(value)}
+	if nested {
+		set.outer = outer
+	}
+	return set
+}
+
+// ruling returns the set that has the rules of the attribute: this one when its object merged the
+// attribute, else the set that holds it.
+func (t *typedArmSet) ruling(name string) *typedArmSet {
+	if t.outer != nil && !slices.ContainsFunc(t.info.Attrs, func(a *tfAttr) bool { return a.Name == name }) {
+		return t.outer.ruling(name)
+	}
+	return t
+}
+
+// allows reports whether the arm has the attribute.
+func (t *typedArmSet) allows(name string) bool {
+	return t.ruling(name).fields[name]
 }
 
 // typedFirst puts the type attribute of a typedArms object first: the fields of the arm depend on its
@@ -1751,6 +1781,10 @@ func (s *accSynth) checkAllSet(res *tfResource) error {
 		// A released resource has tests that a tenant validated. A change of the sweep can break them,
 		// so the generator names the gap and leaves the test as it is. A person lists a value in the
 		// acceptance file (values) for each attribute, and checks it against a tenant.
+		if s.file.OnUntested != nil {
+			s.file.OnUntested(missing)
+			return nil
+		}
 		fmt.Fprintf(os.Stderr, "tfgen: warning: %s: %s\n", res.CRUD.TypeName, message)
 		return nil
 	}
@@ -1764,12 +1798,18 @@ func (s *accSynth) fileValue(key string) (value, line string, ok bool) {
 	if v, found := s.file.Values[key]; found {
 		return v, key, true
 	}
-	for _, l := range s.file.ValuePaths() {
-		if rest, wild := strings.CutPrefix(l, "**."); wild && (key == rest || strings.HasSuffix(key, "."+rest)) {
-			return s.file.Values[l], l, true
+	// Of the lines that match, the first in sorted order wins. The walk calls this for every
+	// attribute, so it scans the map and keeps the smallest match, and does not sort the paths.
+	best := ""
+	for l := range s.file.Values {
+		if rest, wild := strings.CutPrefix(l, "**."); wild && (key == rest || strings.HasSuffix(key, "."+rest)) && (best == "" || l < best) {
+			best = l
 		}
 	}
-	return "", "", false
+	if best == "" {
+		return "", "", false
+	}
+	return s.file.Values[best], best, true
 }
 
 // apiFieldPair is one line of the apiFields map of the generated test.

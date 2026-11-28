@@ -109,3 +109,25 @@ printf '#!/bin/sh\n# edited\n' >"$repo/tools/iac-codegen/scripts/x.sh"
 printf 'package other\n// edited\n' >"$repo/internal/provider/other/other_test.go"
 commit_all "$repo" change
 expect_ok "$repo" "$base" "a script-only change"
+
+# A removed test line passes only when test-edits-allowed.txt names it.
+mkdir -p "$work/gate"
+cp "$checker" "$work/gate/check-tests-unchanged.sh"
+printf 'tools/iac-codegen/internal/generator/thing_test.go\told := 1\n' >"$work/gate/test-edits-allowed.txt"
+repo=$work/allowed
+new_repo "$repo"
+printf 'package generator\n\told := 1\n\tkeep := 2\n' >"$repo/tools/iac-codegen/internal/generator/thing_test.go"
+commit_all "$repo" more
+base=$(git -C "$repo" rev-parse HEAD)
+printf 'package generator\n// code\n' >"$repo/tools/iac-codegen/internal/generator/generator.go"
+printf 'package generator\n\tnew := 1\n\tkeep := 2\n' >"$repo/tools/iac-codegen/internal/generator/thing_test.go"
+commit_all "$repo" change
+if ! (cd "$repo" && "$work/gate/check-tests-unchanged.sh" "$base") >"$work/out" 2>&1; then
+  printf 'a named line may be removed\n' >&2; cat "$work/out" >&2; exit 1
+fi
+printf 'package generator\n\tnew := 1\n\tother := 3\n' >"$repo/tools/iac-codegen/internal/generator/thing_test.go"
+commit_all "$repo" change2
+if (cd "$repo" && "$work/gate/check-tests-unchanged.sh" "$base") >"$work/out" 2>&1; then
+  printf 'a line that no entry names must not be removed\n' >&2; exit 1
+fi
+grep -q -F 'edited' "$work/out"

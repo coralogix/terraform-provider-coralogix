@@ -47,6 +47,9 @@ type CheckOptions struct {
 	// AcceptancePath is the acceptance file. With it, Check also builds and renders the
 	// acceptance test, as Generate does.
 	AcceptancePath string
+	// OnUntested, when it is set, takes the attributes of a released resource that no config of
+	// its acceptance test sets, in place of the warning on standard error.
+	OnUntested func(paths []string)
 }
 
 type validatedResource struct {
@@ -155,11 +158,46 @@ func Check(options CheckOptions) error {
 	if err != nil {
 		return fmt.Errorf("read candidate OpenAPI %s: %w", options.OpenAPIPath, err)
 	}
+	c, err := loadContract(data)
+	if err != nil {
+		return err
+	}
+	return checkContract(c, options)
+}
+
+// CheckEach runs Check for every component of the document and passes each result to report, in
+// the order of the document. It reads the document once. options.Resource must be empty.
+func CheckEach(options CheckOptions, report func(component string, err error)) error {
+	if options.Resource != "" {
+		return errors.New("checking every component takes no resource name")
+	}
+	if options.OpenAPIPath == "" {
+		return errors.New("candidate OpenAPI path is required")
+	}
+	data, err := os.ReadFile(options.OpenAPIPath)
+	if err != nil {
+		return fmt.Errorf("read candidate OpenAPI %s: %w", options.OpenAPIPath, err)
+	}
+	c, err := loadContract(data)
+	if err != nil {
+		return err
+	}
+	if c.doc.Components == nil || c.doc.Components.Schemas == nil {
+		return nil
+	}
+	for name := range c.doc.Components.Schemas.FromOldest() {
+		options.Resource = name
+		report(name, checkContract(c, options))
+	}
+	return nil
+}
+
+func checkContract(c *contract, options CheckOptions) error {
 	file, err := readOverrides(options.OverridesPath)
 	if err != nil {
 		return err
 	}
-	validated, err := validateOpenAPIWith(data, options.Resource, options.OperationIDs, "candidate.invalid/coralogix-management-sdk", providerModulePath, file)
+	validated, err := validateContract(c, options.Resource, options.OperationIDs, "candidate.invalid/coralogix-management-sdk", providerModulePath, file)
 	if err != nil {
 		return err
 	}
@@ -175,6 +213,7 @@ func Check(options CheckOptions) error {
 	if acc == nil {
 		return nil
 	}
+	acc.OnUntested = options.OnUntested
 	var prior *acceptance.UpgradeAttributes
 	if options.AcceptancePath != "" {
 		// Without a file, the default has no upgrade test.
@@ -315,6 +354,22 @@ func filledPolicy(doc *v3.Document, file *overrides.File) (model.Policy, issue.R
 // validateOpenAPIWith is validateOpenAPI for a resource with a behavior-overrides
 // file. file is nil for a new resource.
 func validateOpenAPIWith(data []byte, resourceName string, operationIDs model.OperationIDs, sdkModule, providerModule string, file *overrides.File) (*validatedResource, error) {
+	c, err := loadContract(data)
+	if err != nil {
+		return nil, err
+	}
+	return validateContract(c, resourceName, operationIDs, sdkModule, providerModule, file)
+}
+
+// contract is an OpenAPI document that is read once. Validation does not change it, so one
+// contract serves the validation of every component (CheckEach).
+type contract struct {
+	data []byte // the document as the generator reads it
+	doc  *v3.Document
+}
+
+// loadContract reads the OpenAPI document.
+func loadContract(data []byte) (*contract, error) {
 	// An exclusive numeric bound with an exact inclusive form is read as that form (bounds.go).
 	data, err := exclusiveBoundsExact(data)
 	if err != nil {
@@ -328,7 +383,15 @@ func validateOpenAPIWith(data []byte, resourceName string, operationIDs model.Op
 		}
 		return nil, &EligibilityError{Report: issue.Report{{Code: code, Location: "openapi", Message: err.Error(), Remediation: "Correct the source OpenAPI document."}}}
 	}
-	spec := data // the contract that doc reads
+	return &contract{data: data, doc: doc}, nil
+}
+
+func validateContract(c *contract, resourceName string, operationIDs model.OperationIDs, sdkModule, providerModule string, file *overrides.File) (*validatedResource, error) {
+	doc := c.doc
+	var err error
+	spec := c.data // the contract that doc reads
+	data := c.data
+	skipListArmFields(doc, file)
 	policy, report := filledPolicy(doc, file)
 	if len(report) != 0 {
 		return nil, &EligibilityError{Report: report}
@@ -372,6 +435,7 @@ func validateOpenAPIWith(data []byte, resourceName string, operationIDs model.Op
 		return nil, fmt.Errorf("build validated resource: %w", err)
 	}
 	readDigitStrings(resource, policy)
+	extendGroupArms(resource, file)
 	if report := readBackIssues(resource, file); len(report) != 0 {
 		return nil, &EligibilityError{Report: report}
 	}

@@ -390,7 +390,7 @@ func (h inliner) inline(s *yaml.Node, response bool) (map[string]overrides.Paren
 			parents[child] = overrides.Parent{Field: name, Schema: component, Arm: armOnly, Kept: strings.Join(kept, ","), Same: same, Always: h.alwaysSent(name, armOnly, response)}
 		}
 	}
-	if err := h.checkTypedFields(typedObjects, flat); err != nil {
+	if err := h.checkTypedFields(typedObjects, flat, carried != nil); err != nil {
 		return nil, err
 	}
 	setMap(s, "properties", flat)
@@ -425,14 +425,16 @@ func (h inliner) typedObject(typed []*yaml.Node, name, object string, props *yam
 // typedArms line. It takes that line when it has none of its own. The line shows every field of the
 // component as an arm, so the fields must be those of one object: another field, or a second
 // object, would be an arm too.
-func (h inliner) checkTypedFields(typed []*yaml.Node, flat *yaml.Node) error {
+func (h inliner) checkTypedFields(typed []*yaml.Node, flat *yaml.Node, hasGroup bool) error {
 	if len(typed) == 0 || h.file.Types[h.resource].TypedArms != nil {
 		return nil
 	}
 	if len(typed) > 1 {
 		return fmt.Errorf("inline: more than one inlined object has a typedArms line, so the line of the component is unclear; put a typedArms line on %s", h.resource)
 	}
-	if h.keptFields(flat) != len(typed[0].Content) {
+	// With the oneOf group of the object, the fields of the group are the arms, and the other fields
+	// stay plain attributes next to them. Without it, every field would be an arm.
+	if !hasGroup && h.keptFields(flat) != len(typed[0].Content) {
 		return fmt.Errorf("inline: the fields of an object with a typedArms line are arms in %s, but %s has other fields; put a typedArms line on %s to say what it shows (a field that its line skips does not count)", h.resource, h.resource, h.resource)
 	}
 	return nil

@@ -341,7 +341,7 @@ func (s *accSynth) emittedAttrs(attrs []*tfAttr, key string, mode accMode, top b
 	armTaken := s.requiredArms(attrs, key, mode, top)
 	out := map[*tfAttr]bool{}
 	for _, a := range typedFirst(attrs) {
-		if losers[a] || !s.include(a, joinPath(key, a.Name), mode, top) {
+		if losers[a] || !s.include(a, joinPath(key, a.Name), mode, top) || s.sideOff(a, joinPath(key, a.Name)) {
 			continue
 		}
 		if a.OneOfGroup != "" && !a.Required {

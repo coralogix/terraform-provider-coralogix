@@ -286,7 +286,15 @@ type carryFold struct {
 	SDK     string   // Go field of the folded arm in the oneOf struct
 	SDKType string   // qualified SDK type of the folded arm
 	Flag    string   // Go field of the flag in the arm model
-	Fields  []string // Go fields of the two arm structs, which are the same
+	FlagTF  string   // Terraform attribute of the flag
+	Fields  []string // Go fields that both arm structs have; the fold copies them
+	// TargetOnly are the shown fields that only the shown arm has. Expand refuses one while the
+	// flag selects the folded arm.
+	TargetOnly []*convField
+	// FoldedOnly are the shown fields that only the folded arm has. The arm model holds them as
+	// carried fields. Expand writes them to the folded struct, and refuses one while the flag
+	// selects the shown arm. Flatten reads them from the folded struct.
+	FoldedOnly []*convField
 }
 
 // defaultArm is an arm that expand sends empty when no arm of its group is set.
@@ -874,7 +882,7 @@ func buildConvWith(r *model.Resource, refs []sdkcheck.Ref, file *overrides.File)
 	if err != nil {
 		return nil, err
 	}
-	b := &convBuilder{ix: ix, bySchema: map[string]*convObject{}, dists: map[string]*convDistribution{}, file: file, resource: r, sent: sentFields(r, file)}
+	b := &convBuilder{ix: ix, bySchema: map[string]*convObject{}, dists: map[string]*convDistribution{}, file: file, resource: r, sent: sentFields(r, file), objectValues: objectValueFields(r, file)}
 	out := &convData{SDKPkg: ix.pkg.Pkg, SDKName: ix.pkg.Name, AcceptUnknown: acceptUnknown(r, file), AlwaysExists: r.AlwaysExists}
 	// A batch write sends the body item of one resource inside the array the API takes.
 	out.UpdateSliceBody = r.Update.BodyItems
@@ -1043,6 +1051,19 @@ func carryArmPaths(p model.Policy, file *overrides.File, out []string, at string
 			if sibling != carry {
 				out = typeArmPaths(p, file, out, child+"."+terraformName(p, t.Schema, sibling.Name), sibling.Type, seen)
 			}
+		}
+		out = foldedOnlyArmPaths(p, file, out, child, carry, arm, line, seen)
+	}
+	return out
+}
+
+// foldedOnlyArmPaths adds the arm paths inside the fields that only a folded arm has: the attribute
+// of the arm that the fold folds into shows them.
+func foldedOnlyArmPaths(p model.Policy, file *overrides.File, out []string, at string, carry, arm *model.Field, line *overrides.Carry, seen map[*model.Type]bool) []string {
+	for _, name := range foldedArms(line, arm.Name) {
+		from := typeFieldNamed(carry.Type, name)
+		for _, f := range splitFold(arm.Type, from.Type).FoldedOnly {
+			out = typeArmPaths(p, file, out, at+"."+terraformName(p, model.ComponentOf(from.Type), f.Name), f.Type, seen)
 		}
 	}
 	return out
@@ -1587,7 +1608,8 @@ type convBuilder struct {
 	listed       []*convObject // objects that a list holds
 	file         *overrides.File
 	resource     *model.Resource
-	sent         sentSet // component fields that a request sends in some place
+	sent         sentSet        // component fields that a request sends in some place
+	objectValues objectValueSet // object fields that every place of a component holds as a types.Object
 	enumMaps     []*enumMap
 	wraps        []*wrapHelper
 	projections  []*itemProjection
@@ -2735,17 +2757,50 @@ func (b *convBuilder) carryFolds(arm *carryArm, line *overrides.Carry, armName s
 		if from == nil || from.Object == nil {
 			return fmt.Errorf("the folded arm %s is no object", folded)
 		}
-		f := &carryFold{SDK: from.SDK, SDKType: b.qualify(from.Object.SDK), Flag: camelize(fold.Flag)}
-		for _, af := range arm.Object.Fields {
-			if !af.Carried {
-				f.Fields = append(f.Fields, af.SDK)
-			}
+		f := &carryFold{SDK: from.SDK, SDKType: b.qualify(from.Object.SDK), Flag: camelize(fold.Flag), FlagTF: fold.Flag}
+		f.splitFields(arm.Object, from.Object)
+		for _, only := range f.FoldedOnly {
+			addCarried(arm.Object, only)
 		}
 		addCarried(arm.Object, &convField{TFName: fold.Flag, Model: f.Flag, Conv: convBool})
 		arm.Folds = append(arm.Folds, f)
 	}
 	return nil
 }
+
+// splitFields sorts the fields of the shown arm and of the folded arm by the arms that have them,
+// as splitFold does for the schema: the SDK names of the fields tell which are common.
+func (f *carryFold) splitFields(shown, folded *convObject) {
+	for _, af := range shown.Fields {
+		if af.Carried {
+			continue
+		}
+		if foldedField(folded, af.SDK) != nil {
+			f.Fields = append(f.Fields, af.SDK)
+		} else if af.Shown() {
+			f.TargetOnly = append(f.TargetOnly, af)
+		}
+	}
+	for _, ff := range folded.Fields {
+		if !ff.Carried && !slices.ContainsFunc(shown.Fields, func(o *convField) bool { return !o.Carried && o.SDK == ff.SDK }) {
+			f.FoldedOnly = append(f.FoldedOnly, ff)
+		}
+	}
+}
+
+// foldedField returns the field of obj with the SDK name, or nil.
+func foldedField(obj *convObject, sdk string) *convField {
+	for _, f := range obj.Fields {
+		if !f.Carried && f.SDK == sdk {
+			return f
+		}
+	}
+	return nil
+}
+
+// Shown reports whether the user can set the field: it is no fixed value, and the response has it
+// too.
+func (f *convField) Shown() bool { return f.Conv != "fixed" && !f.FlattenOnly && !f.RequestPosition }
 
 // apiNames maps the fields of obj to the API names of the fields of t.
 func apiNames(obj *convObject, t *model.Type) map[*convField]string {
@@ -3724,7 +3779,7 @@ func (b *convBuilder) addMissingFields(obj *convObject, sdkPath, component strin
 				return fmt.Errorf("%s: %w", f.Name, err)
 			}
 		}
-		if (f.Behavior == model.Computed || f.Attrs.Computed) && (f.Type.Kind == model.Object || f.Type.Kind == model.OneOf) {
+		if (f.Behavior == model.Computed || f.Attrs.Computed || b.objectValues.has(component, f.Name)) && (f.Type.Kind == model.Object || f.Type.Kind == model.OneOf) {
 			// The model holds a computed object as a types.Object, which can
 			// be unknown while its parent is known.
 			cf.ObjectValue = true

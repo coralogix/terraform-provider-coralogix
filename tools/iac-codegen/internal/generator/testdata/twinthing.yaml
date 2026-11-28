@@ -1,0 +1,153 @@
+# Like parsething.yaml, but the step holds a oneOf of twin arms that do not have the same fields.
+# The carrySiblings fold shows keepParams and dropParams as one object. Both have rule and
+# keepLogs. keepParams alone has label and limits. dropParams alone has reason, threshold, and
+# extra. Create and Replace take the same inline body. The test runs it with its own SDK package.
+openapi: 3.1.0
+info: {title: parse, version: 1.0.0}
+paths:
+  /parse/v1/things:
+    post:
+      tags: [Parse Things Service]
+      operationId: ParseThingsService_CreateParseThing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              title: CreateParseThingBody
+              type: object
+              properties:
+                name: {type: string, x-coralogix-presence: true}
+                steps:
+                  type: array
+                  items: {$ref: '#/components/schemas/CreateParseStep'}
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/CreateParseThingResponse'}
+  /parse/v1/things/{thing_id}:
+    parameters:
+      - {name: thing_id, in: path, required: true, schema: {type: string}}
+    get:
+      tags: [Parse Things Service]
+      operationId: ParseThingsService_GetParseThing
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/GetParseThingResponse'}
+    put:
+      tags: [Parse Things Service]
+      operationId: ParseThingsService_ReplaceParseThing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              title: ReplaceParseThingBody
+              type: object
+              properties:
+                name: {type: string, x-coralogix-presence: true}
+                steps:
+                  type: array
+                  items: {$ref: '#/components/schemas/CreateParseStep'}
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ReplaceParseThingResponse'}
+    delete:
+      tags: [Parse Things Service]
+      operationId: ParseThingsService_DeleteParseThing
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/DeleteParseThingResponse'}
+components:
+  schemas:
+    CreateParseThingResponse:
+      type: object
+      properties:
+        thing: {$ref: '#/components/schemas/ParseThing'}
+    ReplaceParseThingResponse:
+      type: object
+      properties:
+        thing: {$ref: '#/components/schemas/ParseThing'}
+    GetParseThingResponse:
+      type: object
+      properties:
+        thing: {$ref: '#/components/schemas/ParseThing'}
+    DeleteParseThingResponse:
+      type: object
+    ParseThing:
+      type: object
+      properties:
+        id: {type: string, x-coralogix-presence: true}
+        name: {type: string, x-coralogix-presence: true}
+        steps:
+          type: array
+          items: {$ref: '#/components/schemas/ParseStep'}
+    CreateParseStep:
+      type: object
+      properties:
+        name: {type: string, x-coralogix-presence: true}
+        params: {$ref: '#/components/schemas/ParseParams'}
+    ParseStep:
+      type: object
+      properties:
+        id: {type: string, x-coralogix-presence: true}
+        name: {type: string, x-coralogix-presence: true}
+        params: {$ref: '#/components/schemas/ParseParams'}
+    ParseParams:
+      type: object
+      oneOf:
+        - {required: [keepParams], type: object}
+        - {required: [dropParams], type: object}
+        - {required: [copyParams], type: object}
+        - type: object
+          not:
+            anyOf:
+              - {required: [keepParams], type: object}
+              - {required: [dropParams], type: object}
+              - {required: [copyParams], type: object}
+      properties:
+        keepParams: {$ref: '#/components/schemas/ParseKeepParams'}
+        dropParams: {$ref: '#/components/schemas/ParseDropParams'}
+        copyParams: {$ref: '#/components/schemas/ParseCopyParams'}
+    ParseKeepParams:
+      type: object
+      required: [strict]
+      properties:
+        rule: {type: string, x-coralogix-presence: true}
+        keepLogs: {type: boolean, x-coralogix-presence: true}
+        label: {type: string, x-coralogix-presence: true}
+        strict: {type: string, minLength: 1}
+        limits: {$ref: '#/components/schemas/ParseLimits'}
+    ParseDropParams:
+      type: object
+      required: [hard]
+      properties:
+        rule: {type: string, x-coralogix-presence: true}
+        keepLogs: {type: boolean, x-coralogix-presence: true}
+        reason: {type: string, x-coralogix-presence: true}
+        hard: {type: string, minLength: 1}
+        threshold: {type: integer, format: int64, x-coralogix-presence: true}
+        extra: {$ref: '#/components/schemas/ParseExtra'}
+    ParseLimits:
+      type: object
+      properties:
+        max: {type: integer, format: int64, x-coralogix-presence: true}
+    ParseExtra:
+      type: object
+      properties:
+        detail: {type: string, x-coralogix-presence: true}
+    ParseCopyParams:
+      type: object
+      properties:
+        target: {type: string, x-coralogix-presence: true}

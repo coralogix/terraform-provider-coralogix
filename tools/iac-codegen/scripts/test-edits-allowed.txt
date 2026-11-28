@@ -1,0 +1,5 @@
+# Lines of existing tests that a change may remove, as <path> TAB <line without leading whitespace>.
+# Add a line only when a gap of probe-baseline.txt closes and its test must say so.
+tools/iac-codegen/internal/generator/probe_test.go	{name: "parsething", resource: "ParseThing", wantBroken: "ParseDropParams"},
+tools/iac-codegen/internal/generator/echoed_test.go	"readOnly on a server flag of a shared component":           {"      exceeded: {readOnly: true, name: has_exceeded}\n", "FIELD_LIFECYCLE_UNSUPPORTED", "quota.exceeded", "      exceeded: {name: has_exceeded}\n"},
+tools/iac-codegen/internal/generator/typedthing_test.go	want: "the fields of an object with a typedArms line are arms in TypedSpanValue, but TypedSpanValue has other fields",

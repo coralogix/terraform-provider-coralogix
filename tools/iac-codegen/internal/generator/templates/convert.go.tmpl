@@ -3055,12 +3055,35 @@ func expand{{.Func}}(ctx context.Context, p path.Path, m *{{.Model}}, diags *dia
 {{- end}}
 		oneOf := &{{$carry.Pkg}}.{{$carry.Field.Object.SDK}}{}
 {{- range .Folds}}
+{{- $fold := .}}
 		if flag := m.{{.Flag}}; !flag.IsNull() && !flag.IsUnknown() && !flag.ValueBool() {
 			// false selects the arm that Terraform shows in this one.
 			kept := expand{{$arm.Object.Func}}(ctx, p, m, diags)
 			oneOf.{{.SDK}} = &{{.SDKType}}{ {{- range $i, $f := .Fields}}{{if $i}}, {{end}}{{$f}}: kept.{{$f}}{{end -}} }
+{{- if .FoldedOnly}}
+			{
+				// The fields that only the folded arm has.
+				out := oneOf.{{.SDK}}
+				_ = out
+{{- range .FoldedOnly}}
+{{- template "expandField" .}}
+{{- end}}
+			}
+{{- end}}
+{{- range .TargetOnly}}
+			if {{.SetIn "m"}} {
+				diags.AddAttributeError(p.AtName({{printf "%q" .TFName}}), "Attribute does not fit the flag", {{printf "%q" (printf "%s applies only when %s is true." .TFName $fold.FlagTF)}})
+			}
+{{- end}}
 		} else {
 			oneOf.{{$arm.SDK}} = expand{{$arm.Object.Func}}(ctx, p, m, diags)
+{{- range .FoldedOnly}}
+{{- if .Shown}}
+			if {{.SetIn "m"}} {
+				diags.AddAttributeError(p.AtName({{printf "%q" .TFName}}), "Attribute does not fit the flag", {{printf "%q" (printf "%s applies only when %s is false." .TFName $fold.FlagTF)}})
+			}
+{{- end}}
+{{- end}}
 		}
 {{- else}}
 		oneOf.{{.SDK}} = expand{{.Object.Func}}(ctx, p, m, diags)
@@ -3115,6 +3138,12 @@ func flatten{{.Func}}(ctx context.Context, p path.Path, v *{{$carry.Pkg}}.{{.SDK
 			kept := &{{$carry.Pkg}}.{{$arm.Object.SDK}}{ {{- range $i, $f := .Fields}}{{if $i}}, {{end}}{{$f}}: oneOf.{{$fold.SDK}}.{{$f}}{{end -}} }
 			arm = flatten{{$arm.Object.Func}}(ctx, p.AtName({{printf "%q" $arm.TFName}}), kept, {{if $arm.Object.NeedsPrior}}priorArm, {{end}}diags)
 			arm.{{.Flag}} = types.BoolValue(false)
+{{- range .TargetOnly}}
+{{- if .ZeroWhenAbsent}}
+			// The folded arm lacks this field: a value held by the SDK is no read value, so it is null.
+			reflect.ValueOf(&arm.{{.Model}}).Elem().SetZero()
+{{- end}}
+{{- end}}
 		}
 {{- end}}
 		if oneOf.{{.SDK}} != nil {
@@ -3123,6 +3152,35 @@ func flatten{{.Func}}(ctx context.Context, p path.Path, v *{{$carry.Pkg}}.{{.SDK
 			arm.{{.Flag}} = types.BoolValue(true)
 {{- end}}
 		}
+{{- range .Folds}}
+{{- if .FoldedOnly}}
+		if arm != nil {
+			// The fields that only the folded arm has. Another arm reads them from an empty struct: null.
+			v := oneOf.{{.SDK}}
+			if v == nil {
+				v = &{{.SDKType}}{}
+			}
+			out := arm
+			p := p.AtName({{printf "%q" $arm.TFName}})
+			_, _ = out, p
+{{- if $obj.NeedsPrior}}
+			prior := priorArm
+			_ = prior
+{{- end}}
+{{- range .FoldedOnly}}
+{{- template "flattenField" .}}
+{{- end}}
+			if oneOf.{{.SDK}} == nil {
+{{- range .FoldedOnly}}
+{{- if .ZeroWhenAbsent}}
+				// The folded arm is absent: a value held by the SDK is no read value, so it is null.
+				reflect.ValueOf(&out.{{.Model}}).Elem().SetZero()
+{{- end}}
+{{- end}}
+			}
+		}
+{{- end}}
+{{- end}}
 		if arm != nil {
 			out := arm
 {{- if $obj.NeedsPrior}}
@@ -3162,6 +3220,9 @@ func expand{{.Func}}(ctx context.Context, p path.Path, m *{{.Model}}, diags *dia
 {{- range .Parents}}
 	out.{{.SDK}} = &{{.Type}}{} // an inlined object: its arms are the arms of this object
 {{- end}}
+{{- range $typed.Siblings}}
+{{- template "expandField" .}}
+{{- end}}
 	kind := m.{{$type.Model}}.ValueString()
 {{- if $typed.Infer}}
 	if m.{{$type.Model}}.IsNull() || m.{{$type.Model}}.IsUnknown() {
@@ -3188,6 +3249,9 @@ func expand{{.Func}}(ctx context.Context, p path.Path, m *{{.Model}}, diags *dia
 				{{.Arm}}: m.{{.Merged}},
 {{- end}}
 			},
+{{- range .OuterPairs}}
+			{{.Arm}}: m.{{.Merged}},
+{{- end}}
 		}, diags)
 {{- else if .Object}}
 		out.{{.SDK}} = expand{{.Object.Func}}(ctx, p, &{{.Object.Model}}{
@@ -3235,6 +3299,9 @@ func flatten{{.Func}}(ctx context.Context, p path.Path, v *{{$typed.Pkg}}.{{.SDK
 {{- end}}
 	out := &{{.Model}}{}
 {{- $obj := .}}
+{{- range $typed.Siblings}}
+{{- template "flattenField" .}}
+{{- end}}
 {{- range $typed.Arms}}
 {{- range .Inits}}
 	// A field that the selected arm does not have reads as an absent value.
@@ -3242,6 +3309,15 @@ func flatten{{.Func}}(ctx context.Context, p path.Path, v *{{$typed.Pkg}}.{{.SDK
 {{- range .Fields}}
 		out.{{.Merged}} = empty.{{.Arm}}
 {{- end}}
+	}
+{{- end}}
+{{- range .InnerScalars}}
+	{
+		v := &{{$typed.Pkg}}.{{.SDK}}{}
+{{- range .Parents}}
+		v.{{.SDK}} = &{{.Type}}{}
+{{- end}}
+{{- template "flattenField" .Scalar}}
 	}
 {{- end}}
 {{- if .InitScalar}}
@@ -3270,14 +3346,30 @@ func flatten{{.Func}}(ctx context.Context, p path.Path, v *{{$typed.Pkg}}.{{.SDK
 					{{.Arm}}: prior.{{.Merged}},
 {{- end}}
 				},
+{{- range .OuterPairs}}
+				{{.Arm}}: prior.{{.Merged}},
+{{- end}}
 			}
 		}
 {{- end}}
+{{- if .OuterPairs}}
+		if arm := flatten{{.Object.Func}}(ctx, p, v.{{.SDK}}, {{if .Object.NeedsPrior}}{{if $obj.NeedsPrior}}priorArm{{else}}nil{{end}}, {{end}}diags); arm != nil {
+			if arm.{{.Inline.Model}} != nil {
+{{- range .Pairs}}
+				out.{{.Merged}} = arm.{{$arm.Inline.Model}}.{{.Arm}}
+{{- end}}
+			}
+{{- range .OuterPairs}}
+			out.{{.Merged}} = arm.{{.Arm}}
+{{- end}}
+		}
+{{- else}}
 		if arm := flatten{{.Object.Func}}(ctx, p, v.{{.SDK}}, {{if .Object.NeedsPrior}}{{if $obj.NeedsPrior}}priorArm{{else}}nil{{end}}, {{end}}diags); arm != nil && arm.{{.Inline.Model}} != nil {
 {{- range .Pairs}}
 			out.{{.Merged}} = arm.{{$arm.Inline.Model}}.{{.Arm}}
 {{- end}}
 		}
+{{- end}}
 {{- else if .Object}}
 {{- if and $obj.NeedsPrior .Object.NeedsPrior}}
 		// The prior of the arm is the prior object, when it had this type.

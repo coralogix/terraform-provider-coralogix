@@ -116,13 +116,25 @@ components() {
     in_schemas && /^    [^[:space:]#][^:]*:[[:space:]]*$/ { sub(/^    /, ""); sub(/:[[:space:]]*$/, ""); gsub(/["\047]/, ""); print }
   ' "$spec"
 }
-export -f check
-export old new spec work
-components | xargs -P 8 -I{} bash -c '
-  name=$1 file=$(printf "%s" "$1" | tr "/" "_").txt
-  check old "$old" "$work/old-out/components/$file" --resource "$name" --openapi "$spec"
-  check new "$new" "$work/new-out/components/$file" --resource "$name" --openapi "$spec"
-' _ {}
+# A binary with `check --all` reads the spec once and checks every component in one process. A base
+# commit from before that flag still needs one process for each component.
+check_components() {
+  local side=$1 binary=$2 help
+  # The help text of tfgen comes with exit status 2, which pipefail would turn into "no flag".
+  help=$("$binary" check -h 2>&1 || true)
+  if grep -q -- '-all' <<<"$help"; then
+    "$binary" check --all --openapi "$spec" --out-dir "$work/$side-out/components"
+    return
+  fi
+  export -f check
+  export spec work side binary
+  components | xargs -P 8 -I{} bash -c '
+    name=$1 file=$(printf "%s" "$1" | tr "/" "_").txt
+    check "$side" "$binary" "$work/$side-out/components/$file" --resource "$name" --openapi "$spec"
+  ' _ {}
+}
+check_components old "$old"
+check_components new "$new"
 
 # tfgen writes into internal and examples. A diff that cannot compare also counts as a difference.
 differences=""

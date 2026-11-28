@@ -9,6 +9,7 @@ trap 'rm -rf "$work"' EXIT
 cat >"$work/tfgen" <<'FAKE'
 #!/usr/bin/env bash
 [[ $1 == probe ]] || exit 2
+printf '%b' "${FAKE_WARN:-}" >&2
 printf '%b' "${FAKE_PROBE:-}"
 FAKE
 chmod +x "$work/tfgen"
@@ -48,3 +49,13 @@ grep -q -F 'Delete their lines' "$work/out"
 printf '# header\n' >"$repo/tools/iac-codegen/probe-baseline.txt"
 if FAKE_PROBE='' run; then echo "a probe with no output must fail" >&2; exit 1; fi
 grep -q -F $'thing\tERROR' "$work/out"
+
+# An attribute that no config sets is a line of the baseline: a new one fails, a known one passes.
+warn='tfgen: warning: x: acceptance test: no config sets 2 attributes that a user can set, so they would ship untested:\n  a.b\n  c[].d\n'
+printf '# header\n' >"$repo/tools/iac-codegen/probe-baseline.txt"
+if FAKE_WARN=$warn FAKE_PROBE='string-field\tok\n' run; then echo "a new untested attribute must fail" >&2; exit 1; fi
+grep -q -F $'thing\tuntested\tc[].d' "$work/out"
+FAKE_WARN=$warn FAKE_PROBE='string-field\tok\n' run --update-baseline
+grep -q -F $'thing\tuntested\ta.b' "$repo/tools/iac-codegen/probe-baseline.txt"
+FAKE_WARN=$warn FAKE_PROBE='string-field\tok\n' run || { cat "$work/out" >&2; echo "a known untested attribute must pass" >&2; exit 1; }
+if FAKE_PROBE='string-field\tok\n' run; then echo "a tested attribute must leave the baseline" >&2; exit 1; fi

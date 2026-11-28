@@ -1,0 +1,2 @@
+# The acceptance file of the twin thing: see twinthing.yaml.
+resource: ParseThing
