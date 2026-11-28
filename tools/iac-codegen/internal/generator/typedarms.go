@@ -496,9 +496,9 @@ type typedPair struct {
 	Merged string // the Go field of the model of the typedArms object
 }
 
-// typedInnerScalar reads the merged field of a scalar arm of an inner object from an empty value of
-// the inner SDK type.
-type typedInnerScalar struct {
+// typedInnerRead reads a merged field of an inner object (a scalar arm, or a field beside the arms)
+// from an empty value of the inner SDK type.
+type typedInnerRead struct {
 	SDK     string       // the Go type of the inner object in the SDK package
 	Parents []convParent // the SDK pointers that hold the inlined fields of the inner object
 	Scalar  *convField   // the conversion of the field, with the Go name of the merged field
@@ -533,9 +533,10 @@ type typedArm struct {
 	outer      []*convField // the conversions of the other fields of an inline arm
 	// InitScalar: this arm is the first with the scalar value attribute.
 	InitScalar bool
-	// InnerScalars are the scalar arms of the inner object of an inline arm whose merged field no
-	// earlier arm has: flatten reads each from an empty value of the inner object first.
-	InnerScalars []*typedInnerScalar
+	// InnerScalars are the reads of the scalar arms and of the fields beside the arms of the inner
+	// object of an inline arm whose merged field no earlier arm has: flatten reads each from an
+	// empty value of the inner object first.
+	InnerScalars []*typedInnerRead
 	// Fields are the Terraform names of the fields that the arm has, in order.
 	Fields []string
 }
@@ -847,6 +848,7 @@ func typedInits(a *typedArm, fresh, freshOuter []typedPair) error {
 				a.Inits = append(a.Inits, typedInit{Object: ia.Object, Fields: fields})
 			}
 		}
+		a.addInnerSiblings(fresh)
 		if len(freshOuter) > 0 {
 			a.Inits = append(a.Inits, typedInit{Object: a.Object, Fields: freshOuter})
 		}
@@ -854,6 +856,24 @@ func typedInits(a *typedArm, fresh, freshOuter []typedPair) error {
 		a.Inits = append(a.Inits, typedInit{Object: a.Object, Fields: fresh})
 	}
 	return nil
+}
+
+// addInnerSiblings adds the read of each field beside the arms of the inner object whose merged
+// field is fresh. An arm that lacks the field reads it as a null of its own type, which a collection
+// needs: a zero value has no element type.
+func (a *typedArm) addInnerSiblings(fresh []typedPair) {
+	for _, sibling := range a.Inner.Typed.Siblings {
+		if i := slices.IndexFunc(fresh, func(p typedPair) bool { return p.Arm == sibling.Model }); i >= 0 {
+			a.addInnerRead(sibling, fresh[i].Merged)
+		}
+	}
+}
+
+// addInnerRead adds the read of the field of the inner object that the merged field copies.
+func (a *typedArm) addInnerRead(field *convField, merged string) {
+	read := *field
+	read.Model = merged
+	a.InnerScalars = append(a.InnerScalars, &typedInnerRead{SDK: a.Inner.SDK, Parents: a.Inner.FlattenParents, Scalar: &read})
 }
 
 // addInnerScalar adds the read of the scalar arm ia of the inner object, when the merged field of
@@ -866,9 +886,7 @@ func (a *typedArm) addInnerScalar(ia *typedArm, fresh []typedPair) {
 	if i < 0 {
 		return
 	}
-	scalar := *ia.Scalar
-	scalar.Model = fresh[i].Merged
-	a.InnerScalars = append(a.InnerScalars, &typedInnerScalar{SDK: a.Inner.SDK, Parents: a.Inner.FlattenParents, Scalar: &scalar})
+	a.addInnerRead(ia.Scalar, fresh[i].Merged)
 }
 
 // typedArmNeedsPrior reports whether an arm of a typedArms object needs the prior value to read. The
